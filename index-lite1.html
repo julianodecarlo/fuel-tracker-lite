@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Fuel Tracker LITE - Controle de Combustível</title>
+    
+    <!-- PWA & iOS NATIVE META TAGS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FuelTracker Lite">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
+
+    <!-- Dependências -->
+    <script src="vendor/tailwind.js"></script>
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="vendor/chart.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="vendor/jspdf.umd.min.js"></script>
+    <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Fallbacks CDN -->
+    <script>
+        if (!window.tailwind) document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
+        if (!window.Chart) document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');
+        if (!window.XLSX) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
+        if (!window.jspdf) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>');
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind = window.tailwind || {};
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        cardHover: '#334155',
+                        accentGreen: '#10b981',
+                        accentGreenDark: '#059669',
+                        accentBlue: '#3b82f6',
+                        accentOrange: '#f97316',
+                        accentPurple: '#8b5cf6',
+                        textMuted: '#94a3b8'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --sat: env(safe-area-inset-top);
+            --sab: env(safe-area-inset-bottom);
+        }
+
+        body {
+            padding-top: var(--sat);
+            padding-bottom: var(--sab);
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        .iphone-frame {
+            width: 100%;
+            min-height: 100vh;
+            border-radius: 0;
+            box-shadow: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center font-sans antialiased">
+
+    <div id="deviceFrame" class="iphone-frame bg-slate-900 w-full flex flex-col justify-between overflow-hidden">
+        
+        <header class="pt-10 px-4 pb-3 bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-30 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-orange-500/20">
+                    <i class="fa-solid fa-gas-pump text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-white leading-tight">Fuel Tracker <span class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30">LITE</span></h1>
+                    <p class="text-[10px] text-slate-400 font-medium">Versão de Testes (Até 5 Registros)</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="openProModal()" class="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-lg shadow-orange-500/20 transition flex items-center gap-1">
+                    <i class="fa-solid fa-crown text-xs"></i> Virar PRO
+                </button>
+
+                <div class="relative">
+                    <button onclick="toggleSettingsMenu()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center transition shadow focus:outline-none" title="Opções e Configurações">
+                        <i class="fa-solid fa-gear text-base"></i>
+                    </button>
+
+                    <div id="settingsDropdown" class="hidden absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-lg">
+                        <button onclick="showProFeatureNotice('Exportação JSON'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-download w-4 text-purple-400"></i> Exportar JSON</span>
+                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
+                        </button>
+                        <button onclick="showProFeatureNotice('Restauração de Dados'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-upload w-4 text-blue-400"></i> Restaurar JSON</span>
+                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
+                        </button>
+                        <hr class="border-slate-700/60 my-1">
+
+                        <button onclick="showProFeatureNotice('Relatórios Excel'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-file-excel w-4 text-emerald-400"></i> Exportar Excel</span>
+                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
+                        </button>
+                        <button onclick="showProFeatureNotice('Relatórios PDF'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-file-pdf w-4 text-rose-400"></i> Exportar PDF</span>
+                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
+                        </button>
+                        <hr class="border-slate-700/60 my-1">
+
+                        <button onclick="showProFeatureNotice('Limpeza de Banco'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-trash-arrow-up w-4 text-red-400"></i> Zerar Banco</span>
+                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div id="liteUsageBanner" class="glass-card p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-amber-400 text-sm"></i>
+                    <span class="text-xs text-slate-200">Uso no modelo Gratuito: <strong id="recordCountBadge" class="text-amber-400">0/5</strong> abastecimentos</span>
+                </div>
+                <button onclick="openProModal()" class="text-[11px] font-bold text-amber-400 hover:underline">Liberar Ilimitado &rarr;</button>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1 bg-slate-800/80 p-1 rounded-xl text-[11px] font-semibold border border-slate-700/60">
+                <button id="tabDashboard" onclick="switchTab('dashboard')" class="py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-chart-pie"></i> Resumo
+                </button>
+                <button id="tabHistory" onclick="switchTab('history')" class="py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-list-ul"></i> Histórico
+                </button>
+                <button id="tabAnalytics" onclick="switchTab('analytics')" class="py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-chart-line"></i> Análise
+                </button>
+                <button id="tabRevision" onclick="switchTab('revision')" class="py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-wrench"></i> Revisão
+                </button>
+            </div>
+
+            <div id="viewDashboard" class="space-y-4">
+                <div class="glass-card p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-bold uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-calculator"></i> Decisão no Posto (Álcool vs Gasolina)
+                        </h2>
+                        <span id="labelFatorPosto" class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Fator: 85.9%</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-emerald-400 mb-0.5">Preço Álcool (R$)</label>
+                            <input type="number" id="calcPrecoA" step="0.01" placeholder="Ex: 3.79" oninput="calcularDecisaoPosto()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">Preço Gasolina (R$)</label>
+                            <input type="number" id="calcPrecoG" step="0.01" placeholder="Ex: 5.89" oninput="calcularDecisaoPosto()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+                    <div id="resultadoCalcPosto" class="text-center p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-semibold text-slate-400">
+                        Insira os preços para comparar a vantagem.
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-slate-700/50">
+                        <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Km Total Rodado</div>
+                        <div class="text-xl font-black text-white mt-1" id="kpiTotalKm">0 km</div>
+                        <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-gauge-high text-emerald-400"></i>
+                            <span id="kpiOdometro">Odômetro: 0 km</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-slate-700/50">
+                        <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Gasto Total</div>
+                        <div class="text-xl font-black text-emerald-400 mt-1" id="kpiGastoTotal">R$ 0,00</div>
+                        <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-coins text-amber-400"></i>
+                            <span id="kpiCustoMedio">Custo/km: R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl border border-slate-700/50 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-bold uppercase text-slate-300 tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt text-amber-400"></i> Médias de Consumo (KM/L)
+                        </h2>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-xl text-[10px] border border-slate-800 text-center">
+                        <button id="filterTankOnly" onclick="setKmlFilterCriterion('tank')" class="py-1 rounded-lg text-slate-400 font-semibold transition">
+                            Tanque Cheio
+                        </button>
+                        <button id="filterRangeOnly" onclick="setKmlFilterCriterion('range')" class="py-1 rounded-lg text-slate-400 font-semibold transition">
+                            Faixa (5-17)
+                        </button>
+                        <button id="filterBoth" onclick="setKmlFilterCriterion('both')" class="py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow">
+                            Ambos
+                        </button>
+                    </div>
+
+                    <div class="flex rounded-lg bg-slate-900/80 p-0.5 border border-slate-800 text-xs">
+                        <button id="avgModeAll" onclick="setAvgMode('all')" class="flex-1 py-1 rounded-md bg-slate-700 text-white font-semibold text-[11px] transition">
+                            Média Geral (Todos)
+                        </button>
+                        <button id="avgMode5" onclick="setAvgMode('last5')" class="flex-1 py-1 rounded-md text-slate-400 font-semibold text-[11px] hover:text-white transition">
+                            Últimos 5 Abastecimentos
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 pt-1">
+                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-emerald-500/20 text-center">
+                            <span class="text-[10px] font-bold text-emerald-400 block mb-0.5"><i class="fa-solid fa-leaf"></i> Álcool</span>
+                            <span class="text-base font-black text-white block" id="avgAlcoholVal">0.00</span>
+                            <span class="text-[9px] text-slate-400 block" id="avgAlcoholSub">km/L</span>
+                        </div>
+                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-amber-500/20 text-center">
+                            <span class="text-[10px] font-bold text-amber-400 block mb-0.5"><i class="fa-solid fa-fire"></i> Gasolina</span>
+                            <span class="text-base font-black text-white block" id="avgGasVal">0.00</span>
+                            <span class="text-[9px] text-slate-400 block" id="avgGasSub">km/L</span>
+                        </div>
+                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-purple-500/20 text-center">
+                            <span class="text-[10px] font-bold text-purple-400 block mb-0.5"><i class="fa-solid fa-shuffle"></i> Misto</span>
+                            <span class="text-base font-black text-white block" id="avgMixedVal">0.00</span>
+                            <span class="text-[9px] text-slate-400 block" id="avgMixedSub">km/L</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl border border-slate-700/50 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-bold uppercase text-white tracking-wider flex items-center gap-1.5">
+                            <i id="formIcon" class="fa-solid fa-circle-plus text-emerald-400"></i>
+                            <span id="formTitle">Novo Abastecimento</span>
+                        </h2>
+                        <button id="cancelEditBtn" onclick="resetForm()" class="hidden text-xs text-rose-400 hover:underline">
+                            Cancelar Edição
+                        </button>
+                    </div>
+
+                    <form id="fuelForm" onsubmit="handleFormSubmit(event)" class="space-y-3 text-xs">
+                        <input type="hidden" id="editIndex" value="-1">
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div class="flex flex-col min-w-0">
+                                <label class="block text-[11px] font-medium text-slate-300 mb-1">Data</label>
+                                <input type="date" id="inputData" required class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition">
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                                <label class="block text-[11px] font-medium text-slate-300 mb-1">Odômetro (Km)</label>
+                                <input type="number" id="inputOdometro" step="1" required placeholder="Ex: 14600" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20">
+                            <div class="min-w-0">
+                                <label class="block text-[10px] font-semibold text-emerald-400 mb-0.5">Litros Álcool</label>
+                                <input type="number" id="inputLitrosA" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div class="min-w-0">
+                                <label class="block text-[10px] font-semibold text-emerald-400 mb-0.5">Preço/L Álcool (R$)</label>
+                                <input type="number" id="inputPrecoA" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/20">
+                            <div class="min-w-0">
+                                <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">Litros Gasolina</label>
+                                <input type="number" id="inputLitrosG" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div class="min-w-0">
+                                <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">Preço/L Gas (R$)</label>
+                                <input type="number" id="inputPrecoG" step="0.01" min="0" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" id="inputTanqueCheio" checked class="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500 bg-slate-900 border-slate-700">
+                                <span class="text-xs font-semibold text-slate-200">Tanque Cheio?</span>
+                            </label>
+
+                            <button type="submit" id="saveBtn" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Salvar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between px-1">
+                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Últimos Registros</h3>
+                        <button onclick="switchTab('history')" class="text-[11px] text-emerald-400 hover:underline">Ver Todos &rarr;</button>
+                    </div>
+                    <div id="recentRecordsList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div id="viewHistory" class="space-y-3 hidden">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">Histórico Completo</h2>
+                    <span id="historyCountBadge" class="text-xs text-slate-400 font-medium">0 registros</span>
+                </div>
+
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <button onclick="setHistoryFilter('ALL')" id="filterBtnALL" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap">
+                        Todos
+                    </button>
+                    <button onclick="setHistoryFilter('A')" id="filterBtnA" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition whitespace-nowrap">
+                        <i class="fa-solid fa-leaf text-emerald-400 mr-1"></i> Álcool
+                    </button>
+                    <button onclick="setHistoryFilter('G')" id="filterBtnG" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition whitespace-nowrap">
+                        <i class="fa-solid fa-fire text-amber-400 mr-1"></i> Gasolina
+                    </button>
+                    <button onclick="setHistoryFilter('M')" id="filterBtnM" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition whitespace-nowrap">
+                        <i class="fa-solid fa-shuffle text-purple-400 mr-1"></i> Misto
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                    <input type="text" id="historySearch" oninput="renderHistoryList()" placeholder="Buscar por data ou km..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-slate-600">
+                </div>
+
+                <div id="fullHistoryList" class="space-y-2.5 max-h-[520px] overflow-y-auto pr-1"></div>
+            </div>
+
+            <div id="viewAnalytics" class="space-y-4 hidden">
+                <div class="glass-card p-3.5 rounded-2xl border border-slate-700/50">
+                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line text-emerald-400"></i> Evolução de Consumo (Km/L)
+                    </h3>
+                    <div class="h-48 w-full">
+                        <canvas id="consumptionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card p-3.5 rounded-2xl border border-slate-700/50">
+                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-pie text-amber-400"></i> Distribuição por Combustível
+                    </h3>
+                    <div class="h-44 w-full flex justify-center">
+                        <canvas id="fuelDistChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card p-3.5 rounded-2xl border border-slate-700/50 space-y-2 text-xs">
+                    <h3 class="font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-lightbulb text-yellow-400"></i> Insight de Economia
+                    </h3>
+                    <p id="insightText" class="text-slate-300 leading-relaxed">
+                        Analisando os seus dados...
+                    </p>
+                </div>
+            </div>
+
+            <div id="viewRevision" class="space-y-4 hidden">
+                <div class="glass-card p-5 rounded-2xl border border-blue-500/30 bg-blue-500/5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-blue-500/20 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-wrench"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-bold text-white uppercase tracking-wider">Manutenção Prevista</h2>
+                                <p class="text-[10px] text-slate-400">Gestão do intervalo de troca de óleo/revisão</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-blue-300 bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20" id="revisionKmTarget">10.000 km</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <span class="text-xs font-medium text-slate-300">Status Atual:</span>
+                        <div class="text-xl font-black text-white" id="revisionForecast">Calculando...</div>
+                        <p class="text-xs text-slate-400" id="revisionSubtext">Baseado no ritmo de uso médio dos seus dados</p>
+                    </div>
+
+                    <div class="pt-2">
+                        <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-700">
+                            <div id="revisionProgressBar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="py-2.5 px-5 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span id="storageStatus">Versão Gratuita</span>
+            </span>
+            <span class="font-mono text-[10px] text-slate-500">v1.2 LITE • 5 Registros</span>
+        </footer>
+    </div>
+
+    <!-- MODAL DE UPGRADE PRO -->
+    <div id="proModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative text-center space-y-4">
+            <button onclick="closeProModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center text-3xl font-black mx-auto shadow-lg shadow-orange-500/30">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-white">Adquira o Fuel Tracker PRO</h3>
+                <p class="text-xs text-slate-400 mt-1">Desbloqueie todo o potencial do seu controle de combustível por um valor único!</p>
+            </div>
+            
+            <div class="bg-slate-800/80 rounded-2xl p-3 text-left space-y-2 text-xs border border-slate-700/60">
+                <div class="flex items-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-check text-emerald-400"></i> Registros de abastecimento **ilimitados**
+                </div>
+                <div class="flex items-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-check text-emerald-400"></i> Exportação de relatórios em **Excel e PDF**
+                </div>
+                <div class="flex items-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-check text-emerald-400"></i> Backup completo em **JSON**
+                </div>
+                <div class="flex items-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-check text-emerald-400"></i> Experiência **100% sem anúncios**
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <a id="linkPlayStorePro" href="https://play.google.com/store/apps/details?id=com.seuapp.fueltrackerpro" target="_blank" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl shadow-lg shadow-orange-500/25 transition flex items-center justify-center gap-2 text-sm">
+                    Baixar Versão PRO (R$ 4,90)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white border border-slate-700 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none z-50 text-xs font-medium">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastMsg">Mensagem de confirmação</span>
+    </div>
+
+    <script>
+        const FREE_RECORD_LIMIT = 5;
+
+        function toggleSettingsMenu() {
+            const dropdown = document.getElementById('settingsDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+            }
+        }
+
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('settingsDropdown');
+            const gearBtn = event.target.closest('button[onclick*="toggleSettingsMenu"]');
+            if (dropdown && !dropdown.classList.contains('hidden') && !gearBtn && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function openProModal() {
+            const modal = document.getElementById('proModal');
+            if (modal) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.classList.add('opacity-100');
+            }
+        }
+
+        function closeProModal() {
+            const modal = document.getElementById('proModal');
+            if (modal) {
+                modal.classList.remove('opacity-100');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function showProFeatureNotice(featureName) {
+            openProModal();
+        }
+
+        const KML_MIN = 5.0;
+        const KML_MAX = 17.0;
+
+        let records = [];
+        let currentAvgMode = 'all';
+        let currentKmlCriterion = 'both';
+        let currentHistoryFilter = 'ALL';
+        let chartInstance = null;
+        let distChartInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const inputData = document.getElementById('inputData');
+            if (inputData) inputData.value = new Date().toISOString().split('T')[0];
+            loadRecords();
+            recalculateMetricsAndRender();
+        });
+
+        function getFatorRendimentoDinamico() {
+            const validA = records.filter(r => r.full && r.comb === 'A' && r.kml >= KML_MIN && r.kml <= KML_MAX);
+            const validG = records.filter(r => r.full && r.comb === 'G' && r.kml >= KML_MIN && r.kml <= KML_MAX);
+
+            const avgKmlA = validA.length ? (validA.reduce((a, b) => a + b.kml, 0) / validA.length) : 8.61;
+            const avgKmlG = validG.length ? (validG.reduce((a, b) => a + b.kml, 0) / validG.length) : 10.02;
+
+            return avgKmlA / avgKmlG;
+        }
+
+        function calcularDecisaoPosto() {
+            const precoA = parseFloat(document.getElementById('calcPrecoA').value);
+            const precoG = parseFloat(document.getElementById('calcPrecoG').value);
+            const resEl = document.getElementById('resultadoCalcPosto');
+
+            const fator = getFatorRendimentoDinamico();
+            const fatorPct = fator * 100;
+
+            const labelFator = document.getElementById('labelFatorPosto');
+            if (labelFator) {
+                labelFator.innerText = `Fator: ${fatorPct.toFixed(1)}%`;
+            }
+
+            if (!precoA || !precoG) {
+                resEl.className = "text-center p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-semibold text-slate-400";
+                resEl.innerHTML = "Insira os preços para comparar a vantagem.";
+                return;
+            }
+
+            const razio = (precoA / precoG) * 100;
+            const precoMaxA = precoG * fator;
+
+            if (razio <= fatorPct) {
+                resEl.className = "text-center p-2 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-xs font-bold text-emerald-400";
+                resEl.innerHTML = `<i class="fa-solid fa-leaf text-emerald-400 mr-1"></i> Abasteça com ÁLCOOL! (${razio.toFixed(1)}% do preço da gasolina | Máx: R$ ${precoMaxA.toFixed(2)})`;
+            } else {
+                resEl.className = "text-center p-2 rounded-xl bg-amber-950/80 border border-amber-500/40 text-xs font-bold text-amber-400";
+                resEl.innerHTML = `<i class="fa-solid fa-fire text-amber-400 mr-1"></i> Abasteça com GASOLINA! (Álcool vale a pena até R$ ${precoMaxA.toFixed(2)})`;
+            }
+        }
+
+        function renderRevisionForecast() {
+            const forecastEl = document.getElementById('revisionForecast');
+            const subtextEl = document.getElementById('revisionSubtext');
+            const targetEl = document.getElementById('revisionKmTarget');
+            const progressBar = document.getElementById('revisionProgressBar');
+
+            if (!forecastEl || !subtextEl || !targetEl) return;
+
+            if (!records || records.length < 2) {
+                forecastEl.innerText = "Dados insuficientes";
+                subtextEl.innerText = "Cadastre pelo menos 2 abastecimentos";
+                if (progressBar) progressBar.style.width = "0%";
+                return;
+            }
+
+            const sorted = [...records].sort((a, b) => Number(a.odo) - Number(b.odo));
+            const minOdo = Number(sorted[0].odo);
+            const maxOdo = Number(sorted[sorted.length - 1].odo);
+            
+            const revisionInterval = 10000;
+            const currentIntervalStart = Math.floor(maxOdo / revisionInterval) * revisionInterval;
+            const nextRevisionKm = (Math.floor(maxOdo / revisionInterval) + 1) * revisionInterval;
+            const kmRemaining = nextRevisionKm - maxOdo;
+
+            const progressPct = Math.min(100, Math.max(0, ((maxOdo - currentIntervalStart) / revisionInterval) * 100));
+            if (progressBar) progressBar.style.width = `${progressPct}%`;
+
+            const firstDate = new Date(sorted[0].date);
+            const lastDate = new Date(sorted[sorted.length - 1].date);
+            const daysDiff = Math.max(1, (lastDate - firstDate) / (1000 * 60 * 60 * 24));
+            
+            const kmPerDay = (maxOdo - minOdo) / daysDiff;
+            const estimatedDaysLeft = kmPerDay > 0 ? Math.round(kmRemaining / kmPerDay) : 0;
+
+            const estimatedDate = new Date();
+            estimatedDate.setDate(estimatedDate.getDate() + estimatedDaysLeft);
+
+            targetEl.innerText = `${nextRevisionKm.toLocaleString('pt-BR')} km`;
+            
+            if (estimatedDaysLeft > 0) {
+                forecastEl.innerText = `Faltam ${kmRemaining.toLocaleString('pt-BR')} km (~${formatDateBR(estimatedDate.toISOString().split('T')[0])})`;
+                subtextEl.innerText = `Média de ${(kmPerDay * 30).toFixed(0)} km/mês rodados`;
+            } else {
+                forecastEl.innerText = `Revisão Pendente!`;
+                subtextEl.innerText = `Odômetro atingiu a marca de revisão`;
+            }
+        }
+
+        function loadRecords() {
+            const stored = localStorage.getItem('fuel_tracker_lite_records');
+            if (stored) {
+                try {
+                    records = JSON.parse(stored);
+                } catch(e) {
+                    records = [];
+                }
+            } else {
+                records = [];
+            }
+        }
+
+        function saveRecords() {
+            localStorage.setItem('fuel_tracker_lite_records', JSON.stringify(records));
+            const statusEl = document.getElementById('storageStatus');
+            if (statusEl) statusEl.innerText = `Versão Gratuita (${records.length}/${FREE_RECORD_LIMIT})`;
+            
+            const countBadge = document.getElementById('recordCountBadge');
+            if (countBadge) countBadge.innerText = `${records.length}/${FREE_RECORD_LIMIT}`;
+        }
+
+        function recalculateMetricsAndRender() {
+            records.sort((a, b) => Number(a.odo) - Number(b.odo));
+
+            for (let i = 0; i < records.length; i++) {
+                const rec = records[i];
+                rec.kmTotal = (i === 0) ? 0 : Math.max(0, Number(rec.odo) - Number(records[i - 1].odo));
+
+                rec.lA = Number(rec.lA) || 0;
+                rec.pA = Number(rec.pA) || 0;
+                rec.vA = rec.lA * rec.pA;
+
+                rec.lG = Number(rec.lG) || 0;
+                rec.pG = Number(rec.pG) || 0;
+                rec.vG = rec.lG * rec.pG;
+
+                rec.totL = rec.lA + rec.lG;
+                rec.totR = rec.vA + rec.vG;
+
+                if (rec.lA > 0 && rec.lG > 0) rec.comb = 'M';
+                else if (rec.lG > 0) rec.comb = 'G';
+                else if (rec.lA > 0) rec.comb = 'A';
+                else rec.comb = '-';
+
+                rec.isOutlier = false;
+                if (rec.totL > 0 && rec.kmTotal > 0) {
+                    const rawKml = rec.kmTotal / rec.totL;
+                    if (rawKml >= KML_MIN && rawKml <= KML_MAX) {
+                        rec.kml = rawKml;
+                    } else {
+                        rec.kml = 0;
+                        rec.isOutlier = true;
+                        rec.rawKml = rawKml;
+                    }
+                } else {
+                    rec.kml = 0;
+                }
+
+                rec.rkm = (rec.kmTotal > 0 && rec.totR > 0) ? (rec.totR / rec.kmTotal) : 0;
+            }
+
+            saveRecords();
+            renderKPIs();
+            renderAverages();
+            renderRecentRecords();
+            renderHistoryList();
+            renderCharts();
+            renderInsights();
+            renderRevisionForecast();
+            calcularDecisaoPosto();
+        }
+
+        function setKmlFilterCriterion(criterion) {
+            currentKmlCriterion = criterion;
+            const btnTank = document.getElementById('filterTankOnly');
+            const btnRange = document.getElementById('filterRangeOnly');
+            const btnBoth = document.getElementById('filterBoth');
+            
+            [btnTank, btnRange, btnBoth].forEach(b => {
+                if (b) b.className = 'py-1 rounded-lg text-slate-400 font-semibold transition';
+            });
+
+            if (criterion === 'tank' && btnTank) btnTank.className = 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow';
+            if (criterion === 'range' && btnRange) btnRange.className = 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow';
+            if (criterion === 'both' && btnBoth) btnBoth.className = 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow';
+
+            renderAverages();
+        }
+
+        function renderKPIs() {
+            if (records.length === 0) {
+                document.getElementById('kpiTotalKm').innerText = `0 km`;
+                document.getElementById('kpiOdometro').innerText = `Odômetro: 0 km`;
+                document.getElementById('kpiGastoTotal').innerText = `R$ 0,00`;
+                document.getElementById('kpiCustoMedio').innerText = `Custo/km: R$ 0,00`;
+                return;
+            }
+            const maxOdo = Math.max(...records.map(r => Number(r.odo)));
+            const minOdo = Math.min(...records.map(r => Number(r.odo)));
+            const totalKmDriven = maxOdo - minOdo;
+            const totalSpent = records.reduce((sum, r) => sum + (Number(r.totR) || 0), 0);
+            const avgCostPerKm = totalKmDriven > 0 ? (totalSpent / totalKmDriven) : 0;
+
+            document.getElementById('kpiTotalKm').innerText = `${totalKmDriven.toLocaleString('pt-BR')} km`;
+            document.getElementById('kpiOdometro').innerText = `Odômetro: ${maxOdo.toLocaleString('pt-BR')} km`;
+            document.getElementById('kpiGastoTotal').innerText = `R$ ${totalSpent.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('kpiCustoMedio').innerText = `Custo/km: R$ ${avgCostPerKm.toFixed(2)}`;
+        }
+
+        function renderAverages() {
+            const filteredDataset = records.filter(r => {
+                const isFullTank = Boolean(r.full);
+                const hasValidLiters = Number(r.totL) > 0;
+                const hasValidKm = Number(r.kmTotal) > 0;
+                if (!hasValidLiters || !hasValidKm) return false;
+                
+                const rawKml = r.kmTotal / r.totL;
+                const isInRange = (rawKml >= KML_MIN && rawKml <= KML_MAX);
+
+                if (currentKmlCriterion === 'tank') return isFullTank;
+                if (currentKmlCriterion === 'range') return isInRange;
+                if (currentKmlCriterion === 'both') return isFullTank && isInRange;
+                return true;
+            });
+
+            let dataset = (currentAvgMode === 'last5') ? filteredDataset.slice(-5) : filteredDataset;
+
+            const calcAvgForFuel = (fuelType) => {
+                const filtered = dataset.filter(r => r.comb === fuelType);
+                const totalKm = filtered.reduce((sum, r) => sum + Number(r.kmTotal), 0);
+                const totalL = filtered.reduce((sum, r) => sum + Number(r.totL), 0);
+                return totalL > 0 ? (totalKm / totalL).toFixed(2) : "0.00";
+            };
+
+            document.getElementById('avgAlcoholVal').innerText = calcAvgForFuel('A');
+            document.getElementById('avgGasVal').innerText = calcAvgForFuel('G');
+            document.getElementById('avgMixedVal').innerText = calcAvgForFuel('M');
+
+            const modeSuffix = currentAvgMode === 'last5' ? '(últ. 5)' : '(geral)';
+            document.getElementById('avgAlcoholSub').innerText = `km/L ${modeSuffix}`;
+            document.getElementById('avgGasSub').innerText = `km/L ${modeSuffix}`;
+            document.getElementById('avgMixedSub').innerText = `km/L ${modeSuffix}`;
+        }
+
+        function setAvgMode(mode) {
+            currentAvgMode = mode;
+            const btnAll = document.getElementById('avgModeAll');
+            const btn5 = document.getElementById('avgMode5');
+
+            if (mode === 'all') {
+                btnAll.className = 'flex-1 py-1 rounded-md bg-slate-700 text-white font-semibold text-[11px] transition';
+                btn5.className = 'flex-1 py-1 rounded-md text-slate-400 font-semibold text-[11px] hover:text-white transition';
+            } else {
+                btn5.className = 'flex-1 py-1 rounded-md bg-slate-700 text-white font-semibold text-[11px] transition';
+                btnAll.className = 'flex-1 py-1 rounded-md text-slate-400 font-semibold text-[11px] hover:text-white transition';
+            }
+            renderAverages();
+        }
+
+        function renderRecentRecords() {
+            const listEl = document.getElementById('recentRecordsList');
+            if (!listEl) return;
+            listEl.innerHTML = '';
+            if (records.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-4 text-slate-500 text-xs">Nenhum abastecimento recente.</div>`;
+                return;
+            }
+            [...records].reverse().slice(0, 3).forEach((rec) => {
+                listEl.appendChild(createRecordCard(rec));
+            });
+        }
+
+        function renderHistoryList() {
+            const listEl = document.getElementById('fullHistoryList');
+            if (!listEl) return;
+            listEl.innerHTML = '';
+
+            const searchTerm = (document.getElementById('historySearch')?.value || '').toLowerCase();
+            let filtered = [...records].reverse().filter(rec => {
+                const matchType = (currentHistoryFilter === 'ALL') || (rec.comb === currentHistoryFilter);
+                const formattedDate = formatDateBR(rec.date);
+                const matchSearch = formattedDate.includes(searchTerm) || String(rec.odo).includes(searchTerm);
+                return matchType && matchSearch;
+            });
+
+            document.getElementById('historyCountBadge').innerText = `${filtered.length} registros`;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 text-xs">
+                        <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
+                        Nenhum abastecimento encontrado.
+                    </div>`;
+                return;
+            }
+
+            filtered.forEach((rec) => {
+                listEl.appendChild(createRecordCard(rec, true));
+            });
+        }
+
+        function createRecordCard(rec, showActions = false) {
+            const div = document.createElement('div');
+            div.className = 'bg-slate-800/90 hover:bg-slate-800 p-3 rounded-2xl border border-slate-700/60 shadow-sm transition space-y-2';
+
+            const originalIndex = records.findIndex(r => r.date === rec.date && r.odo === rec.odo);
+
+            let fuelBadge = '';
+            if (rec.comb === 'A') fuelBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold"><i class="fa-solid fa-leaf"></i> Álcool</span>`;
+            else if (rec.comb === 'G') fuelBadge = `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold"><i class="fa-solid fa-fire"></i> Gasolina</span>`;
+            else if (rec.comb === 'M') fuelBadge = `<span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold"><i class="fa-solid fa-shuffle"></i> Misto</span>`;
+
+            const tankBadge = rec.full 
+                ? `<span class="text-[9px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-medium">Cheio</span>`
+                : `<span class="text-[9px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded font-medium">Parcial</span>`;
+
+            const totalValFormatted = (Number(rec.totR) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            const kmDeltaText = rec.kmTotal > 0 ? `(+${rec.kmTotal} km)` : '';
+
+            let detailItems = [];
+            if (rec.lA > 0) detailItems.push(`Álcool: ${rec.lA.toFixed(2)}L`);
+            if (rec.lG > 0) detailItems.push(`Gas: ${rec.lG.toFixed(2)}L`);
+
+            let kmlDisplay = '';
+            if (rec.isOutlier) {
+                kmlDisplay = `<span class="text-rose-400 font-semibold bg-rose-950/60 border border-rose-800/50 px-1.5 py-0.5 rounded text-[10px]">⚠️ Desconsiderado (${rec.rawKml.toFixed(2)} km/L)</span>`;
+            } else if (rec.kml > 0) {
+                kmlDisplay = `<span class="font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-800/50 px-1.5 py-0.5 rounded text-[10px]">${rec.kml.toFixed(2)} km/L</span>`;
+            }
+
+            div.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-white text-xs">${formatDateBR(rec.date)}</span>
+                        ${tankBadge}
+                    </div>
+                    <div class="text-right">
+                        <span class="font-black text-emerald-400 text-sm">R$ ${totalValFormatted}</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-slate-300">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-gauge text-slate-400 text-[10px]"></i>
+                        <span>Odômetro: <strong>${rec.odo.toLocaleString('pt-BR')}</strong> <span class="text-slate-400">${kmDeltaText}</span></span>
+                    </div>
+                    <div class="text-slate-400 font-mono text-[10px]">
+                        ${rec.totL ? rec.totL.toFixed(2) + ' L total' : ''}
+                    </div>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-slate-700/40 text-[10px]">
+                    <div class="flex items-center gap-1.5">
+                        ${fuelBadge}
+                        <span class="text-slate-400">${detailItems.join(' | ')}</span>
+                    </div>
+                    ${kmlDisplay}
+                </div>
+                ${showActions ? `
+                <div class="flex justify-end gap-3 pt-1 border-t border-slate-700/30 text-[11px]">
+                    <button onclick="editRecord(${originalIndex})" class="text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-pen"></i> Editar
+                    </button>
+                    <button onclick="deleteRecord(${originalIndex})" class="text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-trash"></i> Excluir
+                    </button>
+                </div>
+                ` : ''}
+            `;
+            return div;
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const index = parseInt(document.getElementById('editIndex').value);
+
+            // VERIFICAÇÃO DE LIMITE DA VERSÃO LITE
+            if (index < 0 && records.length >= FREE_RECORD_LIMIT) {
+                openProModal();
+                return;
+            }
+
+            const date = document.getElementById('inputData').value;
+            const odo = parseInt(document.getElementById('inputOdometro').value);
+            const lA = parseFloat(document.getElementById('inputLitrosA').value) || 0;
+            const pA = parseFloat(document.getElementById('inputPrecoA').value) || 0;
+            const lG = parseFloat(document.getElementById('inputLitrosG').value) || 0;
+            const pG = parseFloat(document.getElementById('inputPrecoG').value) || 0;
+            const full = document.getElementById('inputTanqueCheio').checked;
+
+            if (!lA && !lG) {
+                alert('Informe os litros de álcool ou gasolina.');
+                return;
+            }
+
+            const newRecord = { date, odo, lA, pA, lG, pG, full };
+
+            if (index >= 0) {
+                records[index] = { ...records[index], ...newRecord };
+                showToast('Abastecimento atualizado!', 'fa-pen-to-square', 'text-amber-400');
+            } else {
+                records.push(newRecord);
+                showToast('Novo abastecimento salvo!', 'fa-circle-check', 'text-emerald-400');
+            }
+
+            resetForm();
+            recalculateMetricsAndRender();
+        }
+
+        function editRecord(index) {
+            const rec = records[index];
+            if (!rec) return;
+
+            document.getElementById('editIndex').value = index;
+            document.getElementById('inputData').value = rec.date;
+            document.getElementById('inputOdometro').value = rec.odo;
+            document.getElementById('inputLitrosA').value = rec.lA || '';
+            document.getElementById('inputPrecoA').value = rec.pA || '';
+            document.getElementById('inputLitrosG').value = rec.lG || '';
+            document.getElementById('inputPrecoG').value = rec.pG || '';
+            document.getElementById('inputTanqueCheio').checked = rec.full;
+
+            document.getElementById('formTitle').innerText = 'Editar Abastecimento';
+            document.getElementById('formIcon').className = 'fa-solid fa-pen-to-square text-amber-400';
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            switchTab('dashboard');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteRecord(index) {
+            if (confirm('Tem certeza que deseja excluir este registro de abastecimento?')) {
+                records.splice(index, 1);
+                recalculateMetricsAndRender();
+                showToast('Registro excluído!', 'fa-trash', 'text-rose-400');
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('fuelForm').reset();
+            document.getElementById('editIndex').value = '-1';
+            document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
+            document.getElementById('formTitle').innerText = 'Novo Abastecimento';
+            document.getElementById('formIcon').className = 'fa-solid fa-circle-plus text-emerald-400';
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+        }
+
+        function switchTab(tab) {
+            document.getElementById('viewDashboard').classList.add('hidden');
+            document.getElementById('viewHistory').classList.add('hidden');
+            document.getElementById('viewAnalytics').classList.add('hidden');
+            document.getElementById('viewRevision').classList.add('hidden');
+
+            const tabDash = document.getElementById('tabDashboard');
+            const tabHist = document.getElementById('tabHistory');
+            const tabAnaly = document.getElementById('tabAnalytics');
+            const tabRev = document.getElementById('tabRevision');
+
+            [tabDash, tabHist, tabAnaly, tabRev].forEach(t => {
+                if(t) t.className = 'py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center justify-center gap-1';
+            });
+
+            if (tab === 'dashboard') {
+                document.getElementById('viewDashboard').classList.remove('hidden');
+                tabDash.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition font-bold flex items-center justify-center gap-1';
+            } else if (tab === 'history') {
+                document.getElementById('viewHistory').classList.remove('hidden');
+                tabHist.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition font-bold flex items-center justify-center gap-1';
+            } else if (tab === 'analytics') {
+                document.getElementById('viewAnalytics').classList.remove('hidden');
+                tabAnaly.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition font-bold flex items-center justify-center gap-1';
+                renderCharts();
+            } else if (tab === 'revision') {
+                document.getElementById('viewRevision').classList.remove('hidden');
+                tabRev.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition font-bold flex items-center justify-center gap-1';
+            }
+        }
+
+        function setHistoryFilter(type) {
+            currentHistoryFilter = type;
+            ['ALL', 'A', 'G', 'M'].forEach(t => {
+                const btn = document.getElementById(`filterBtn${t}`);
+                if (!btn) return;
+                btn.className = (t === type)
+                    ? 'px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap'
+                    : 'px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition whitespace-nowrap';
+            });
+            renderHistoryList();
+        }
+
+        function renderCharts() {
+            if (!window.Chart) return;
+
+            const validData = records.filter(r => r.full && r.kml >= KML_MIN && r.kml <= KML_MAX);
+            const ctx1 = document.getElementById('consumptionChart')?.getContext('2d');
+            if (ctx1) {
+                if (chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: validData.slice(-15).map(r => formatDateBR(r.date)),
+                        datasets: [{
+                            label: 'Km/L (Válidos)',
+                            data: validData.slice(-15).map(r => r.kml),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#10b981',
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: '#1e293b' } },
+                            y: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: '#1e293b' } }
+                        }
+                    }
+                });
+            }
+
+            const ctx2 = document.getElementById('fuelDistChart')?.getContext('2d');
+            if (ctx2) {
+                if (distChartInstance) distChartInstance.destroy();
+                const countA = records.filter(r => r.comb === 'A').length;
+                const countG = records.filter(r => r.comb === 'G').length;
+                const countM = records.filter(r => r.comb === 'M').length;
+
+                distChartInstance = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Álcool', 'Gasolina', 'Misto'],
+                        datasets: [{
+                            data: [countA, countG, countM],
+                            backgroundColor: ['#10b981', '#f97316', '#8b5cf6'],
+                            borderWidth: 2,
+                            borderColor: '#0f172a'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderInsights() {
+            const validA = records.filter(r => r.full && r.comb === 'A' && r.kml >= KML_MIN && r.kml <= KML_MAX);
+            const validG = records.filter(r => r.full && r.comb === 'G' && r.kml >= KML_MIN && r.kml <= KML_MAX);
+
+            const avgKmlA = validA.length ? (validA.reduce((a, b) => a + b.kml, 0) / validA.length) : 8.61;
+            const avgKmlG = validG.length ? (validG.reduce((a, b) => a + b.kml, 0) / validG.length) : 10.02;
+
+            const ratio = (avgKmlA / avgKmlG) * 100;
+
+            const insightEl = document.getElementById('insightText');
+            if (insightEl) {
+                if (records.length === 0) {
+                    insightEl.innerHTML = `Cadastre os seus abastecimentos para gerar insights personalizados sobre a economia do seu veículo.`;
+                    return;
+                }
+                insightEl.innerHTML = `
+                    Sua média válida com <strong class="text-emerald-400">Álcool</strong> é de <strong>${avgKmlA.toFixed(2)} km/L</strong> e com <strong class="text-amber-400">Gasolina</strong> é de <strong>${avgKmlG.toFixed(2)} km/L</strong>.<br><br>
+                    O rendimento do Álcool no seu veículo representa <strong>${ratio.toFixed(1)}%</strong> do rendimento da Gasolina. Recomendamos abastecer com Álcool sempre que o preço do litro for inferior a <strong>${ratio.toFixed(1)}%</strong> do preço da gasolina na sua região!
+                `;
+            }
+        }
+
+        function formatDateBR(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
+        }
+
+        function showToast(message, iconClass = 'fa-circle-check', iconColor = 'text-emerald-400') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            if (!toast || !toastMsg || !toastIcon) return;
+
+            toastMsg.innerText = message;
+            toastIcon.className = `fa-solid ${iconClass} ${iconColor} text-base`;
+
+            toast.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
