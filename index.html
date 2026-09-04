@@ -1,21 +1,37 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
 <head>
     <link rel="manifest" href="manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-</script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('ServiceWorker registrado com sucesso:', reg.scope))
+            .catch(err => console.log('Falha ao registrar ServiceWorker:', err));
+        });
+      }
+    </script>
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Fuel Tracker LITE - Controle de Combustível</title>
     
+    <!-- SEO METADATA -->
+    <title>Fuel Tracker Lite - Controle de Combustível, Consumo e Gastos</title>
+    <meta name="description" content="Versão de teste do Fuel Tracker - Aplicativo para controle de combustível, cálculo de consumo (km/L) e manutenção preventiva.">
+    <meta name="keywords" content="controle de combustível, autonomia, km/l, etanol vs gasolina, gastos combustível, manutenção preventiva, calculadora de posto">
+    <meta name="author" content="Fuel Tracker">
+    <meta name="robots" content="index, follow">
+
+    <!-- OPEN GRAPH / SOCIAL MEDIA -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Fuel Tracker Lite - Controle de Combustível e Consumo">
+    <meta property="og:description" content="Experimente o Fuel Tracker. Gerencie até 10 abastecimentos, compare Etanol x Gasolina em tempo real e acompanhe as revisões do seu veículo.">
+    <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
+
     <!-- PWA & iOS NATIVE META TAGS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FuelTracker Lite">
+    <meta name="apple-mobile-web-app-title" content="FuelTrackerLite">
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
@@ -23,10 +39,10 @@
     <!-- Dependências -->
     <script src="vendor/tailwind.js"></script>
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    <script src="vendor/chart.js"></script>
-    <script src="vendor/xlsx.full.min.js"></script>
-    <script src="vendor/jspdf.umd.min.js"></script>
-    <script src="vendor/jspdf.plugin.autotable.min.js"></script>
+    <script src="vendor/chart.js" defer></script>
+    <script src="vendor/xlsx.full.min.js" defer></script>
+    <script src="vendor/jspdf.umd.min.js" defer></script>
+    <script src="vendor/jspdf.plugin.autotable.min.js" defer></script>
 
     <!-- Fallbacks CDN -->
     <script>
@@ -69,17 +85,25 @@
             padding-bottom: var(--sab);
             -webkit-user-select: none;
             -webkit-touch-callout: none;
+            content-visibility: auto;
         }
 
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
-        ::-webkit-scrollbar-track {
+        html.dark ::-webkit-scrollbar-track {
             background: #0f172a;
         }
-        ::-webkit-scrollbar-thumb {
+        html.dark ::-webkit-scrollbar-thumb {
             background: #334155;
+            border-radius: 3px;
+        }
+        html:not(.dark) ::-webkit-scrollbar-track {
+            background: #f5f0e6;
+        }
+        html:not(.dark) ::-webkit-scrollbar-thumb {
+            background: #dcd0bf;
             border-radius: 3px;
         }
 
@@ -92,62 +116,96 @@
             overflow: hidden;
         }
 
-        .glass-card {
+        html.dark .glass-card {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
+
+        html:not(.dark) .glass-card {
+            background: rgba(245, 240, 230, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(210, 198, 180, 0.6);
+            box-shadow: 0 4px 6px -1px rgba(120, 100, 80, 0.05);
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center font-sans antialiased">
+<body class="bg-amber-50/60 dark:bg-slate-950 text-stone-800 dark:text-slate-100 min-h-screen flex flex-col items-center justify-center font-sans antialiased transition-colors duration-200">
 
-    <div id="deviceFrame" class="iphone-frame bg-slate-900 w-full flex flex-col justify-between overflow-hidden">
+    <div id="deviceFrame" class="iphone-frame bg-[#fbf8f3] dark:bg-slate-900 w-full flex flex-col justify-between overflow-hidden">
         
-        <header class="pt-10 px-4 pb-3 bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-30 flex items-center justify-between">
+        <!-- BANNER GLOBAL DE ALERTA CNH / TOXICOLÓGICO -->
+        <div id="cnhAlertBanner" class="hidden bg-rose-600 text-white px-4 py-2.5 text-xs font-bold flex items-center justify-between shadow-lg sticky top-0 z-40 animate-pulse">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                <span id="cnhAlertBannerText">Atenção: Validade de documento próxima ou vencida!</span>
+            </div>
+            <button onclick="switchTab('revision')" class="bg-white text-rose-600 px-2.5 py-1 rounded-lg text-[11px] font-extrabold hover:bg-rose-50 transition">
+                Ver na Aba Revisão &rarr;
+            </button>
+        </div>
+
+        <header class="pt-10 px-4 pb-3 bg-[#f5f0e6]/90 dark:bg-slate-900/90 backdrop-blur border-b border-stone-300/60 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between transition-colors">
             <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-orange-500/20">
+                <div id="appHeaderIcon" class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20" aria-hidden="true">
                     <i class="fa-solid fa-gas-pump text-sm"></i>
                 </div>
                 <div>
-                    <h1 class="text-base font-bold tracking-tight text-white leading-tight">Fuel Tracker <span class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30">LITE</span></h1>
-                    <p class="text-[10px] text-slate-400 font-medium">Versão de Testes (Até 5 Registros)</p>
+                    <h1 class="text-base font-bold tracking-tight text-stone-900 dark:text-white leading-tight">Fuel Tracker <span id="appBadge" class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/30">LITE</span></h1>
+                    <p id="appSubHeader" class="text-[10px] text-stone-500 dark:text-slate-400 font-medium">Versão de Degustação (Até 10 reg.)</p>
                 </div>
             </div>
             
             <div class="flex items-center gap-2">
-                <button onclick="openProModal()" class="px-2.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-lg shadow-orange-500/20 transition flex items-center gap-1">
-                    <i class="fa-solid fa-crown text-xs"></i> Virar PRO
+                <button id="pwaInstallBtn" onclick="installPWA()" class="hidden px-2.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <i class="fa-solid fa-download text-xs" aria-hidden="true"></i> Instalar App
                 </button>
 
                 <div class="relative">
-                    <button onclick="toggleSettingsMenu()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center transition shadow focus:outline-none" title="Opções e Configurações">
-                        <i class="fa-solid fa-gear text-base"></i>
+                    <button onclick="toggleSettingsMenu()" id="btnSettingsMenu" aria-expanded="false" aria-controls="settingsDropdown" class="w-9 h-9 rounded-xl bg-stone-200/70 dark:bg-slate-800 hover:bg-stone-300/70 dark:hover:bg-slate-700 text-stone-700 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white border border-stone-300/80 dark:border-slate-700 flex items-center justify-center transition shadow focus:outline-none focus:ring-2 focus:ring-emerald-500" title="Opções e Configurações" aria-label="Opções e Configurações">
+                        <i class="fa-solid fa-gear text-base" aria-hidden="true"></i>
                     </button>
 
-                    <div id="settingsDropdown" class="hidden absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-lg">
-                        <button onclick="showProFeatureNotice('Exportação JSON'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-download w-4 text-purple-400"></i> Exportar JSON</span>
-                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
+                    <div id="settingsDropdown" role="menu" aria-label="Menu de configurações" class="hidden absolute right-0 mt-2 w-56 bg-[#f5f0e6] dark:bg-slate-800 border border-stone-300 dark:border-slate-700 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-lg">
+                        <button role="menuitem" onclick="toggleTheme(); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i id="themeMenuIcon" class="fa-solid fa-sun w-4" aria-hidden="true"></i> Aparência</span>
+                            <span id="themeMenuLabel" class="text-[10px] uppercase font-bold text-stone-400">Escuro</span>
                         </button>
-                        <button onclick="showProFeatureNotice('Restauração de Dados'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-upload w-4 text-blue-400"></i> Restaurar JSON</span>
-                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
-                        </button>
-                        <hr class="border-slate-700/60 my-1">
 
-                        <button onclick="showProFeatureNotice('Relatórios Excel'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-file-excel w-4 text-emerald-400"></i> Exportar Excel</span>
-                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
+                        <button role="menuitem" onclick="shareAppWithFriend(); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-share-nodes w-4" aria-hidden="true"></i> Indicar para Amigo</span>
                         </button>
-                        <button onclick="showProFeatureNotice('Relatórios PDF'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-file-pdf w-4 text-rose-400"></i> Exportar PDF</span>
-                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
-                        </button>
-                        <hr class="border-slate-700/60 my-1">
 
-                        <button onclick="showProFeatureNotice('Limpeza de Banco'); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-400 hover:bg-slate-700/60 flex items-center justify-between transition">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-trash-arrow-up w-4 text-red-400"></i> Zerar Banco</span>
-                            <i class="fa-solid fa-lock text-[10px] text-amber-400"></i>
+                        <hr class="border-stone-300 dark:border-slate-700/60 my-1">
+
+                        <button role="menuitem" onclick="openManualModal(); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-book-open w-4" aria-hidden="true"></i> Manual do Usuário</span>
+                        </button>
+
+                        <hr class="border-stone-300 dark:border-slate-700/60 my-1">
+
+                        <button role="menuitem" onclick="handleExportJSON()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-download w-4" aria-hidden="true"></i> Exportar JSON</span>
+                        </button>
+                        
+                        <label id="labelImportJSON" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between cursor-pointer transition focus-within:bg-stone-200/50 dark:focus-within:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-upload w-4" aria-hidden="true"></i> Restaurar JSON</span>
+                            <input type="file" id="importJsonInput" accept=".json" onchange="importJSON(event); toggleSettingsMenu();" class="sr-only">
+                        </label>
+
+                        <hr class="border-stone-300 dark:border-slate-700/60 my-1">
+
+                        <button role="menuitem" onclick="handleExportExcel()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-file-excel w-4" aria-hidden="true"></i> Exportar Excel</span>
+                        </button>
+                        <button role="menuitem" onclick="handleExportPDF()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-file-pdf w-4" aria-hidden="true"></i> Exportar PDF</span>
+                        </button>
+                        
+                        <hr class="border-stone-300 dark:border-slate-700/60 my-1">
+
+                        <button role="menuitem" onclick="handleResetDatabase()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-trash-arrow-up w-4" aria-hidden="true"></i> Zerar App</span>
                         </button>
                     </div>
                 </div>
@@ -155,126 +213,136 @@
         </header>
 
         <main class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-            <div id="liteUsageBanner" class="glass-card p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between">
+            <aside aria-label="Indicador offline" id="offlineIndicator" class="hidden glass-card p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-circle-info text-amber-400 text-sm"></i>
-                    <span class="text-xs text-slate-200">Uso no modelo Gratuito: <strong id="recordCountBadge" class="text-amber-400">0/5</strong> abastecimentos</span>
+                    <i class="fa-solid fa-wifi-slash text-amber-500 text-xs" aria-hidden="true"></i>
+                    <span class="text-xs text-stone-700 dark:text-slate-200 font-medium">Modo Offline Ativo — Dados sincronizados localmente</span>
                 </div>
-                <button onclick="openProModal()" class="text-[11px] font-bold text-amber-400 hover:underline">Liberar Ilimitado &rarr;</button>
-            </div>
+            </aside>
 
-            <div class="grid grid-cols-4 gap-1 bg-slate-800/80 p-1 rounded-xl text-[11px] font-semibold border border-slate-700/60">
-                <button id="tabDashboard" onclick="switchTab('dashboard')" class="py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-chart-pie"></i> Resumo
+            <!-- CARD DE STATUS DA VERSÃO LITE -->
+            <section aria-label="Status do Limite Lite" class="glass-card p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-xs flex items-center justify-between gap-3">
+                <div class="space-y-0.5">
+                    <span class="font-bold text-amber-700 dark:text-amber-400 block uppercase tracking-wider text-[10px]">Modo de Degustação Lite</span>
+                    <p class="text-stone-700 dark:text-slate-300 font-medium">Uso atual: <span id="liteCounterText" class="font-black text-amber-600 dark:text-amber-400">0/10</span> registros</p>
+                </div>
+                <button onclick="openLimitModal()" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold rounded-xl text-[11px] shadow transition flex items-center gap-1">
+                    <i class="fa-solid fa-crown text-xs"></i> Obter PRO
                 </button>
-                <button id="tabHistory" onclick="switchTab('history')" class="py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-list-ul"></i> Histórico
+            </section>
+
+            <nav aria-label="Navegação principal" class="grid grid-cols-4 gap-1 bg-stone-200/70 dark:bg-slate-800/80 p-1 rounded-xl text-[11px] font-semibold border border-stone-300/70 dark:border-slate-700/60">
+                <button id="tabDashboard" onclick="switchTab('dashboard')" aria-selected="true" class="py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                    <i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Resumo
                 </button>
-                <button id="tabAnalytics" onclick="switchTab('analytics')" class="py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-chart-line"></i> Análise
+                <button id="tabHistory" onclick="switchTab('history')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <i class="fa-solid fa-list-ul" aria-hidden="true"></i> Histórico
                 </button>
-                <button id="tabRevision" onclick="switchTab('revision')" class="py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-wrench"></i> Revisão
+                <button id="tabAnalytics" onclick="switchTab('analytics')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Análise
                 </button>
-            </div>
+                <button id="tabRevision" onclick="switchTab('revision')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <i class="fa-solid fa-wrench" aria-hidden="true"></i> Revisão
+                </button>
+            </nav>
 
             <div id="viewDashboard" class="space-y-4">
-                <div class="glass-card p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                <section aria-label="Decisão no Posto" class="glass-card p-4 rounded-2xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 space-y-3">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-xs font-bold uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-calculator"></i> Decisão no Posto (Álcool vs Gasolina)
+                        <h2 class="text-xs font-bold uppercase text-stone-700 dark:text-slate-300 tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-calculator text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i> Decisão no Posto (Etanol vs Gasolina)
                         </h2>
-                        <span id="labelFatorPosto" class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Fator: 70.0%</span>
+                        <span id="labelFatorPosto" class="text-[10px] font-bold text-stone-600 dark:text-slate-300 bg-stone-300/50 dark:bg-slate-700/50 px-2 py-0.5 rounded border border-stone-300 dark:border-slate-600">Fator: 70.0%</span>
                     </div>
                     <div class="grid grid-cols-2 gap-2.5">
-                        <div>
-                            <label class="block text-[10px] font-semibold text-emerald-400 mb-0.5">Preço Álcool (R$)</label>
-                            <input type="number" id="calcPrecoA" step="0.01" placeholder="Ex: 3.79" oninput="calcularDecisaoPosto()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        <div class="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                            <label for="calcPrecoA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Preço Etanol (R$)</label>
+                            <input type="number" id="calcPrecoA" step="0.01" placeholder="Ex: 3.79" oninput="calcularDecisaoPosto()" class="w-full bg-white dark:bg-slate-900 border border-emerald-500/40 rounded-lg px-2.5 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">Preço Gasolina (R$)</label>
-                            <input type="number" id="calcPrecoG" step="0.01" placeholder="Ex: 5.89" oninput="calcularDecisaoPosto()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                        <div class="p-2 rounded-xl bg-orange-500/10 border border-orange-500/30">
+                            <label for="calcPrecoG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Preço Gasolina (R$)</label>
+                            <input type="number" id="calcPrecoG" step="0.01" placeholder="Ex: 5.89" oninput="calcularDecisaoPosto()" class="w-full bg-white dark:bg-slate-900 border border-orange-500/40 rounded-lg px-2.5 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                         </div>
                     </div>
-                    <div id="resultadoCalcPosto" class="text-center p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-semibold text-slate-400">
+                    <div id="resultadoCalcPosto" aria-live="polite" class="text-center p-2 rounded-xl bg-stone-200/50 dark:bg-slate-900/90 border border-stone-300/60 dark:border-slate-800 text-xs font-semibold text-stone-500 dark:text-slate-400">
                         Insira os preços para comparar a vantagem.
                     </div>
-                </div>
+                </section>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-slate-700/50">
-                        <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Km Total Rodado</div>
-                        <div class="text-xl font-black text-white mt-1" id="kpiTotalKm">0 km</div>
-                        <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-                            <i class="fa-solid fa-gauge-high text-emerald-400"></i>
+                <section aria-label="Indicadores gerais" class="grid grid-cols-2 gap-3">
+                    <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
+                        <span class="text-[11px] font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-wider block">Km Total Rodado</span>
+                        <div class="text-xl font-black text-stone-900 dark:text-white mt-1" id="kpiTotalKm">0 km</div>
+                        <div class="text-[10px] text-stone-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-gauge-high text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i>
                             <span id="kpiOdometro">Odômetro: 0 km</span>
                         </div>
                     </div>
 
-                    <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-slate-700/50">
-                        <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Gasto Total</div>
-                        <div class="text-xl font-black text-emerald-400 mt-1" id="kpiGastoTotal">R$ 0,00</div>
-                        <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-                            <i class="fa-solid fa-coins text-amber-400"></i>
+                    <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
+                        <span class="text-[11px] font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-wider block">Gasto Total</span>
+                        <div class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1" id="kpiGastoTotal">R$ 0,00</div>
+                        <div class="text-[10px] text-stone-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-coins text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
                             <span id="kpiCustoMedio">Custo/km: R$ 0,00</span>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="glass-card p-4 rounded-2xl border border-slate-700/50 space-y-3">
+                <section aria-label="Médias de Consumo" class="glass-card p-4 rounded-2xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 space-y-3">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-xs font-bold uppercase text-slate-300 tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-bolt text-amber-400"></i> Médias de Consumo (KM/L)
+                        <h2 class="text-xs font-bold uppercase text-stone-700 dark:text-slate-300 tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt text-amber-500 dark:text-amber-400" aria-hidden="true"></i> Médias de Consumo (KM/L)
                         </h2>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-xl text-[10px] border border-slate-800 text-center">
-                        <button id="filterTankOnly" onclick="setKmlFilterCriterion('tank')" class="py-1 rounded-lg text-slate-400 font-semibold transition">
+                    <div role="group" aria-label="Filtro de critério para cálculo do Km/L" class="grid grid-cols-3 gap-1 bg-stone-200/70 dark:bg-slate-900/90 p-1 rounded-xl text-[10px] border border-stone-300/70 dark:border-slate-800 text-center">
+                        <button id="filterTankOnly" onclick="setKmlFilterCriterion('tank')" class="py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Tanque Cheio
                         </button>
-                        <button id="filterRangeOnly" onclick="setKmlFilterCriterion('range')" class="py-1 rounded-lg text-slate-400 font-semibold transition">
-                            Faixa (5-17)
+                        <button id="filterRangeOnly" onclick="setKmlFilterCriterion('range')" class="py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            Faixa (5-23)
                         </button>
-                        <button id="filterBoth" onclick="setKmlFilterCriterion('both')" class="py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow">
+                        <button id="filterBoth" onclick="setKmlFilterCriterion('both')" class="py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Ambos
                         </button>
                     </div>
 
-                    <div class="flex rounded-lg bg-slate-900/80 p-0.5 border border-slate-800 text-xs">
-                        <button id="avgModeAll" onclick="setAvgMode('all')" class="flex-1 py-1 rounded-md bg-slate-700 text-white font-semibold text-[11px] transition">
+                    <div role="group" aria-label="Modo de cálculo de médias" class="flex rounded-lg bg-stone-200/70 dark:bg-slate-900/80 p-0.5 border border-stone-300/70 dark:border-slate-800 text-xs">
+                        <button id="avgModeAll" onclick="setAvgMode('all')" class="flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Média Geral (Todos)
                         </button>
-                        <button id="avgMode5" onclick="setAvgMode('last5')" class="flex-1 py-1 rounded-md text-slate-400 font-semibold text-[11px] hover:text-white transition">
+                        <button id="avgMode5" onclick="setAvgMode('last5')" class="flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Últimos 5 Abastecimentos
                         </button>
                     </div>
 
                     <div class="grid grid-cols-3 gap-2 pt-1">
-                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-emerald-500/20 text-center">
-                            <span class="text-[10px] font-bold text-emerald-400 block mb-0.5"><i class="fa-solid fa-leaf"></i> Álcool</span>
-                            <span class="text-base font-black text-white block" id="avgAlcoholVal">0.00</span>
-                            <span class="text-[9px] text-slate-400 block" id="avgAlcoholSub">km/L</span>
+                        <div class="bg-white dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-500/30 text-center shadow-sm dark:shadow-none">
+                            <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block mb-0.5"><i class="fa-solid fa-leaf" aria-hidden="true"></i> Etanol</span>
+                            <span class="text-base font-black text-stone-900 dark:text-white block" id="avgAlcoholVal">0.00</span>
+                            <span class="text-[9px] text-stone-500 dark:text-slate-400 block" id="avgAlcoholSub">km/L</span>
                         </div>
-                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-amber-500/20 text-center">
-                            <span class="text-[10px] font-bold text-amber-400 block mb-0.5"><i class="fa-solid fa-fire"></i> Gasolina</span>
-                            <span class="text-base font-black text-white block" id="avgGasVal">0.00</span>
-                            <span class="text-[9px] text-slate-400 block" id="avgGasSub">km/L</span>
+                        <div class="bg-white dark:bg-slate-900/90 p-2.5 rounded-xl border border-orange-500/30 text-center shadow-sm dark:shadow-none">
+                            <span class="text-[10px] font-bold text-orange-600 dark:text-orange-400 block mb-0.5"><i class="fa-solid fa-fire" aria-hidden="true"></i> Gasolina</span>
+                            <span class="text-base font-black text-stone-900 dark:text-white block" id="avgGasVal">0.00</span>
+                            <span class="text-[9px] text-stone-500 dark:text-slate-400 block" id="avgGasSub">km/L</span>
                         </div>
-                        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-purple-500/20 text-center">
-                            <span class="text-[10px] font-bold text-purple-400 block mb-0.5"><i class="fa-solid fa-shuffle"></i> Misto</span>
-                            <span class="text-base font-black text-white block" id="avgMixedVal">0.00</span>
-                            <span class="text-[9px] text-slate-400 block" id="avgMixedSub">km/L</span>
+                        <div class="bg-white dark:bg-slate-900/90 p-2.5 rounded-xl border border-purple-500/30 text-center shadow-sm dark:shadow-none">
+                            <span class="text-[10px] font-bold text-purple-600 dark:text-purple-400 block mb-0.5"><i class="fa-solid fa-shuffle" aria-hidden="true"></i> Misto</span>
+                            <span class="text-base font-black text-stone-900 dark:text-white block" id="avgMixedVal">0.00</span>
+                            <span class="text-[9px] text-stone-500 dark:text-slate-400 block" id="avgMixedSub">km/L</span>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="glass-card p-4 rounded-2xl border border-slate-700/50 space-y-3">
+                <section aria-label="Formulário de cadastro" class="glass-card p-4 rounded-2xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 space-y-3">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-xs font-bold uppercase text-white tracking-wider flex items-center gap-1.5">
-                            <i id="formIcon" class="fa-solid fa-circle-plus text-emerald-400"></i>
+                        <h2 class="text-xs font-bold uppercase text-stone-900 dark:text-white tracking-wider flex items-center gap-1.5">
+                            <i id="formIcon" class="fa-solid fa-circle-plus text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i>
                             <span id="formTitle">Novo Abastecimento</span>
                         </h2>
-                        <button id="cancelEditBtn" onclick="resetForm()" class="hidden text-xs text-rose-400 hover:underline">
+                        <button id="cancelEditBtn" onclick="resetForm()" class="hidden text-xs text-rose-600 dark:text-rose-400 hover:underline focus:outline-none focus:ring-1 focus:ring-rose-500 rounded">
                             Cancelar Edição
                         </button>
                     </div>
@@ -284,205 +352,570 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div class="flex flex-col min-w-0">
-                                <label class="block text-[11px] font-medium text-slate-300 mb-1">Data</label>
-                                <input type="date" id="inputData" required class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition">
+                                <label for="inputData" class="block text-[11px] font-medium text-stone-700 dark:text-slate-300 mb-1">Data</label>
+                                <input type="date" id="inputData" required class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
                             </div>
                             <div class="flex flex-col min-w-0">
-                                <label class="block text-[11px] font-medium text-slate-300 mb-1">Odômetro (Km)</label>
-                                <input type="number" id="inputOdometro" step="1" required placeholder="Ex: 14600" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition">
+                                <label for="inputOdometro" class="block text-[11px] font-medium text-stone-700 dark:text-slate-300 mb-1">Odômetro (Km)</label>
+                                <input type="number" id="inputOdometro" step="1" required placeholder="Ex: 14600" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20">
+                        <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/30">
                             <div class="min-w-0">
-                                <label class="block text-[10px] font-semibold text-emerald-400 mb-0.5">Litros Álcool</label>
-                                <input type="number" id="inputLitrosA" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500">
+                                <label for="inputLitrosA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Litros Etanol</label>
+                                <input type="number" id="inputLitrosA" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                             </div>
                             <div class="min-w-0">
-                                <label class="block text-[10px] font-semibold text-emerald-400 mb-0.5">Preço/L Álcool (R$)</label>
-                                <input type="number" id="inputPrecoA" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-emerald-500">
+                                <label for="inputPrecoA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">Preço/L Etanol (R$)</label>
+                                <input type="number" id="inputPrecoA" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/20">
+                        <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-orange-500/10 dark:bg-orange-950/20 border border-orange-500/30">
                             <div class="min-w-0">
-                                <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">Litros Gasolina</label>
-                                <input type="number" id="inputLitrosG" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-amber-500">
+                                <label for="inputLitrosG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Litros Gasolina</label>
+                                <input type="number" id="inputLitrosG" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                             </div>
                             <div class="min-w-0">
-                                <label class="block text-[10px] font-semibold text-amber-400 mb-0.5">Preço/L Gas (R$)</label>
-                                <input type="number" id="inputPrecoG" step="0.01" min="0" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-amber-500">
+                                <label for="inputPrecoG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5">Preço/L Gas (R$)</label>
+                                <input type="number" id="inputPrecoG" step="0.01" min="0" placeholder="0.00" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                             </div>
                         </div>
 
                         <div class="flex items-center justify-between pt-1">
                             <label class="flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" id="inputTanqueCheio" checked class="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500 bg-slate-900 border-slate-700">
-                                <span class="text-xs font-semibold text-slate-200">Tanque Cheio?</span>
+                                <input type="checkbox" id="inputTanqueCheio" checked class="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500 bg-white dark:bg-slate-900 border-stone-300 dark:border-slate-700">
+                                <span class="text-xs font-semibold text-stone-700 dark:text-slate-200">Tanque Cheio?</span>
                             </label>
 
-                            <button type="submit" id="saveBtn" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-2">
-                                <i class="fa-solid fa-floppy-disk"></i> Salvar
+                            <button type="submit" id="saveBtn" class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Salvar
                             </button>
                         </div>
                     </form>
-                </div>
+                </section>
 
-                <div class="space-y-2">
+                <section aria-label="Últimos registros" class="space-y-2">
                     <div class="flex items-center justify-between px-1">
-                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Últimos Registros</h3>
-                        <button onclick="switchTab('history')" class="text-[11px] text-emerald-400 hover:underline">Ver Todos &rarr;</button>
+                        <h2 class="text-xs font-bold text-stone-700 dark:text-slate-300 uppercase tracking-wider">Últimos Registros</h2>
+                        <button onclick="switchTab('history')" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded">Ver Todos &rarr;</button>
                     </div>
                     <div id="recentRecordsList" class="space-y-2"></div>
-                </div>
+                </section>
             </div>
 
             <div id="viewHistory" class="space-y-3 hidden">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">Histórico Completo</h2>
-                    <span id="historyCountBadge" class="text-xs text-slate-400 font-medium">0 registros</span>
+                    <h2 class="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider">Histórico Completo</h2>
+                    <span id="historyCountBadge" class="text-xs text-stone-500 dark:text-slate-400 font-medium">0 registros</span>
                 </div>
 
-                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                    <button onclick="setHistoryFilter('ALL')" id="filterBtnALL" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap">
+                <div role="group" aria-label="Filtro rápido por combustível" class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <button onclick="setHistoryFilter('ALL')" id="filterBtnALL" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-600">
                         Todos
                     </button>
-                    <button onclick="setHistoryFilter('A')" id="filterBtnA" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition whitespace-nowrap">
-                        <i class="fa-solid fa-leaf text-emerald-400 mr-1"></i> Álcool
+                    <button onclick="setHistoryFilter('A')" id="filterBtnA" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <i class="fa-solid fa-leaf text-emerald-600 dark:text-emerald-400 mr-1" aria-hidden="true"></i> Etanol
                     </button>
-                    <button onclick="setHistoryFilter('G')" id="filterBtnG" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition whitespace-nowrap">
-                        <i class="fa-solid fa-fire text-amber-400 mr-1"></i> Gasolina
+                    <button onclick="setHistoryFilter('G')" id="filterBtnG" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <i class="fa-solid fa-fire text-orange-500 dark:text-orange-400 mr-1" aria-hidden="true"></i> Gasolina
                     </button>
-                    <button onclick="setHistoryFilter('M')" id="filterBtnM" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition whitespace-nowrap">
-                        <i class="fa-solid fa-shuffle text-purple-400 mr-1"></i> Misto
+                    <button onclick="setHistoryFilter('M')" id="filterBtnM" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <i class="fa-solid fa-shuffle text-purple-600 dark:text-purple-400 mr-1" aria-hidden="true"></i> Misto
                     </button>
                 </div>
 
                 <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
-                    <input type="text" id="historySearch" oninput="renderHistoryList()" placeholder="Buscar por data ou km..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-slate-600">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-stone-400 text-xs" aria-hidden="true"></i>
+                    <input type="text" id="historySearch" oninput="renderHistoryList()" placeholder="Buscar por data ou km..." aria-label="Buscar histórico por data ou quilometragem" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-stone-400 dark:focus:border-slate-600 focus:ring-1 focus:ring-emerald-500">
                 </div>
 
-                <div id="fullHistoryList" class="space-y-2.5 max-h-[520px] overflow-y-auto pr-1"></div>
+                <div id="fullHistoryList" aria-live="polite" class="space-y-2.5 max-h-[520px] overflow-y-auto pr-1"></div>
             </div>
 
             <div id="viewAnalytics" class="space-y-4 hidden">
-                <div class="glass-card p-3.5 rounded-2xl border border-slate-700/50">
-                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        <i class="fa-solid fa-chart-line text-emerald-400"></i> Evolução de Consumo (Km/L)
-                    </h3>
+                <!-- MÉTRICAS DE CONSUMO ADICIONAIS -->
+                <section aria-label="Métricas de consumo mensal" class="grid grid-cols-2 gap-2.5">
+                    <div class="glass-card p-3 rounded-xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 text-center">
+                        <span class="text-[10px] font-bold text-stone-500 dark:text-slate-400 uppercase block">Consumo Mensal</span>
+                        <span class="text-base font-black text-stone-900 dark:text-white block mt-0.5" id="metricLitrosMes">0 L</span>
+                        <span class="text-[9px] text-stone-400 dark:text-slate-500 block">Últimos 30 dias</span>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 text-center">
+                        <span class="text-[10px] font-bold text-stone-500 dark:text-slate-400 uppercase block">Gasto Mensal</span>
+                        <span class="text-base font-black text-emerald-600 dark:text-emerald-400 block mt-0.5" id="metricGastoMes">R$ 0,00</span>
+                        <span class="text-[9px] text-stone-400 dark:text-slate-500 block">Últimos 30 dias</span>
+                    </div>
+                </section>
+
+                <section aria-label="Evolução de consumo" class="glass-card p-3.5 rounded-2xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
+                    <h2 class="text-xs font-bold text-stone-700 dark:text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i> Evolução de Consumo (Km/L)
+                    </h2>
                     <div class="h-48 w-full">
-                        <canvas id="consumptionChart"></canvas>
+                        <canvas id="consumptionChart" aria-label="Gráfico da evolução de consumo em km/L" role="img"></canvas>
                     </div>
-                </div>
+                </section>
 
-                <div class="glass-card p-3.5 rounded-2xl border border-slate-700/50">
-                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        <i class="fa-solid fa-chart-pie text-amber-400"></i> Distribuição por Combustível
-                    </h3>
+                <section aria-label="Distribuição por combustível" class="glass-card p-3.5 rounded-2xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
+                    <h2 class="text-xs font-bold text-stone-700 dark:text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-pie text-orange-500 dark:text-orange-400" aria-hidden="true"></i> Distribuição por Combustível
+                    </h2>
                     <div class="h-44 w-full flex justify-center">
-                        <canvas id="fuelDistChart"></canvas>
+                        <canvas id="fuelDistChart" aria-label="Gráfico de distribuição por tipo de combustível" role="img"></canvas>
                     </div>
-                </div>
+                </section>
 
-                <div class="glass-card p-3.5 rounded-2xl border border-slate-700/50 space-y-2 text-xs">
-                    <h3 class="font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-lightbulb text-yellow-400"></i> Insight de Economia
-                    </h3>
-                    <p id="insightText" class="text-slate-300 leading-relaxed">
+                <section aria-label="Insight de economia" class="glass-card p-3.5 rounded-2xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 space-y-2 text-xs">
+                    <h2 class="font-bold text-stone-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-lightbulb text-yellow-500 dark:text-yellow-400" aria-hidden="true"></i> Insight de Economia
+                    </h2>
+                    <p id="insightText" class="text-stone-600 dark:text-slate-300 leading-relaxed">
                         Analisando os seus dados...
                     </p>
-                </div>
+                </section>
             </div>
 
             <div id="viewRevision" class="space-y-4 hidden">
-                <div class="glass-card p-5 rounded-2xl border border-blue-500/30 bg-blue-500/5 space-y-4">
+                <!-- CARD DE MANUTENÇÃO PREVISTA -->
+                <section aria-label="Manutenção prevista" class="glass-card p-5 rounded-2xl border border-blue-500/30 bg-blue-500/5 space-y-4">
                     <div class="flex items-center justify-between border-b border-blue-500/20 pb-3">
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                            <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold" aria-hidden="true">
                                 <i class="fa-solid fa-wrench"></i>
                             </div>
                             <div>
-                                <h2 class="text-sm font-bold text-white uppercase tracking-wider">Manutenção Prevista</h2>
-                                <p class="text-[10px] text-slate-400">Gestão do intervalo de troca de óleo/revisão</p>
+                                <h2 class="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider">Manutenção Prevista</h2>
+                                <p class="text-[10px] text-stone-500 dark:text-slate-400">Gestão do intervalo de troca de óleo/revisão</p>
                             </div>
                         </div>
-                        <span class="text-xs font-bold text-blue-300 bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20" id="revisionKmTarget">10.000 km</span>
+                        <button onclick="openRevisionModal()" class="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-gear"></i> Configurar
+                        </button>
                     </div>
 
                     <div class="space-y-2">
-                        <span class="text-xs font-medium text-slate-300">Status Atual:</span>
-                        <div class="text-xl font-black text-white" id="revisionForecast">Calculando...</div>
-                        <p class="text-xs text-slate-400" id="revisionSubtext">Baseado no ritmo de uso médio dos seus dados</p>
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-stone-700 dark:text-slate-300 font-medium">Status Atual:</span>
+                            <span id="revisionKmTarget" class="font-bold text-blue-600 dark:text-blue-300 bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20">10.000 km</span>
+                        </div>
+                        <div class="text-xl font-black text-stone-900 dark:text-white" id="revisionForecast">Calculando...</div>
+                        <p class="text-xs text-stone-500 dark:text-slate-400" id="revisionSubtext">Baseado no ritmo de uso médio dos seus dados</p>
                     </div>
 
                     <div class="pt-2">
-                        <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-700">
+                        <div role="progressbar" id="revisionProgressContainer" aria-label="Progresso da próxima revisão" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" class="w-full bg-stone-200 dark:bg-slate-900 rounded-full h-2.5 overflow-hidden border border-stone-300 dark:border-slate-700">
                             <div id="revisionProgressBar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
                         </div>
                     </div>
-                </div>
+                </section>
+
+                <!-- CARD DE RODÍZIO DE PNEUS -->
+                <section aria-label="Rodízio de Pneus" class="glass-card p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-circle-notch"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider">Rodízio de Pneus</h2>
+                                <p class="text-[10px] text-stone-500 dark:text-slate-400">Controle de desgaste e alinhamento</p>
+                            </div>
+                        </div>
+                        <button onclick="openTireModal()" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-gear"></i> Configurar
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-stone-700 dark:text-slate-300 font-medium">Status do Rodízio:</span>
+                            <span id="tireTargetBadge" class="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Meta: 0 km</span>
+                        </div>
+                        <div class="text-xl font-black text-stone-900 dark:text-white" id="tireForecast">Calculando...</div>
+                        <p class="text-xs text-stone-500 dark:text-slate-400" id="tireSubtext">Aguardando dados de odômetro...</p>
+                    </div>
+
+                    <div class="pt-2">
+                        <div role="progressbar" id="tireProgressContainer" class="w-full bg-stone-200 dark:bg-slate-900 rounded-full h-2.5 overflow-hidden border border-stone-300 dark:border-slate-700">
+                            <div id="tireProgressBar" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CARD DE CNH & TOXICOLÓGICO -->
+                <section aria-label="Validade CNH & Exame Toxicológico" class="glass-card p-5 rounded-2xl border border-purple-500/30 bg-purple-500/5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-purple-500/20 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-id-card"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider">CNH & Toxicológico</h2>
+                                <p class="text-[10px] text-stone-500 dark:text-slate-400">Controle de vencimento de documentos</p>
+                            </div>
+                        </div>
+                        <button onclick="openCnhModal()" class="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-gear"></i> Configurar
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 text-xs">
+                        <!-- Card CNH -->
+                        <div class="p-3 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-purple-500/20 flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-stone-900 dark:text-white block">Carteira Habilitação (CNH)</span>
+                                <span class="text-[11px] text-stone-500 dark:text-slate-400" id="cnhDateText">Data não cadastrada</span>
+                            </div>
+                            <span class="font-black text-sm" id="cnhDaysBadge">-</span>
+                        </div>
+
+                        <!-- Card Toxicológico -->
+                        <div id="toxicCard" class="p-3 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-purple-500/20 flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-stone-900 dark:text-white block">Exame Toxicológico</span>
+                                <span class="text-[11px] text-stone-500 dark:text-slate-400" id="toxicDateText">Data não cadastrada</span>
+                            </div>
+                            <span class="font-black text-sm" id="toxicDaysBadge">-</span>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
 
-        <footer class="py-2.5 px-5 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+        <footer class="py-2.5 px-5 bg-[#f5f0e6] dark:bg-slate-900 border-t border-stone-300/60 dark:border-slate-800 flex items-center justify-between text-[11px] text-stone-500 dark:text-slate-400 transition-colors">
             <span class="flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                <span id="storageStatus">Versão Gratuita</span>
+                <span id="storagePulse" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse" aria-hidden="true"></span>
+                <span id="storageStatus">Base Local Lite (Máx. 10)</span>
             </span>
-            <span class="font-mono text-[10px] text-slate-500">v1.2 LITE • 5 Registros</span>
+            <span id="appVersionFooter" class="font-mono text-[10px] text-amber-500 font-bold">v1.2 Lite</span>
         </footer>
     </div>
 
-    <!-- MODAL DE UPGRADE PRO -->
-    <div id="proModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
-        <div class="bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative text-center space-y-4">
-            <button onclick="closeProModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
-                <i class="fa-solid fa-xmark"></i>
+<!-- MODAL BLOQUEIO / CONVITE PRO (VERSÃO LITE) -->
+<div id="limitModal" role="dialog" aria-modal="true" aria-labelledby="limitTitle" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-amber-500/50 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative space-y-4 text-center">
+        <button onclick="closeLimitModal()" aria-label="Fechar" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center text-3xl font-black mx-auto shadow-inner">
+            <i class="fa-solid fa-crown"></i>
+        </div>
+
+        <div class="space-y-1">
+            <h3 id="limitTitle" class="text-base font-extrabold text-stone-900 dark:text-white">Recurso Exclusivo PRO</h3>
+            <p id="limitModalText" class="text-xs text-stone-600 dark:text-slate-300">Esta funcionalidade está disponível apenas na versão <strong class="text-amber-500">PRO</strong>.</p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-left space-y-2 text-stone-700 dark:text-slate-300">
+            <p class="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-star"></i> O que você ganha no PRO:
+            </p>
+            <ul class="list-disc list-inside space-y-1 text-[11px]">
+                <li>Registros de abastecimento ilimitados</li>
+                <li>Controle de Rodízio de Pneus</li>
+                <li>Alerta de Validade da CNH & Toxicológico</li>
+                <li>Relatórios avançados em PDF e Excel</li>
+            </ul>
+        </div>
+
+        <div class="pt-2 space-y-2">
+            <button onclick="closeLimitModal()" class="w-full py-2.5 bg-stone-200 dark:bg-slate-800 hover:bg-stone-300 dark:hover:bg-slate-700 text-stone-800 dark:text-white font-bold rounded-xl transition text-xs">
+                Entendi, continuar na degustação
             </button>
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center text-3xl font-black mx-auto shadow-lg shadow-orange-500/30">
-                <i class="fa-solid fa-crown"></i>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DO MANUAL DO USUÁRIO -->
+<div id="manualModal" role="dialog" aria-modal="true" aria-labelledby="manualTitle" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-stone-300 dark:border-slate-700 w-full max-w-lg max-h-[85vh] rounded-3xl p-6 shadow-2xl relative flex flex-col space-y-4">
+        <button onclick="closeManualModal()" aria-label="Fechar manual" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+
+        <div class="flex items-center gap-3 border-b border-stone-300 dark:border-slate-800 pb-3">
+            <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xl font-black" aria-hidden="true">
+                <i class="fa-solid fa-book-open"></i>
             </div>
             <div>
-                <h3 class="text-lg font-black text-white">Adquira o Fuel Tracker PRO</h3>
-                <p class="text-xs text-slate-400 mt-1">Desbloqueie todo o potencial do seu controle de combustível por um valor único!</p>
+                <h3 id="manualTitle" class="text-base font-bold text-stone-900 dark:text-white">Manual do Usuário (Versão Lite)</h3>
+                <p class="text-xs text-stone-500 dark:text-slate-400">Fuel Tracker Lite — Guia de Uso & Informações da Versão de Demonstração</p>
             </div>
-            
-            <div class="bg-slate-800/80 rounded-2xl p-3 text-left space-y-2 text-xs border border-slate-700/60">
-                <div class="flex items-center gap-2 text-slate-200">
-                    <i class="fa-solid fa-check text-emerald-400"></i> Registros de abastecimento **ilimitados**
-                </div>
-                <div class="flex items-center gap-2 text-slate-200">
-                    <i class="fa-solid fa-check text-emerald-400"></i> Exportação de relatórios em **Excel e PDF**
-                </div>
-                <div class="flex items-center gap-2 text-slate-200">
-                    <i class="fa-solid fa-check text-emerald-400"></i> Backup completo em **JSON**
-                </div>
-                <div class="flex items-center gap-2 text-slate-200">
-                    <i class="fa-solid fa-check text-emerald-400"></i> Experiência **100% sem anúncios**
-                </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto space-y-4 text-xs text-stone-600 dark:text-slate-300 pr-1 leading-relaxed">
+            <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-800 dark:text-amber-300">
+                <strong>Nota sobre a Versão Lite:</strong> Esta versão permite experimentar todas as funcionalidades principais por até <strong>10 abastecimentos</strong>. As funções de Rodízio de Pneus e Validades de Documentos são exclusivas da versão <strong>PRO</strong>.
             </div>
 
-            <div class="pt-2">
-                <a id="linkPlayStorePro" href="https://play.google.com/store/apps/details?id=com.seuapp.fueltrackerpro" target="_blank" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl shadow-lg shadow-orange-500/25 transition flex items-center justify-center gap-2 text-sm">
-                    Baixar Versão PRO (R$ 4,90)
-                </a>
+            <p class="text-stone-500 dark:text-slate-400">O Fuel Tracker é uma aplicação focada na gestão inteligente de abastecimentos, métricas de consumo e acompanhamento de manutenção preventiva do seu veículo.</p>
+            
+            <section aria-label="1. Decisão no Posto" class="space-y-1.5">
+                <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-calculator" aria-hidden="true"></i> 1. Decisão no Posto (Calculadora Etanol vs. Gasolina)
+                </h4>
+                <p>Localizada no painel principal, esta ferramenta calcula instantaneamente qual combustível oferece maior vantagem financeira para o seu momento de abastecimento.</p>
+            </section>
+
+            <section aria-label="2. Navegação pelas Abas" class="space-y-1.5">
+                <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-compass" aria-hidden="true"></i> 2. Navegação pelas Abas
+                </h4>
+                <p>O aplicativo divide suas funções em 4 telas acessíveis pelo menu superior: Resumo, Histórico, Análise e Revisão.</p>
+            </section>
+        </div>
+
+        <div class="pt-2 border-t border-stone-300 dark:border-slate-800">
+            <button onclick="closeManualModal()" class="w-full py-2.5 bg-stone-200 dark:bg-slate-800 hover:bg-stone-300 dark:hover:bg-slate-700 text-stone-900 dark:text-white font-bold rounded-xl transition text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                Fechar Manual
+            </button>
+        </div>
+    </div>
+</div>
+
+    <!-- MODAL DE CONFIGURAÇÃO DE MANUTENÇÃO PREVISTA -->
+    <div id="revisionModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-blue-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
+            <button onclick="closeRevisionModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-2 border-b border-stone-300 dark:border-slate-800 pb-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-wrench"></i>
+                </div>
+                <h3 class="text-sm font-bold text-stone-900 dark:text-white">Manutenção Prevista</h3>
             </div>
+            <form onsubmit="saveRevisionConfig(event)" class="space-y-3 text-xs">
+                <div>
+                    <label for="revisionIntervalInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Intervalo de Manutenção (Km)</label>
+                    <input type="number" id="revisionIntervalInput" required step="500" min="500" placeholder="Ex: 10000" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition">
+                        Salvar Configuração
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white border border-slate-700 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none z-50 text-xs font-medium">
-        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <!-- MODAL DE CONFIGURAÇÃO DE RODÍZIO DE PNEUS -->
+    <div id="tireModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
+            <button onclick="closeTireModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-2 border-b border-stone-300 dark:border-slate-800 pb-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-circle-notch"></i>
+                </div>
+                <h3 class="text-sm font-bold text-stone-900 dark:text-white">Rodízio de Pneus</h3>
+            </div>
+            <form onsubmit="saveTireConfig(event)" class="space-y-3 text-xs">
+                <div>
+                    <label for="tireIntervalInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Intervalo de Rodízio (Km)</label>
+                    <input type="number" id="tireIntervalInput" required step="500" placeholder="Ex: 10000" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label for="tireLastKmInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Odômetro do Último Rodízio (Km)</label>
+                    <input type="number" id="tireLastKmInput" required step="1" placeholder="Ex: 50000" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg transition">
+                        Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIGURAÇÃO DE CNH E TOXICOLÓGICO -->
+    <div id="cnhModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-purple-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
+            <button onclick="closeCnhModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-2 border-b border-stone-300 dark:border-slate-800 pb-3">
+                <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-id-card"></i>
+                </div>
+                <h3 class="text-sm font-bold text-stone-900 dark:text-white">CNH & Exame Toxicológico</h3>
+            </div>
+            <form onsubmit="saveCnhConfig(event)" class="space-y-3 text-xs">
+                <div>
+                    <label for="cnhExpiryInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Vencimento da CNH</label>
+                    <input type="date" id="cnhExpiryInput" required class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="hasToxicCheckbox" onchange="toggleToxicField()" class="w-4 h-4 rounded text-purple-500 focus:ring-purple-500 bg-white dark:bg-slate-900 border-stone-300 dark:border-slate-700">
+                        <span class="font-semibold text-stone-700 dark:text-slate-200">Exige Exame Toxicológico?</span>
+                    </label>
+                </div>
+                <div id="toxicFieldGroup" class="hidden">
+                    <label for="toxicExpiryInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Vencimento do Toxicológico</label>
+                    <input type="date" id="toxicExpiryInput" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg transition">
+                        Salvar Validades
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" role="status" aria-live="polite" class="fixed bottom-5 right-5 bg-[#f5f0e6] dark:bg-slate-800 text-stone-900 dark:text-white border border-stone-300 dark:border-slate-700 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none z-50 text-xs font-medium">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-600 dark:text-emerald-400 text-base" aria-hidden="true"></i>
         <span id="toastMsg">Mensagem de confirmação</span>
     </div>
 
     <script>
-        const FREE_RECORD_LIMIT = 5;
+        const STORAGE_KEY = 'fuel_tracker_lite_records';
+        const THEME_STORAGE_KEY = 'fuel_tracker_theme';
+        const TIRE_STORAGE_KEY = 'fuel_tracker_tire_config';
+        const CNH_STORAGE_KEY = 'fuel_tracker_cnh_config';
+        const REVISION_STORAGE_KEY = 'fuel_tracker_revision_config';
+
+        const MAX_LITE_RECORDS = 10;
+        const KML_MIN = 5.0;
+        const KML_MAX = 23.0;
+
+        let records = [];
+        let tireConfig = { interval: 10000, lastKm: 0 };
+        let cnhConfig = { expiryDate: '', hasToxic: false, toxicExpiryDate: '' };
+        let revisionConfig = { interval: 10000 };
+
+        let currentAvgMode = 'all';
+        let currentKmlCriterion = 'both';
+        let currentHistoryFilter = 'ALL';
+        let chartInstance = null;
+        let distChartInstance = null;
+        let deferredPrompt = null;
+
+        let cachedHistoryFragment = null;
+        let isHistoryDirty = true;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initOfflineNetworkMonitoring();
+            const inputData = document.getElementById('inputData');
+            if (inputData) inputData.value = new Date().toISOString().split('T')[0];
+            loadRecords();
+            loadTireConfig();
+            loadCnhConfig();
+            loadRevisionConfig();
+            recalculateMetricsAndRender();
+            updateLiteCounterUI();
+        });
+
+        // RECURSOS PWA & OFFLINE
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('pwaInstallBtn');
+            if (installBtn) installBtn.classList.remove('hidden');
+        });
+
+        function installPWA() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    showToast('Instalando o Fuel Tracker Lite...', 'fa-download', 'text-emerald-500');
+                }
+                deferredPrompt = null;
+                const installBtn = document.getElementById('pwaInstallBtn');
+                if (installBtn) installBtn.classList.add('hidden');
+            });
+        }
+
+        function initOfflineNetworkMonitoring() {
+            const updateOnlineStatus = () => {
+                const indicator = document.getElementById('offlineIndicator');
+                if (indicator) {
+                    if (navigator.onLine) {
+                        indicator.classList.add('hidden');
+                    } else {
+                        indicator.classList.remove('hidden');
+                        showToast('Modo offline ativado!', 'fa-wifi-slash', 'text-amber-500');
+                    }
+                }
+            };
+
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+            updateOnlineStatus();
+        }
+
+        // TEMA CLARO / ESCURO
+        function initTheme() {
+            const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
+            applyTheme(savedTheme);
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+            showToast(`Modo ${newTheme === 'dark' ? 'Escuro' : 'Claro'} ativado!`, 'fa-palette', 'text-sky-500');
+            
+            if (!document.getElementById('viewAnalytics').classList.contains('hidden')) {
+                renderCharts();
+            }
+        }
+
+        function applyTheme(theme) {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeMenuIcon');
+            const label = document.getElementById('themeMenuLabel');
+
+            if (theme === 'light') {
+                html.classList.remove('dark');
+                if (icon) icon.className = 'fa-solid fa-moon w-4';
+                if (label) label.innerText = 'Claro';
+            } else {
+                html.classList.add('dark');
+                if (icon) icon.className = 'fa-solid fa-sun w-4';
+                if (label) label.innerText = 'Escuro';
+            }
+        }
+
+        function shareAppWithFriend() {
+            const shareData = {
+                title: 'Fuel Tracker Lite - Controle de Combustível',
+                text: 'Dá uma olhada no Fuel Tracker Lite! O app ideal para controlar abastecimentos, médias de consumo e manutenção:',
+                url: window.location.href
+            };
+
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                try {
+                    navigator.share(shareData);
+                    showToast('Obrigado por indicar!', 'fa-heart', 'text-rose-500');
+                } catch (err) {}
+            } else {
+                try {
+                    navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                    showToast('Link de indicação copiado!', 'fa-copy', 'text-teal-500');
+                } catch (e) {
+                    alert(`Compartilhe o app enviando o link:\n${window.location.href}`);
+                }
+            }
+        }
 
         function toggleSettingsMenu() {
             const dropdown = document.getElementById('settingsDropdown');
+            const gearBtn = document.getElementById('btnSettingsMenu');
             if (dropdown) {
+                const isHidden = dropdown.classList.contains('hidden');
                 dropdown.classList.toggle('hidden');
+                if (gearBtn) {
+                    gearBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+                }
             }
         }
 
@@ -491,616 +924,57 @@
             const gearBtn = event.target.closest('button[onclick*="toggleSettingsMenu"]');
             if (dropdown && !dropdown.classList.contains('hidden') && !gearBtn && !dropdown.contains(event.target)) {
                 dropdown.classList.add('hidden');
+                const btn = document.getElementById('btnSettingsMenu');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
             }
         });
 
-        function openProModal() {
-            const modal = document.getElementById('proModal');
+        function openManualModal() {
+            const modal = document.getElementById('manualModal');
             if (modal) {
                 modal.classList.remove('opacity-0', 'pointer-events-none');
                 modal.classList.add('opacity-100');
             }
         }
 
-        function closeProModal() {
-            const modal = document.getElementById('proModal');
+        function closeManualModal() {
+            const modal = document.getElementById('manualModal');
             if (modal) {
                 modal.classList.remove('opacity-100');
                 modal.classList.add('opacity-0', 'pointer-events-none');
             }
         }
 
-        function showProFeatureNotice(featureName) {
-            openProModal();
-        }
-
-        const KML_MIN = 5.0;
-        const KML_MAX = 17.0;
-
-        let records = [];
-        let currentAvgMode = 'all';
-        let currentKmlCriterion = 'both';
-        let currentHistoryFilter = 'ALL';
-        let chartInstance = null;
-        let distChartInstance = null;
-
-        window.addEventListener('DOMContentLoaded', () => {
-            const inputData = document.getElementById('inputData');
-            if (inputData) inputData.value = new Date().toISOString().split('T')[0];
-            loadRecords();
-            recalculateMetricsAndRender();
-        });
-
-        function getFatorRendimentoDinamico() {
-            const validA = records.filter(r => r.full && r.comb === 'A' && r.kml >= KML_MIN && r.kml <= KML_MAX);
-            const validG = records.filter(r => r.full && r.comb === 'G' && r.kml >= KML_MIN && r.kml <= KML_MAX);
-
-            const avgKmlA = validA.length ? (validA.reduce((a, b) => a + b.kml, 0) / validA.length) : 8.61;
-            const avgKmlG = validG.length ? (validG.reduce((a, b) => a + b.kml, 0) / validG.length) : 10.02;
-
-            return avgKmlA / avgKmlG;
-        }
-
-        function calcularDecisaoPosto() {
-            const precoA = parseFloat(document.getElementById('calcPrecoA').value);
-            const precoG = parseFloat(document.getElementById('calcPrecoG').value);
-            const resEl = document.getElementById('resultadoCalcPosto');
-
-            const fator = getFatorRendimentoDinamico();
-            const fatorPct = fator * 100;
-
-            const labelFator = document.getElementById('labelFatorPosto');
-            if (labelFator) {
-                labelFator.innerText = `Fator: ${fatorPct.toFixed(1)}%`;
+        function openLimitModal(message) {
+            const modal = document.getElementById('limitModal');
+            const modalText = document.getElementById('limitModalText');
+            if (modalText && message) {
+                modalText.innerHTML = message;
+            } else if (modalText) {
+                modalText.innerHTML = 'Você atingiu o limite da versão <strong class="text-amber-500">Lite</strong> ou este recurso é exclusivo.';
             }
-
-            if (!precoA || !precoG) {
-                resEl.className = "text-center p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-semibold text-slate-400";
-                resEl.innerHTML = "Insira os preços para comparar a vantagem.";
-                return;
-            }
-
-            const razio = (precoA / precoG) * 100;
-            const precoMaxA = precoG * fator;
-
-            if (razio <= fatorPct) {
-                resEl.className = "text-center p-2 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-xs font-bold text-emerald-400";
-                resEl.innerHTML = `<i class="fa-solid fa-leaf text-emerald-400 mr-1"></i> Abasteça com ÁLCOOL! (${razio.toFixed(1)}% do preço da gasolina | Máx: R$ ${precoMaxA.toFixed(2)})`;
-            } else {
-                resEl.className = "text-center p-2 rounded-xl bg-amber-950/80 border border-amber-500/40 text-xs font-bold text-amber-400";
-                resEl.innerHTML = `<i class="fa-solid fa-fire text-amber-400 mr-1"></i> Abasteça com GASOLINA! (Álcool vale a pena até R$ ${precoMaxA.toFixed(2)})`;
+            if (modal) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.classList.add('opacity-100');
             }
         }
 
-        function renderRevisionForecast() {
-            const forecastEl = document.getElementById('revisionForecast');
-            const subtextEl = document.getElementById('revisionSubtext');
-            const targetEl = document.getElementById('revisionKmTarget');
-            const progressBar = document.getElementById('revisionProgressBar');
-
-            if (!forecastEl || !subtextEl || !targetEl) return;
-
-            if (!records || records.length < 2) {
-                forecastEl.innerText = "Dados insuficientes";
-                subtextEl.innerText = "Cadastre pelo menos 2 abastecimentos";
-                if (progressBar) progressBar.style.width = "0%";
-                return;
-            }
-
-            const sorted = [...records].sort((a, b) => Number(a.odo) - Number(b.odo));
-            const minOdo = Number(sorted[0].odo);
-            const maxOdo = Number(sorted[sorted.length - 1].odo);
-            
-            const revisionInterval = 10000;
-            const currentIntervalStart = Math.floor(maxOdo / revisionInterval) * revisionInterval;
-            const nextRevisionKm = (Math.floor(maxOdo / revisionInterval) + 1) * revisionInterval;
-            const kmRemaining = nextRevisionKm - maxOdo;
-
-            const progressPct = Math.min(100, Math.max(0, ((maxOdo - currentIntervalStart) / revisionInterval) * 100));
-            if (progressBar) progressBar.style.width = `${progressPct}%`;
-
-            const firstDate = new Date(sorted[0].date);
-            const lastDate = new Date(sorted[sorted.length - 1].date);
-            const daysDiff = Math.max(1, (lastDate - firstDate) / (1000 * 60 * 60 * 24));
-            
-            const kmPerDay = (maxOdo - minOdo) / daysDiff;
-            const estimatedDaysLeft = kmPerDay > 0 ? Math.round(kmRemaining / kmPerDay) : 0;
-
-            const estimatedDate = new Date();
-            estimatedDate.setDate(estimatedDate.getDate() + estimatedDaysLeft);
-
-            targetEl.innerText = `${nextRevisionKm.toLocaleString('pt-BR')} km`;
-            
-            if (estimatedDaysLeft > 0) {
-                forecastEl.innerText = `Faltam ${kmRemaining.toLocaleString('pt-BR')} km (~${formatDateBR(estimatedDate.toISOString().split('T')[0])})`;
-                subtextEl.innerText = `Média de ${(kmPerDay * 30).toFixed(0)} km/mês rodados`;
-            } else {
-                forecastEl.innerText = `Revisão Pendente!`;
-                subtextEl.innerText = `Odômetro atingiu a marca de revisão`;
+        function closeLimitModal() {
+            const modal = document.getElementById('limitModal');
+            if (modal) {
+                modal.classList.remove('opacity-100');
+                modal.classList.add('opacity-0', 'pointer-events-none');
             }
         }
 
-        function loadRecords() {
-            const stored = localStorage.getItem('fuel_tracker_lite_records');
-            if (stored) {
-                try {
-                    records = JSON.parse(stored);
-                } catch(e) {
-                    records = [];
-                }
-            } else {
-                records = [];
+        function updateLiteCounterUI() {
+            const counterText = document.getElementById('liteCounterText');
+            if (counterText) {
+                counterText.innerText = `${records.length}/${MAX_LITE_RECORDS}`;
             }
         }
 
-        function saveRecords() {
-            localStorage.setItem('fuel_tracker_lite_records', JSON.stringify(records));
-            const statusEl = document.getElementById('storageStatus');
-            if (statusEl) statusEl.innerText = `Versão Gratuita (${records.length}/${FREE_RECORD_LIMIT})`;
-            
-            const countBadge = document.getElementById('recordCountBadge');
-            if (countBadge) countBadge.innerText = `${records.length}/${FREE_RECORD_LIMIT}`;
-        }
-
-        function recalculateMetricsAndRender() {
-            records.sort((a, b) => Number(a.odo) - Number(b.odo));
-
-            for (let i = 0; i < records.length; i++) {
-                const rec = records[i];
-                rec.kmTotal = (i === 0) ? 0 : Math.max(0, Number(rec.odo) - Number(records[i - 1].odo));
-
-                rec.lA = Number(rec.lA) || 0;
-                rec.pA = Number(rec.pA) || 0;
-                rec.vA = rec.lA * rec.pA;
-
-                rec.lG = Number(rec.lG) || 0;
-                rec.pG = Number(rec.pG) || 0;
-                rec.vG = rec.lG * rec.pG;
-
-                rec.totL = rec.lA + rec.lG;
-                rec.totR = rec.vA + rec.vG;
-
-                if (rec.lA > 0 && rec.lG > 0) rec.comb = 'M';
-                else if (rec.lG > 0) rec.comb = 'G';
-                else if (rec.lA > 0) rec.comb = 'A';
-                else rec.comb = '-';
-
-                rec.isOutlier = false;
-                if (rec.totL > 0 && rec.kmTotal > 0) {
-                    const rawKml = rec.kmTotal / rec.totL;
-                    if (rawKml >= KML_MIN && rawKml <= KML_MAX) {
-                        rec.kml = rawKml;
-                    } else {
-                        rec.kml = 0;
-                        rec.isOutlier = true;
-                        rec.rawKml = rawKml;
-                    }
-                } else {
-                    rec.kml = 0;
-                }
-
-                rec.rkm = (rec.kmTotal > 0 && rec.totR > 0) ? (rec.totR / rec.kmTotal) : 0;
-            }
-
-            saveRecords();
-            renderKPIs();
-            renderAverages();
-            renderRecentRecords();
-            renderHistoryList();
-            renderCharts();
-            renderInsights();
-            renderRevisionForecast();
-            calcularDecisaoPosto();
-        }
-
-        function setKmlFilterCriterion(criterion) {
-            currentKmlCriterion = criterion;
-            const btnTank = document.getElementById('filterTankOnly');
-            const btnRange = document.getElementById('filterRangeOnly');
-            const btnBoth = document.getElementById('filterBoth');
-            
-            [btnTank, btnRange, btnBoth].forEach(b => {
-                if (b) b.className = 'py-1 rounded-lg text-slate-400 font-semibold transition';
-            });
-
-            if (criterion === 'tank' && btnTank) btnTank.className = 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow';
-            if (criterion === 'range' && btnRange) btnRange.className = 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow';
-            if (criterion === 'both' && btnBoth) btnBoth.className = 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow';
-
-            renderAverages();
-        }
-
-        function renderKPIs() {
-            if (records.length === 0) {
-                document.getElementById('kpiTotalKm').innerText = `0 km`;
-                document.getElementById('kpiOdometro').innerText = `Odômetro: 0 km`;
-                document.getElementById('kpiGastoTotal').innerText = `R$ 0,00`;
-                document.getElementById('kpiCustoMedio').innerText = `Custo/km: R$ 0,00`;
-                return;
-            }
-            const maxOdo = Math.max(...records.map(r => Number(r.odo)));
-            const minOdo = Math.min(...records.map(r => Number(r.odo)));
-            const totalKmDriven = maxOdo - minOdo;
-            const totalSpent = records.reduce((sum, r) => sum + (Number(r.totR) || 0), 0);
-            const avgCostPerKm = totalKmDriven > 0 ? (totalSpent / totalKmDriven) : 0;
-
-            document.getElementById('kpiTotalKm').innerText = `${totalKmDriven.toLocaleString('pt-BR')} km`;
-            document.getElementById('kpiOdometro').innerText = `Odômetro: ${maxOdo.toLocaleString('pt-BR')} km`;
-            document.getElementById('kpiGastoTotal').innerText = `R$ ${totalSpent.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            document.getElementById('kpiCustoMedio').innerText = `Custo/km: R$ ${avgCostPerKm.toFixed(2)}`;
-        }
-
-        function renderAverages() {
-            const filteredDataset = records.filter(r => {
-                const isFullTank = Boolean(r.full);
-                const hasValidLiters = Number(r.totL) > 0;
-                const hasValidKm = Number(r.kmTotal) > 0;
-                if (!hasValidLiters || !hasValidKm) return false;
-                
-                const rawKml = r.kmTotal / r.totL;
-                const isInRange = (rawKml >= KML_MIN && rawKml <= KML_MAX);
-
-                if (currentKmlCriterion === 'tank') return isFullTank;
-                if (currentKmlCriterion === 'range') return isInRange;
-                if (currentKmlCriterion === 'both') return isFullTank && isInRange;
-                return true;
-            });
-
-            let dataset = (currentAvgMode === 'last5') ? filteredDataset.slice(-5) : filteredDataset;
-
-            const calcAvgForFuel = (fuelType) => {
-                const filtered = dataset.filter(r => r.comb === fuelType);
-                const totalKm = filtered.reduce((sum, r) => sum + Number(r.kmTotal), 0);
-                const totalL = filtered.reduce((sum, r) => sum + Number(r.totL), 0);
-                return totalL > 0 ? (totalKm / totalL).toFixed(2) : "0.00";
-            };
-
-            document.getElementById('avgAlcoholVal').innerText = calcAvgForFuel('A');
-            document.getElementById('avgGasVal').innerText = calcAvgForFuel('G');
-            document.getElementById('avgMixedVal').innerText = calcAvgForFuel('M');
-
-            const modeSuffix = currentAvgMode === 'last5' ? '(últ. 5)' : '(geral)';
-            document.getElementById('avgAlcoholSub').innerText = `km/L ${modeSuffix}`;
-            document.getElementById('avgGasSub').innerText = `km/L ${modeSuffix}`;
-            document.getElementById('avgMixedSub').innerText = `km/L ${modeSuffix}`;
-        }
-
-        function setAvgMode(mode) {
-            currentAvgMode = mode;
-            const btnAll = document.getElementById('avgModeAll');
-            const btn5 = document.getElementById('avgMode5');
-
-            if (mode === 'all') {
-                btnAll.className = 'flex-1 py-1 rounded-md bg-slate-700 text-white font-semibold text-[11px] transition';
-                btn5.className = 'flex-1 py-1 rounded-md text-slate-400 font-semibold text-[11px] hover:text-white transition';
-            } else {
-                btn5.className = 'flex-1 py-1 rounded-md bg-slate-700 text-white font-semibold text-[11px] transition';
-                btnAll.className = 'flex-1 py-1 rounded-md text-slate-400 font-semibold text-[11px] hover:text-white transition';
-            }
-            renderAverages();
-        }
-
-        function renderRecentRecords() {
-            const listEl = document.getElementById('recentRecordsList');
-            if (!listEl) return;
-            listEl.innerHTML = '';
-            if (records.length === 0) {
-                listEl.innerHTML = `<div class="text-center py-4 text-slate-500 text-xs">Nenhum abastecimento recente.</div>`;
-                return;
-            }
-            [...records].reverse().slice(0, 3).forEach((rec) => {
-                listEl.appendChild(createRecordCard(rec));
-            });
-        }
-
-        function renderHistoryList() {
-            const listEl = document.getElementById('fullHistoryList');
-            if (!listEl) return;
-            listEl.innerHTML = '';
-
-            const searchTerm = (document.getElementById('historySearch')?.value || '').toLowerCase();
-            let filtered = [...records].reverse().filter(rec => {
-                const matchType = (currentHistoryFilter === 'ALL') || (rec.comb === currentHistoryFilter);
-                const formattedDate = formatDateBR(rec.date);
-                const matchSearch = formattedDate.includes(searchTerm) || String(rec.odo).includes(searchTerm);
-                return matchType && matchSearch;
-            });
-
-            document.getElementById('historyCountBadge').innerText = `${filtered.length} registros`;
-
-            if (filtered.length === 0) {
-                listEl.innerHTML = `
-                    <div class="text-center py-8 text-slate-500 text-xs">
-                        <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
-                        Nenhum abastecimento encontrado.
-                    </div>`;
-                return;
-            }
-
-            filtered.forEach((rec) => {
-                listEl.appendChild(createRecordCard(rec, true));
-            });
-        }
-
-        function createRecordCard(rec, showActions = false) {
-            const div = document.createElement('div');
-            div.className = 'bg-slate-800/90 hover:bg-slate-800 p-3 rounded-2xl border border-slate-700/60 shadow-sm transition space-y-2';
-
-            const originalIndex = records.findIndex(r => r.date === rec.date && r.odo === rec.odo);
-
-            let fuelBadge = '';
-            if (rec.comb === 'A') fuelBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold"><i class="fa-solid fa-leaf"></i> Álcool</span>`;
-            else if (rec.comb === 'G') fuelBadge = `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold"><i class="fa-solid fa-fire"></i> Gasolina</span>`;
-            else if (rec.comb === 'M') fuelBadge = `<span class="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold"><i class="fa-solid fa-shuffle"></i> Misto</span>`;
-
-            const tankBadge = rec.full 
-                ? `<span class="text-[9px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded font-medium">Cheio</span>`
-                : `<span class="text-[9px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded font-medium">Parcial</span>`;
-
-            const totalValFormatted = (Number(rec.totR) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            const kmDeltaText = rec.kmTotal > 0 ? `(+${rec.kmTotal} km)` : '';
-
-            let detailItems = [];
-            if (rec.lA > 0) detailItems.push(`Álcool: ${rec.lA.toFixed(2)}L`);
-            if (rec.lG > 0) detailItems.push(`Gas: ${rec.lG.toFixed(2)}L`);
-
-            let kmlDisplay = '';
-            if (rec.isOutlier) {
-                kmlDisplay = `<span class="text-rose-400 font-semibold bg-rose-950/60 border border-rose-800/50 px-1.5 py-0.5 rounded text-[10px]">⚠️ Desconsiderado (${rec.rawKml.toFixed(2)} km/L)</span>`;
-            } else if (rec.kml > 0) {
-                kmlDisplay = `<span class="font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-800/50 px-1.5 py-0.5 rounded text-[10px]">${rec.kml.toFixed(2)} km/L</span>`;
-            }
-
-            div.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <span class="font-bold text-white text-xs">${formatDateBR(rec.date)}</span>
-                        ${tankBadge}
-                    </div>
-                    <div class="text-right">
-                        <span class="font-black text-emerald-400 text-sm">R$ ${totalValFormatted}</span>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between text-[11px] text-slate-300">
-                    <div class="flex items-center gap-1.5">
-                        <i class="fa-solid fa-gauge text-slate-400 text-[10px]"></i>
-                        <span>Odômetro: <strong>${rec.odo.toLocaleString('pt-BR')}</strong> <span class="text-slate-400">${kmDeltaText}</span></span>
-                    </div>
-                    <div class="text-slate-400 font-mono text-[10px]">
-                        ${rec.totL ? rec.totL.toFixed(2) + ' L total' : ''}
-                    </div>
-                </div>
-                <div class="flex items-center justify-between pt-1 border-t border-slate-700/40 text-[10px]">
-                    <div class="flex items-center gap-1.5">
-                        ${fuelBadge}
-                        <span class="text-slate-400">${detailItems.join(' | ')}</span>
-                    </div>
-                    ${kmlDisplay}
-                </div>
-                ${showActions ? `
-                <div class="flex justify-end gap-3 pt-1 border-t border-slate-700/30 text-[11px]">
-                    <button onclick="editRecord(${originalIndex})" class="text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1">
-                        <i class="fa-solid fa-pen"></i> Editar
-                    </button>
-                    <button onclick="deleteRecord(${originalIndex})" class="text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">
-                        <i class="fa-solid fa-trash"></i> Excluir
-                    </button>
-                </div>
-                ` : ''}
-            `;
-            return div;
-        }
-
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            const index = parseInt(document.getElementById('editIndex').value);
-
-            // VERIFICAÇÃO DE LIMITE DA VERSÃO LITE
-            if (index < 0 && records.length >= FREE_RECORD_LIMIT) {
-                openProModal();
-                return;
-            }
-
-            const date = document.getElementById('inputData').value;
-            const odo = parseInt(document.getElementById('inputOdometro').value);
-            const lA = parseFloat(document.getElementById('inputLitrosA').value) || 0;
-            const pA = parseFloat(document.getElementById('inputPrecoA').value) || 0;
-            const lG = parseFloat(document.getElementById('inputLitrosG').value) || 0;
-            const pG = parseFloat(document.getElementById('inputPrecoG').value) || 0;
-            const full = document.getElementById('inputTanqueCheio').checked;
-
-            if (!lA && !lG) {
-                alert('Informe os litros de álcool ou gasolina.');
-                return;
-            }
-
-            const newRecord = { date, odo, lA, pA, lG, pG, full };
-
-            if (index >= 0) {
-                records[index] = { ...records[index], ...newRecord };
-                showToast('Abastecimento atualizado!', 'fa-pen-to-square', 'text-amber-400');
-            } else {
-                records.push(newRecord);
-                showToast('Novo abastecimento salvo!', 'fa-circle-check', 'text-emerald-400');
-            }
-
-            resetForm();
-            recalculateMetricsAndRender();
-        }
-
-        function editRecord(index) {
-            const rec = records[index];
-            if (!rec) return;
-
-            document.getElementById('editIndex').value = index;
-            document.getElementById('inputData').value = rec.date;
-            document.getElementById('inputOdometro').value = rec.odo;
-            document.getElementById('inputLitrosA').value = rec.lA || '';
-            document.getElementById('inputPrecoA').value = rec.pA || '';
-            document.getElementById('inputLitrosG').value = rec.lG || '';
-            document.getElementById('inputPrecoG').value = rec.pG || '';
-            document.getElementById('inputTanqueCheio').checked = rec.full;
-
-            document.getElementById('formTitle').innerText = 'Editar Abastecimento';
-            document.getElementById('formIcon').className = 'fa-solid fa-pen-to-square text-amber-400';
-            document.getElementById('cancelEditBtn').classList.remove('hidden');
-
-            switchTab('dashboard');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function deleteRecord(index) {
-            if (confirm('Tem certeza que deseja excluir este registro de abastecimento?')) {
-                records.splice(index, 1);
-                recalculateMetricsAndRender();
-                showToast('Registro excluído!', 'fa-trash', 'text-rose-400');
-            }
-        }
-
-        function resetForm() {
-            document.getElementById('fuelForm').reset();
-            document.getElementById('editIndex').value = '-1';
-            document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
-            document.getElementById('formTitle').innerText = 'Novo Abastecimento';
-            document.getElementById('formIcon').className = 'fa-solid fa-circle-plus text-emerald-400';
-            document.getElementById('cancelEditBtn').classList.add('hidden');
-        }
-
-        function switchTab(tab) {
-            document.getElementById('viewDashboard').classList.add('hidden');
-            document.getElementById('viewHistory').classList.add('hidden');
-            document.getElementById('viewAnalytics').classList.add('hidden');
-            document.getElementById('viewRevision').classList.add('hidden');
-
-            const tabDash = document.getElementById('tabDashboard');
-            const tabHist = document.getElementById('tabHistory');
-            const tabAnaly = document.getElementById('tabAnalytics');
-            const tabRev = document.getElementById('tabRevision');
-
-            [tabDash, tabHist, tabAnaly, tabRev].forEach(t => {
-                if(t) t.className = 'py-2 rounded-lg text-slate-300 hover:text-white transition flex items-center justify-center gap-1';
-            });
-
-            if (tab === 'dashboard') {
-                document.getElementById('viewDashboard').classList.remove('hidden');
-                tabDash.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition font-bold flex items-center justify-center gap-1';
-            } else if (tab === 'history') {
-                document.getElementById('viewHistory').classList.remove('hidden');
-                tabHist.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition font-bold flex items-center justify-center gap-1';
-            } else if (tab === 'analytics') {
-                document.getElementById('viewAnalytics').classList.remove('hidden');
-                tabAnaly.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition font-bold flex items-center justify-center gap-1';
-                renderCharts();
-            } else if (tab === 'revision') {
-                document.getElementById('viewRevision').classList.remove('hidden');
-                tabRev.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition font-bold flex items-center justify-center gap-1';
-            }
-        }
-
-        function setHistoryFilter(type) {
-            currentHistoryFilter = type;
-            ['ALL', 'A', 'G', 'M'].forEach(t => {
-                const btn = document.getElementById(`filterBtn${t}`);
-                if (!btn) return;
-                btn.className = (t === type)
-                    ? 'px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap'
-                    : 'px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium transition whitespace-nowrap';
-            });
-            renderHistoryList();
-        }
-
-        function renderCharts() {
-            if (!window.Chart) return;
-
-            const validData = records.filter(r => r.full && r.kml >= KML_MIN && r.kml <= KML_MAX);
-            const ctx1 = document.getElementById('consumptionChart')?.getContext('2d');
-            if (ctx1) {
-                if (chartInstance) chartInstance.destroy();
-                chartInstance = new Chart(ctx1, {
-                    type: 'line',
-                    data: {
-                        labels: validData.slice(-15).map(r => formatDateBR(r.date)),
-                        datasets: [{
-                            label: 'Km/L (Válidos)',
-                            data: validData.slice(-15).map(r => r.kml),
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                            fill: true,
-                            tension: 0.3,
-                            pointBackgroundColor: '#10b981',
-                            pointRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: '#1e293b' } },
-                            y: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: '#1e293b' } }
-                        }
-                    }
-                });
-            }
-
-            const ctx2 = document.getElementById('fuelDistChart')?.getContext('2d');
-            if (ctx2) {
-                if (distChartInstance) distChartInstance.destroy();
-                const countA = records.filter(r => r.comb === 'A').length;
-                const countG = records.filter(r => r.comb === 'G').length;
-                const countM = records.filter(r => r.comb === 'M').length;
-
-                distChartInstance = new Chart(ctx2, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Álcool', 'Gasolina', 'Misto'],
-                        datasets: [{
-                            data: [countA, countG, countM],
-                            backgroundColor: ['#10b981', '#f97316', '#8b5cf6'],
-                            borderWidth: 2,
-                            borderColor: '#0f172a'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 10 } } }
-                        }
-                    }
-                });
-            }
-        }
-
-        function renderInsights() {
-            const validA = records.filter(r => r.full && r.comb === 'A' && r.kml >= KML_MIN && r.kml <= KML_MAX);
-            const validG = records.filter(r => r.full && r.comb === 'G' && r.kml >= KML_MIN && r.kml <= KML_MAX);
-
-            const avgKmlA = validA.length ? (validA.reduce((a, b) => a + b.kml, 0) / validA.length) : 8.61;
-            const avgKmlG = validG.length ? (validG.reduce((a, b) => a + b.kml, 0) / validG.length) : 10.02;
-
-            const ratio = (avgKmlA / avgKmlG) * 100;
-
-            const insightEl = document.getElementById('insightText');
-            if (insightEl) {
-                if (records.length === 0) {
-                    insightEl.innerHTML = `Cadastre os seus abastecimentos para gerar insights personalizados sobre a economia do seu veículo.`;
-                    return;
-                }
-                insightEl.innerHTML = `
-                    Sua média válida com <strong class="text-emerald-400">Álcool</strong> é de <strong>${avgKmlA.toFixed(2)} km/L</strong> e com <strong class="text-amber-400">Gasolina</strong> é de <strong>${avgKmlG.toFixed(2)} km/L</strong>.<br><br>
-                    O rendimento do Álcool no seu veículo representa <strong>${ratio.toFixed(1)}%</strong> do rendimento da Gasolina. Recomendamos abastecer com Álcool sempre que o preço do litro for inferior a <strong>${ratio.toFixed(1)}%</strong> do preço da gasolina na sua região!
-                `;
-            }
-        }
-
-        function formatDateBR(dateStr) {
-            if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
-        }
-
-        function showToast(message, iconClass = 'fa-circle-check', iconColor = 'text-emerald-400') {
+        function showToast(message, iconClass = 'fa-circle-check', iconColor = 'text-emerald-500') {
             const toast = document.getElementById('toast');
             const toastMsg = document.getElementById('toastMsg');
             const toastIcon = document.getElementById('toastIcon');
@@ -1117,6 +991,879 @@
                 toast.classList.remove('opacity-100', 'translate-y-0');
                 toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
             }, 3000);
+        }
+
+        function formatDateBR(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return dateStr;
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['dashboard', 'history', 'analytics', 'revision'];
+            tabs.forEach(t => {
+                const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+                const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (btn && view) {
+                    if (t === tabName) {
+                        btn.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-600';
+                        btn.setAttribute('aria-selected', 'true');
+                        view.classList.remove('hidden');
+                    } else {
+                        btn.className = 'py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500';
+                        btn.setAttribute('aria-selected', 'false');
+                        view.classList.add('hidden');
+                    }
+                }
+            });
+
+            if (tabName === 'analytics') {
+                renderCharts();
+            } else if (tabName === 'history') {
+                renderHistoryList();
+            } else if (tabName === 'revision') {
+                renderRevisionForecast();
+                renderTireStatus();
+                renderCnhStatus();
+            }
+        }
+
+        function loadRevisionConfig() {
+            const saved = localStorage.getItem(REVISION_STORAGE_KEY);
+            if (saved) {
+                try { revisionConfig = JSON.parse(saved); } catch (e) { }
+            }
+        }
+
+        function saveRevisionConfig(e) {
+            e.preventDefault();
+            const interval = parseFloat(document.getElementById('revisionIntervalInput').value) || 10000;
+            revisionConfig = { interval };
+            localStorage.setItem(REVISION_STORAGE_KEY, JSON.stringify(revisionConfig));
+            closeRevisionModal();
+            renderRevisionForecast();
+            showToast('Configuração de Manutenção salva!', 'fa-circle-check', 'text-blue-500');
+        }
+
+        function openRevisionModal() {
+            document.getElementById('revisionIntervalInput').value = revisionConfig.interval || 10000;
+            const modal = document.getElementById('revisionModal');
+            if (modal) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.classList.add('opacity-100');
+            }
+        }
+
+        function closeRevisionModal() {
+            const modal = document.getElementById('revisionModal');
+            if (modal) {
+                modal.classList.remove('opacity-100');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function renderRevisionForecast() {
+            const forecastEl = document.getElementById('revisionForecast');
+            const subtextEl = document.getElementById('revisionSubtext');
+            const targetBadge = document.getElementById('revisionKmTarget');
+            const progressBar = document.getElementById('revisionProgressBar');
+
+            if (!forecastEl || !subtextEl || !targetBadge) return;
+
+            const interval = revisionConfig.interval || 10000;
+            targetBadge.innerText = `${interval.toLocaleString('pt-BR')} km`;
+
+            if (!records.length) {
+                forecastEl.innerText = "Sem dados suficientes";
+                subtextEl.innerText = "Cadastre abastecimentos para calcular a estimativa";
+                if (progressBar) progressBar.style.width = "0%";
+                return;
+            }
+
+            const currentOdo = Math.max(...records.map(r => Number(r.odo)));
+            const nextTarget = Math.ceil((currentOdo + 1) / interval) * interval;
+            const kmRemaining = nextTarget - currentOdo;
+            const currentCycleKm = interval - kmRemaining;
+            const progressPct = Math.min(100, Math.max(0, (currentCycleKm / interval) * 100));
+
+            if (progressBar) progressBar.style.width = `${progressPct}%`;
+
+            forecastEl.innerText = `Próxima revisão aos ${nextTarget.toLocaleString('pt-BR')} km`;
+            subtextEl.innerText = `Faltam ${kmRemaining.toLocaleString('pt-BR')} km`;
+        }
+
+        function loadTireConfig() {
+            const saved = localStorage.getItem(TIRE_STORAGE_KEY);
+            if (saved) {
+                try { tireConfig = JSON.parse(saved); } catch (e) { }
+            }
+        }
+
+        function saveTireConfig(e) {
+            e.preventDefault();
+            const interval = parseFloat(document.getElementById('tireIntervalInput').value) || 10000;
+            const lastKm = parseFloat(document.getElementById('tireLastKmInput').value) || 0;
+            
+            tireConfig = { interval, lastKm };
+            localStorage.setItem(TIRE_STORAGE_KEY, JSON.stringify(tireConfig));
+            closeTireModal();
+            renderTireStatus();
+            showToast('Configuração de Rodízio salva!', 'fa-circle-check', 'text-amber-500');
+        }
+
+        // TRAVA DO RODÍZIO DE PNEUS NA VERSÃO LITE
+        function openTireModal() {
+            openLimitModal('O gerenciamento de <strong>Rodízio de Pneus</strong> é uma função exclusiva da versão <strong>PRO</strong>.');
+        }
+
+        function closeTireModal() {
+            const modal = document.getElementById('tireModal');
+            if (modal) {
+                modal.classList.remove('opacity-100');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function renderTireStatus() {
+            const forecastEl = document.getElementById('tireForecast');
+            const subtextEl = document.getElementById('tireSubtext');
+            const targetBadge = document.getElementById('tireTargetBadge');
+            const progressBar = document.getElementById('tireProgressBar');
+
+            if (!forecastEl || !subtextEl || !targetBadge) return;
+
+            forecastEl.className = "text-xl font-black text-amber-500";
+            forecastEl.innerText = "Recurso PRO Bloqueado";
+            subtextEl.innerText = "Disponível apenas na versão PRO";
+            targetBadge.innerText = "Versão PRO";
+            if (progressBar) progressBar.style.width = "0%";
+        }
+
+        function loadCnhConfig() {
+            const saved = localStorage.getItem(CNH_STORAGE_KEY);
+            if (saved) {
+                try { cnhConfig = JSON.parse(saved); } catch (e) { }
+            }
+        }
+
+        function saveCnhConfig(e) {
+            e.preventDefault();
+            const expiryDate = document.getElementById('cnhExpiryInput').value;
+            const hasToxic = document.getElementById('hasToxicCheckbox').checked;
+            const toxicExpiryDate = hasToxic ? document.getElementById('toxicExpiryInput').value : '';
+
+            cnhConfig = { expiryDate, hasToxic, toxicExpiryDate };
+            localStorage.setItem(CNH_STORAGE_KEY, JSON.stringify(cnhConfig));
+            closeCnhModal();
+            renderCnhStatus();
+            showToast('Validades salvas com sucesso!', 'fa-circle-check', 'text-purple-500');
+        }
+
+        // TRAVA DE CNH & TOXICOLÓGICO NA VERSÃO LITE
+        function openCnhModal() {
+            openLimitModal('A gestão de <strong>CNH e Exame Toxicológico</strong> é um recurso exclusivo da versão <strong>PRO</strong>.');
+        }
+
+        function closeCnhModal() {
+            const modal = document.getElementById('cnhModal');
+            if (modal) {
+                modal.classList.remove('opacity-100');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function toggleToxicField() {
+            const hasToxic = document.getElementById('hasToxicCheckbox').checked;
+            const toxicGroup = document.getElementById('toxicFieldGroup');
+            if (hasToxic) {
+                toxicGroup.classList.remove('hidden');
+            } else {
+                toxicGroup.classList.add('hidden');
+            }
+        }
+
+        function calculateDaysRemaining(dateStr) {
+            if (!dateStr) return null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const targetParts = dateStr.split('-');
+            if (targetParts.length !== 3) return null;
+            const targetDate = new Date(targetParts[0], targetParts[1] - 1, targetParts[2]);
+            
+            const diffTime = targetDate - today;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function renderCnhStatus() {
+            const cnhDateText = document.getElementById('cnhDateText');
+            const cnhDaysBadge = document.getElementById('cnhDaysBadge');
+            const toxicCard = document.getElementById('toxicCard');
+            const toxicDateText = document.getElementById('toxicDateText');
+            const toxicDaysBadge = document.getElementById('toxicDaysBadge');
+
+            if (cnhDateText) cnhDateText.innerText = "Disponível na versão PRO";
+            if (cnhDaysBadge) {
+                cnhDaysBadge.innerText = "PRO";
+                cnhDaysBadge.className = 'font-black text-xs text-amber-500';
+            }
+
+            if (toxicCard) toxicCard.classList.remove('hidden');
+            if (toxicDateText) toxicDateText.innerText = "Disponível na versão PRO";
+            if (toxicDaysBadge) {
+                toxicDaysBadge.innerText = "PRO";
+                toxicDaysBadge.className = 'font-black text-xs text-amber-500';
+            }
+        }
+
+        function getFatorRendimentoDinamico() {
+            const validA = records.filter(r => r.full && r.comb === 'A' && r.kml >= KML_MIN && r.kml <= KML_MAX);
+            const validG = records.filter(r => r.comb === 'G' && r.full && r.kml >= KML_MIN && r.kml <= KML_MAX);
+
+            if (!validA.length || !validG.length) return 0.70;
+
+            const avgKmlA = validA.reduce((a, b) => a + b.kml, 0) / validA.length;
+            const avgKmlG = validG.reduce((a, b) => a + b.kml, 0) / validG.length;
+
+            return avgKmlA / avgKmlG;
+        }
+
+        function calcularDecisaoPosto() {
+            const precoA = parseFloat(document.getElementById('calcPrecoA').value);
+            const precoG = parseFloat(document.getElementById('calcPrecoG').value);
+            const resEl = document.getElementById('resultadoCalcPosto');
+
+            const fator = getFatorRendimentoDinamico();
+            const fatorPct = fator * 100;
+
+            const labelFator = document.getElementById('labelFatorPosto');
+            if (labelFator) labelFator.innerText = `Fator: ${fatorPct.toFixed(1)}%`;
+
+            if (!precoA || !precoG) {
+                resEl.className = "text-center p-2 rounded-xl bg-stone-200/50 dark:bg-slate-900/90 border border-stone-300/60 dark:border-slate-800 text-xs font-semibold text-stone-500 dark:text-slate-400";
+                resEl.innerHTML = "Insira os preços para comparar a vantagem.";
+                return;
+            }
+
+            const razio = (precoA / precoG) * 100;
+            const precoMaxA = precoG * fator;
+
+            if (razio <= fatorPct) {
+                resEl.className = "text-center p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/80 border border-emerald-500/40 text-xs font-bold text-emerald-700 dark:text-emerald-400";
+                resEl.innerHTML = `<i class="fa-solid fa-leaf text-emerald-600 dark:text-emerald-400 mr-1"></i> Abasteça com ETANOL! (${razio.toFixed(1)}% | Máx: R$ ${precoMaxA.toFixed(2)})`;
+            } else {
+                resEl.className = "text-center p-2 rounded-xl bg-orange-500/10 dark:bg-orange-950/80 border border-orange-500/40 text-xs font-bold text-orange-700 dark:text-orange-400";
+                resEl.innerHTML = `<i class="fa-solid fa-fire text-orange-600 dark:text-orange-400 mr-1"></i> Abasteça com GASOLINA! (Etanol até R$ ${precoMaxA.toFixed(2)})`;
+            }
+        }
+
+        function handleExportJSON() {
+            toggleSettingsMenu();
+            exportJSON();
+        }
+
+        function handleExportExcel() {
+            toggleSettingsMenu();
+            exportToExcel();
+        }
+
+        function handleExportPDF() {
+            toggleSettingsMenu();
+            exportToPDF();
+        }
+
+        function handleResetDatabase() {
+            toggleSettingsMenu();
+            resetDatabase();
+        }
+
+        async function exportJSON() {
+            if (records.length === 0) {
+                alert('Não há dados para exportar.');
+                return;
+            }
+            const fileName = `FuelTracker_Lite_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            const jsonStr = JSON.stringify(records, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", URL.createObjectURL(blob));
+            downloadAnchor.setAttribute("download", fileName);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Backup JSON exportado!', 'fa-download', 'text-purple-500');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        if (importedData.length > MAX_LITE_RECORDS) {
+                            alert(`O arquivo possui ${importedData.length} registros. A versão Lite aceita apenas até ${MAX_LITE_RECORDS} lançamentos. Apenas os 10 primeiros serão importados.`);
+                        }
+
+                        records = importedData.slice(0, MAX_LITE_RECORDS).map(item => {
+                            const litersA = Number(item.litersA || item.litrosA) || 0;
+                            const priceA = Number(item.priceA || item.precoA) || 0;
+                            const litersG = Number(item.litersG || item.litrosG) || 0;
+                            const priceG = Number(item.priceG || item.precoG) || 0;
+                            const totL = Number(item.totL) || (litersA + litersG);
+                            const totR = Number(item.totR) || ((litersA * priceA) + (litersG * priceG));
+                            
+                            let comb = item.comb;
+                            if (!comb) {
+                                if (litersA > 0 && litersG > 0) comb = 'M';
+                                else if (litersA > 0) comb = 'A';
+                                else comb = 'G';
+                            }
+
+                            return {
+                                date: item.date || new Date().toISOString().split('T')[0],
+                                odo: Number(item.odo) || 0,
+                                litersA, priceA, litersG, priceG,
+                                full: item.full !== undefined ? Boolean(item.full) : true,
+                                totL, totR, comb,
+                                dist: Number(item.dist) || 0,
+                                kml: Number(item.kml) || 0
+                            };
+                        });
+
+                        recalculateDistancesAndKml();
+                        saveRecords();
+                        recalculateMetricsAndRender();
+                        updateLiteCounterUI();
+                        showToast('Dados importados com sucesso!', 'fa-circle-check', 'text-emerald-500');
+                    }
+                } catch (err) {
+                    alert('Erro ao ler o arquivo JSON.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function renderKPIs() {
+            const kpiTotalKm = document.getElementById('kpiTotalKm');
+            const kpiOdometro = document.getElementById('kpiOdometro');
+            const kpiGastoTotal = document.getElementById('kpiGastoTotal');
+            const kpiCustoMedio = document.getElementById('kpiCustoMedio');
+
+            if (!records.length) {
+                if (kpiTotalKm) kpiTotalKm.innerText = '0 km';
+                if (kpiOdometro) kpiOdometro.innerText = 'Odômetro: 0 km';
+                if (kpiGastoTotal) kpiGastoTotal.innerText = 'R$ 0,00';
+                if (kpiCustoMedio) kpiCustoMedio.innerText = 'Custo/km: R$ 0,00';
+                return;
+            }
+
+            const minOdo = Number(records[0].odo);
+            const maxOdo = Number(records[records.length - 1].odo);
+            const totalKm = maxOdo - minOdo;
+            const totalGasto = records.reduce((acc, r) => acc + (r.totR || 0), 0);
+            const custoKm = totalKm > 0 ? (totalGasto / totalKm) : 0;
+
+            if (kpiTotalKm) kpiTotalKm.innerText = `${totalKm.toLocaleString('pt-BR')} km`;
+            if (kpiOdometro) kpiOdometro.innerText = `Odômetro: ${maxOdo.toLocaleString('pt-BR')} km`;
+            if (kpiGastoTotal) kpiGastoTotal.innerText = `R$ ${totalGasto.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (kpiCustoMedio) kpiCustoMedio.innerText = `Custo/km: R$ ${custoKm.toFixed(2)}`;
+        }
+
+        function setKmlFilterCriterion(criterion) {
+            currentKmlCriterion = criterion;
+            const filterTankOnly = document.getElementById('filterTankOnly');
+            const filterRangeOnly = document.getElementById('filterRangeOnly');
+            const filterBoth = document.getElementById('filterBoth');
+
+            if (filterTankOnly) filterTankOnly.className = criterion === 'tank' ? 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow' : 'py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition';
+            if (filterRangeOnly) filterRangeOnly.className = criterion === 'range' ? 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow' : 'py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition';
+            if (filterBoth) filterBoth.className = criterion === 'both' ? 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow' : 'py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition';
+
+            renderAverages();
+        }
+
+        function setAvgMode(mode) {
+            currentAvgMode = mode;
+            const avgModeAll = document.getElementById('avgModeAll');
+            const avgMode5 = document.getElementById('avgMode5');
+
+            if (avgModeAll) avgModeAll.className = mode === 'all' ? 'flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm' : 'flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition';
+            if (avgMode5) avgMode5.className = mode === 'last5' ? 'flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm' : 'flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition';
+
+            renderAverages();
+        }
+
+        function filterKmlRecords(recordList) {
+            return recordList.filter(r => {
+                if (r.kml <= 0) return false;
+                if (currentKmlCriterion === 'tank') return r.full;
+                if (currentKmlCriterion === 'range') return r.kml >= KML_MIN && r.kml <= KML_MAX;
+                return r.full && r.kml >= KML_MIN && r.kml <= KML_MAX;
+            });
+        }
+
+        function renderAverages() {
+            let baseRecords = [...records];
+            if (currentAvgMode === 'last5') {
+                baseRecords = baseRecords.slice(-5);
+            }
+
+            const filtered = filterKmlRecords(baseRecords);
+
+            const calculateFuelAvg = (fuelType) => {
+                const list = filtered.filter(r => r.comb === fuelType);
+                if (!list.length) return '0.00';
+                const sum = list.reduce((acc, r) => acc + r.kml, 0);
+                return (sum / list.length).toFixed(2);
+            };
+
+            const avgAlcoholVal = document.getElementById('avgAlcoholVal');
+            const avgGasVal = document.getElementById('avgGasVal');
+            const avgMixedVal = document.getElementById('avgMixedVal');
+
+            if (avgAlcoholVal) avgAlcoholVal.innerText = calculateFuelAvg('A');
+            if (avgGasVal) avgGasVal.innerText = calculateFuelAvg('G');
+            if (avgMixedVal) avgMixedVal.innerText = calculateFuelAvg('M');
+        }
+
+        function loadRecords() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    records = JSON.parse(saved);
+                    records.sort((a, b) => Number(a.odo) - Number(b.odo));
+                } catch (e) {
+                    records = [];
+                }
+            } else {
+                records = [];
+            }
+        }
+
+        function saveRecords() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+            isHistoryDirty = true;
+            updateLiteCounterUI();
+        }
+
+        function recalculateDistancesAndKml() {
+            records.sort((a, b) => Number(a.odo) - Number(b.odo));
+            for (let i = 0; i < records.length; i++) {
+                if (i === 0) {
+                    records[i].dist = 0;
+                    records[i].kml = 0;
+                } else {
+                    const prev = records[i - 1];
+                    const dist = Number(records[i].odo) - Number(prev.odo);
+                    records[i].dist = dist > 0 ? dist : 0;
+                    records[i].kml = (records[i].dist > 0 && records[i].totL > 0) ? (records[i].dist / records[i].totL) : 0;
+                }
+            }
+        }
+
+        function recalculateMetricsAndRender() {
+            recalculateDistancesAndKml();
+            renderKPIs();
+            renderAverages();
+            renderRecentRecords();
+            renderHistoryList();
+            calcularDecisaoPosto();
+        }
+
+        // TRAVA DA VERSÃO LITE PARA CADASTRO DE ABASTECIMENTOS
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const editIndex = parseInt(document.getElementById('editIndex').value, 10);
+
+            // VERIFICAÇÃO DE LIMITE LITE
+            if (editIndex === -1 && records.length >= MAX_LITE_RECORDS) {
+                openLimitModal('Você atingiu o limite de <strong>10 abastecimentos</strong> da versão <strong>Lite</strong>. Adquira a versão <strong>PRO</strong> para lançamentos ilimitados.');
+                return;
+            }
+
+            const date = document.getElementById('inputData').value;
+            const odo = parseFloat(document.getElementById('inputOdometro').value);
+            const litersA = parseFloat(document.getElementById('inputLitrosA').value) || 0;
+            const priceA = parseFloat(document.getElementById('inputPrecoA').value) || 0;
+            const litersG = parseFloat(document.getElementById('inputLitrosG').value) || 0;
+            const priceG = parseFloat(document.getElementById('inputPrecoG').value) || 0;
+            const full = document.getElementById('inputTanqueCheio').checked;
+
+            if (litersA <= 0 && litersG <= 0) {
+                alert('Informe ao menos uma quantidade de litros (Etanol ou Gasolina).');
+                return;
+            }
+
+            const totL = litersA + litersG;
+            const totR = (litersA * priceA) + (litersG * priceG);
+
+            let comb = 'G';
+            if (litersA > 0 && litersG > 0) comb = 'M';
+            else if (litersA > 0) comb = 'A';
+
+            const newRecord = {
+                date, odo, litersA, priceA, litersG, priceG, full, totL, totR, comb, dist: 0, kml: 0
+            };
+
+            if (editIndex >= 0) {
+                records[editIndex] = newRecord;
+                showToast('Abastecimento atualizado!', 'fa-pen-to-square', 'text-amber-500');
+            } else {
+                records.push(newRecord);
+                showToast('Abastecimento salvo!', 'fa-circle-check', 'text-emerald-500');
+            }
+
+            saveRecords();
+            resetForm();
+            recalculateMetricsAndRender();
+        }
+
+        function resetForm() {
+            document.getElementById('fuelForm').reset();
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
+            document.getElementById('formTitle').innerText = "Novo Abastecimento";
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+        }
+
+        function editRecord(index) {
+            const r = records[index];
+            if (!r) return;
+
+            document.getElementById('editIndex').value = index;
+            document.getElementById('inputData').value = r.date;
+            document.getElementById('inputOdometro').value = r.odo;
+            document.getElementById('inputLitrosA').value = r.litersA || '';
+            document.getElementById('inputPrecoA').value = r.priceA || '';
+            document.getElementById('inputLitrosG').value = r.litersG || '';
+            document.getElementById('inputPrecoG').value = r.priceG || '';
+            document.getElementById('inputTanqueCheio').checked = r.full;
+
+            document.getElementById('formTitle').innerText = "Editar Abastecimento";
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            switchTab('dashboard');
+        }
+
+        function deleteRecord(index) {
+            if (confirm('Tem certeza que deseja excluir este registro?')) {
+                records.splice(index, 1);
+                saveRecords();
+                recalculateMetricsAndRender();
+                showToast('Registro excluído com sucesso.', 'fa-trash', 'text-rose-500');
+            }
+        }
+
+        function renderRecentRecords() {
+            const list = document.getElementById('recentRecordsList');
+            if (!list) return;
+
+            if (!records.length) {
+                list.innerHTML = `<div class="p-4 text-center text-xs text-stone-500 dark:text-slate-400 font-medium">Nenhum abastecimento cadastrado ainda.</div>`;
+                return;
+            }
+
+            const recent = [...records].reverse().slice(0, 3);
+            list.innerHTML = recent.map(r => {
+                const combIcon = r.comb === 'A' ? '<i class="fa-solid fa-leaf text-emerald-500"></i>' : (r.comb === 'G' ? '<i class="fa-solid fa-fire text-orange-500"></i>' : '<i class="fa-solid fa-shuffle text-purple-500"></i>');
+                return `
+                    <div class="glass-card p-3 rounded-xl border border-stone-300 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-lg bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-sm">
+                                ${combIcon}
+                            </div>
+                            <div>
+                                <span class="font-bold text-stone-900 dark:text-white block">${formatDateBR(r.date)} — ${r.odo.toLocaleString('pt-BR')} km</span>
+                                <span class="text-[10px] text-stone-500 dark:text-slate-400">${r.totL.toFixed(2)}L • R$ ${r.totR.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-black text-stone-900 dark:text-white block">${r.kml > 0 ? r.kml.toFixed(2) + ' km/L' : '-'}</span>
+                            <span class="text-[9px] font-semibold text-stone-400 uppercase">${r.full ? 'Tanque Cheio' : 'Parcial'}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setHistoryFilter(type) {
+            currentHistoryFilter = type;
+            ['ALL', 'A', 'G', 'M'].forEach(t => {
+                const btn = document.getElementById('filterBtn' + t);
+                if (btn) {
+                    if (t === type) {
+                        btn.className = 'px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap';
+                    } else {
+                        btn.className = 'px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap';
+                    }
+                }
+            });
+            renderHistoryList();
+        }
+
+        function renderHistoryList() {
+            const list = document.getElementById('fullHistoryList');
+            const searchInput = document.getElementById('historySearch');
+            const countBadge = document.getElementById('historyCountBadge');
+
+            if (!list) return;
+
+            let filtered = [...records];
+
+            if (currentHistoryFilter !== 'ALL') {
+                filtered = filtered.filter(r => r.comb === currentHistoryFilter);
+            }
+
+            if (searchInput && searchInput.value.trim() !== '') {
+                const query = searchInput.value.toLowerCase();
+                filtered = filtered.filter(r => 
+                    r.date.includes(query) || 
+                    formatDateBR(r.date).includes(query) || 
+                    r.odo.toString().includes(query)
+                );
+            }
+
+            if (countBadge) countBadge.innerText = `${filtered.length} registro(s)`;
+
+            if (!filtered.length) {
+                list.innerHTML = `<div class="p-6 text-center text-xs text-stone-500 dark:text-slate-400 font-medium">Nenhum registro encontrado.</div>`;
+                return;
+            }
+
+            const items = [...filtered].reverse();
+            list.innerHTML = items.map(r => {
+                const originalIndex = records.indexOf(r);
+                const combIcon = r.comb === 'A' ? '<i class="fa-solid fa-leaf text-emerald-500"></i>' : (r.comb === 'G' ? '<i class="fa-solid fa-fire text-orange-500"></i>' : '<i class="fa-solid fa-shuffle text-purple-500"></i>');
+                const combLabel = r.comb === 'A' ? 'Etanol' : (r.comb === 'G' ? 'Gasolina' : 'Misto');
+
+                return `
+                    <div class="glass-card p-3 rounded-2xl border border-stone-300 dark:border-slate-800 flex items-center justify-between text-xs transition hover:border-stone-400 dark:hover:border-slate-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-base">
+                                ${combIcon}
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-black text-stone-900 dark:text-white">${formatDateBR(r.date)}</span>
+                                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-stone-200 dark:bg-slate-800 text-stone-600 dark:text-slate-300 font-semibold">${combLabel}</span>
+                                </div>
+                                <div class="text-[10px] text-stone-500 dark:text-slate-400 mt-0.5">
+                                    Odômetro: ${r.odo.toLocaleString('pt-BR')} km • ${r.totL.toFixed(2)}L
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="text-right">
+                                <span class="font-black text-emerald-600 dark:text-emerald-400 block">R$ ${r.totR.toFixed(2)}</span>
+                                <span class="text-[10px] text-stone-500 dark:text-slate-400 font-bold block">${r.kml > 0 ? r.kml.toFixed(2) + ' km/L' : '-'}</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <button onclick="editRecord(${originalIndex})" title="Editar" class="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 flex items-center justify-center transition">
+                                    <i class="fa-solid fa-pen text-[10px]"></i>
+                                </button>
+                                <button onclick="deleteRecord(${originalIndex})" title="Excluir" class="w-6 h-6 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition">
+                                    <i class="fa-solid fa-trash text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderCharts() {
+            if (!records.length) return;
+
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#cbd5e1' : '#334155';
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+            // Métrica mensal
+            const now = new Date();
+            const past30Days = new Date(now.setDate(now.getDate() - 30));
+            const recentMonthRecords = records.filter(r => new Date(r.date) >= past30Days);
+
+            const totalLitrosMes = recentMonthRecords.reduce((acc, r) => acc + (r.totL || 0), 0);
+            const totalGastoMes = recentMonthRecords.reduce((acc, r) => acc + (r.totR || 0), 0);
+
+            const metricLitrosMes = document.getElementById('metricLitrosMes');
+            const metricGastoMes = document.getElementById('metricGastoMes');
+
+            if (metricLitrosMes) metricLitrosMes.innerText = `${totalLitrosMes.toFixed(1)} L`;
+            if (metricGastoMes) metricGastoMes.innerText = `R$ ${totalGastoMes.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            // Gráfico 1: Evolução Km/L
+            const ctx1 = document.getElementById('consumptionChart');
+            if (ctx1) {
+                if (chartInstance) chartInstance.destroy();
+
+                const validRecords = records.filter(r => r.kml > 0);
+                const labels = validRecords.map(r => formatDateBR(r.date));
+                const dataKml = validRecords.map(r => r.kml.toFixed(2));
+
+                chartInstance = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Km/L',
+                            data: dataKml,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#10b981'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { color: textColor, font: { size: 9 } }, grid: { color: gridColor } },
+                            y: { ticks: { color: textColor, font: { size: 9 } }, grid: { color: gridColor } }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico 2: Distribuição por Combustível
+            const ctx2 = document.getElementById('fuelDistChart');
+            if (ctx2) {
+                if (distChartInstance) distChartInstance.destroy();
+
+                const countA = records.filter(r => r.comb === 'A').length;
+                const countG = records.filter(r => r.comb === 'G').length;
+                const countM = records.filter(r => r.comb === 'M').length;
+
+                distChartInstance = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Etanol', 'Gasolina', 'Misto'],
+                        datasets: [{
+                            data: [countA, countG, countM],
+                            backgroundColor: ['#10b981', '#f97316', '#8b5cf6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: textColor, font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            renderInsightText();
+        }
+
+        function renderInsightText() {
+            const insightText = document.getElementById('insightText');
+            if (!insightText) return;
+
+            if (records.length < 2) {
+                insightText.innerText = 'Cadastre pelo menos 2 abastecimentos para gerar dados analíticos de consumo e economia.';
+                return;
+            }
+
+            const validA = records.filter(r => r.comb === 'A' && r.kml > 0);
+            const validG = records.filter(r => r.comb === 'G' && r.kml > 0);
+
+            if (validA.length && validG.length) {
+                const avgA = validA.reduce((acc, r) => acc + r.kml, 0) / validA.length;
+                const avgG = validG.reduce((acc, r) => acc + r.kml, 0) / validG.length;
+                const ratio = (avgA / avgG) * 100;
+
+                insightText.innerHTML = `O rendimento relativo do Etanol no seu veículo é de <strong>${ratio.toFixed(1)}%</strong> em relação à Gasolina. Utilize a calculadora de posto para abastecer de forma ideal!`;
+            } else {
+                insightText.innerText = 'Acompanhe seus abastecimentos com Etanol e Gasolina para calcular o fator de rendimento exato do seu veículo.';
+            }
+        }
+
+        function resetDatabase() {
+            if (confirm('Atenção: Isso irá apagar TODOS os dados do aplicativo. Deseja continuar?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                records = [];
+                recalculateMetricsAndRender();
+                updateLiteCounterUI();
+                showToast('Base de dados zerada!', 'fa-trash', 'text-rose-500');
+            }
+        }
+
+        function exportToExcel() {
+            if (!records.length) {
+                alert('Não há dados para exportar.');
+                return;
+            }
+
+            const data = records.map(r => ({
+                Data: formatDateBR(r.date),
+                'Odômetro (Km)': r.odo,
+                'Litros Etanol': r.litersA,
+                'Preço/L Etanol': r.priceA,
+                'Litros Gasolina': r.litersG,
+                'Preço/L Gasolina': r.priceG,
+                'Total Litros': r.totL,
+                'Total Gasto (R$)': r.totR,
+                'Combustível': r.comb === 'A' ? 'Etanol' : (r.comb === 'G' ? 'Gasolina' : 'Misto'),
+                'Tanque Cheio': r.full ? 'Sim' : 'Não',
+                'Distância (Km)': r.dist,
+                'Média (Km/L)': r.kml.toFixed(2)
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Abastecimentos");
+            XLSX.writeFile(wb, `FuelTracker_Lite_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast('Planilha Excel gerada!', 'fa-file-excel', 'text-emerald-500');
+        }
+
+        function exportToPDF() {
+            if (!records.length) {
+                alert('Não há dados para exportar.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text("Fuel Tracker Lite - Relatório de Abastecimentos", 14, 15);
+
+            doc.setFontSize(10);
+            doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 22);
+
+            const tableData = records.map(r => [
+                formatDateBR(r.date),
+                `${r.odo.toLocaleString('pt-BR')} km`,
+                r.comb === 'A' ? 'Etanol' : (r.comb === 'G' ? 'Gasolina' : 'Misto'),
+                `${r.totL.toFixed(2)} L`,
+                `R$ ${r.totR.toFixed(2)}`,
+                r.kml > 0 ? `${r.kml.toFixed(2)} km/L` : '-'
+            ]);
+
+            doc.autoTable({
+                startY: 28,
+                head: [['Data', 'Odômetro', 'Combustível', 'Litros', 'Total', 'Média']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [16, 185, 129] }
+            });
+
+            doc.save(`FuelTracker_Lite_${new Date().toISOString().split('T')[0]}.pdf`);
+            showToast('Relatório PDF gerado!', 'fa-file-pdf', 'text-rose-500');
         }
     </script>
 </body>
