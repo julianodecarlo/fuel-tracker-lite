@@ -36,23 +36,15 @@
     <link rel="apple-touch-icon" href="./icons/icon-512.png">
     <link rel="icon" type="image/png" href="./icons/icon-512.png">
 
-    <!-- Dependências -->
-    <script src="vendor/tailwind.js"></script>
-    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    <script src="vendor/chart.js" defer></script>
-    <script src="vendor/xlsx.full.min.js" defer></script>
-
-    <!-- Fallbacks CDN -->
-    <script>
-        if (!window.tailwind) document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
-        if (!window.Chart) document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');
-        if (!window.XLSX) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
-    </script>
+    <!-- Dependências via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+
     <script>
-        tailwind = window.tailwind || {};
-        tailwind.config = {
+      tailwind = window.tailwind || {};
+      tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
