@@ -1,15 +1,25 @@
 {
-  "name": "Fuel Tracker Lite",
   "short_name": "FuelTracker",
+  "name": "Fuel Tracker - Controle de Combustível",
+  "description": "Aplicativo para controle e acompanhamento de abastecimentos e combustível.",
+  "id": "./index.html",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/555/555296.png",
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
       "sizes": "512x512",
-      "type": "image/png"
+      "purpose": "any maskable"
     }
   ]
 }
