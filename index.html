@@ -16,40 +16,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
     <!-- SEO METADATA -->
-    <title>Fuel Tracker Lite - Controle de Combustível, Consumo e Gastos</title>
-    <meta name="description" content="Versão de teste do Fuel Tracker - Aplicativo para controle de combustível, cálculo de consumo (km/L) e manutenção preventiva.">
+    <title>Fuel Tracker - Controle de Combustível, Consumo e Gastos</title>
+    <meta name="description" content="Aplicativo para controle de combustível, cálculo de consumo (km/L), comparativo Etanol vs Gasolina e acompanhamento de manutenção preventiva.">
     <meta name="keywords" content="controle de combustível, autonomia, km/l, etanol vs gasolina, gastos combustível, manutenção preventiva, calculadora de posto">
     <meta name="author" content="Fuel Tracker">
     <meta name="robots" content="index, follow">
 
     <!-- OPEN GRAPH / SOCIAL MEDIA -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Fuel Tracker Lite - Controle de Combustível e Consumo">
-    <meta property="og:description" content="Experimente o Fuel Tracker. Gerencie até 10 abastecimentos, compare Etanol x Gasolina em tempo real e acompanhe as revisões do seu veículo.">
-    <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
+    <meta property="og:title" content="Fuel Tracker - Controle de Combustível e Consumo">
+    <meta property="og:description" content="Gerencie seus abastecimentos, compare Etanol x Gasolina em tempo real e acompanhe as revisões do seu veículo.">
+    <meta property="og:image" content="./icons/icon-512.png">
 
     <!-- PWA & iOS NATIVE META TAGS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FuelTrackerLite">
+    <meta name="apple-mobile-web-app-title" content="FuelTracker">
     <meta name="theme-color" content="#0f172a">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3448/3448339.png">
+    <link rel="apple-touch-icon" href="./icons/icon-512.png">
+    <link rel="icon" type="image/png" href="./icons/icon-512.png">
 
     <!-- Dependências -->
     <script src="vendor/tailwind.js"></script>
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="vendor/chart.js" defer></script>
     <script src="vendor/xlsx.full.min.js" defer></script>
-    <script src="vendor/jspdf.umd.min.js" defer></script>
-    <script src="vendor/jspdf.plugin.autotable.min.js" defer></script>
 
     <!-- Fallbacks CDN -->
     <script>
         if (!window.tailwind) document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
         if (!window.Chart) document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');
         if (!window.XLSX) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
-        if (!window.jspdf) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>');
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -140,71 +137,74 @@
                 <i class="fa-solid fa-triangle-exclamation text-base"></i>
                 <span id="cnhAlertBannerText">Atenção: Validade de documento próxima ou vencida!</span>
             </div>
-            <button onclick="switchTab('revision')" class="bg-white text-rose-600 px-2.5 py-1 rounded-lg text-[11px] font-extrabold hover:bg-rose-50 transition">
+            <button onclick="FuelTrackerApp.switchTab('revision')" class="bg-white text-rose-600 px-2.5 py-1 rounded-lg text-[11px] font-extrabold hover:bg-rose-50 transition">
                 Ver na Aba Revisão &rarr;
             </button>
         </div>
 
         <header class="pt-10 px-4 pb-3 bg-[#f5f0e6]/90 dark:bg-slate-900/90 backdrop-blur border-b border-stone-300/60 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between transition-colors">
             <div class="flex items-center gap-2.5">
-                <div id="appHeaderIcon" class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20" aria-hidden="true">
+                <div id="appHeaderIcon" class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-500/20" aria-hidden="true">
                     <i class="fa-solid fa-gas-pump text-sm"></i>
                 </div>
                 <div>
-                    <h1 class="text-base font-bold tracking-tight text-stone-900 dark:text-white leading-tight">Fuel Tracker <span id="appBadge" class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/30">LITE</span></h1>
-                    <p id="appSubHeader" class="text-[10px] text-stone-500 dark:text-slate-400 font-medium">Versão de Degustação (Até 10 reg.)</p>
+                    <h1 class="text-base font-bold tracking-tight text-stone-900 dark:text-white leading-tight">Fuel Tracker <span id="appBadge" class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">LITE</span></h1>
+                    <p id="appSubHeader" class="text-[10px] text-stone-500 dark:text-slate-400 font-medium">Gestão Inteligente & Métricas</p>
                 </div>
             </div>
             
             <div class="flex items-center gap-2">
-                <button id="pwaInstallBtn" onclick="installPWA()" class="hidden px-2.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <!-- Botão Fixo de Upgrade PRO -->
+                <button id="btnUpgradePro" onclick="FuelTrackerApp.openUpgradeModal()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-emerald-500 text-slate-950 font-bold text-xs shadow hover:opacity-90 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>Seja PRO</span>
+                </button>
+
+                <button id="pwaInstallBtn" onclick="FuelTrackerApp.installPWA()" class="hidden px-2.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     <i class="fa-solid fa-download text-xs" aria-hidden="true"></i> Instalar App
                 </button>
 
                 <div class="relative">
-                    <button onclick="toggleSettingsMenu()" id="btnSettingsMenu" aria-expanded="false" aria-controls="settingsDropdown" class="w-9 h-9 rounded-xl bg-stone-200/70 dark:bg-slate-800 hover:bg-stone-300/70 dark:hover:bg-slate-700 text-stone-700 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white border border-stone-300/80 dark:border-slate-700 flex items-center justify-center transition shadow focus:outline-none focus:ring-2 focus:ring-emerald-500" title="Opções e Configurações" aria-label="Opções e Configurações">
+                    <button onclick="FuelTrackerApp.toggleSettingsMenu()" id="btnSettingsMenu" aria-expanded="false" aria-controls="settingsDropdown" class="w-9 h-9 rounded-xl bg-stone-200/70 dark:bg-slate-800 hover:bg-stone-300/70 dark:hover:bg-slate-700 text-stone-700 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white border border-stone-300/80 dark:border-slate-700 flex items-center justify-center transition shadow focus:outline-none focus:ring-2 focus:ring-emerald-500" title="Opções e Configurações" aria-label="Opções e Configurações">
                         <i class="fa-solid fa-gear text-base" aria-hidden="true"></i>
                     </button>
 
                     <div id="settingsDropdown" role="menu" aria-label="Menu de configurações" class="hidden absolute right-0 mt-2 w-56 bg-[#f5f0e6] dark:bg-slate-800 border border-stone-300 dark:border-slate-700 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-lg">
-                        <button role="menuitem" onclick="toggleTheme(); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                        <button role="menuitem" onclick="FuelTrackerApp.toggleTheme(); FuelTrackerApp.toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i id="themeMenuIcon" class="fa-solid fa-sun w-4" aria-hidden="true"></i> Aparência</span>
                             <span id="themeMenuLabel" class="text-[10px] uppercase font-bold text-stone-400">Escuro</span>
                         </button>
 
-                        <button role="menuitem" onclick="shareAppWithFriend(); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                        <button role="menuitem" onclick="FuelTrackerApp.shareAppWithFriend(); FuelTrackerApp.toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-share-nodes w-4" aria-hidden="true"></i> Indicar para Amigo</span>
                         </button>
 
                         <hr class="border-stone-300 dark:border-slate-700/60 my-1">
 
-                        <button role="menuitem" onclick="openManualModal(); toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                        <button role="menuitem" onclick="FuelTrackerApp.openManualModal(); FuelTrackerApp.toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-book-open w-4" aria-hidden="true"></i> Manual do Usuário</span>
                         </button>
 
                         <hr class="border-stone-300 dark:border-slate-700/60 my-1">
 
-                        <button role="menuitem" onclick="handleExportJSON()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                        <button role="menuitem" onclick="FuelTrackerApp.handleExportJSON()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-download w-4" aria-hidden="true"></i> Exportar JSON</span>
                         </button>
                         
                         <label id="labelImportJSON" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between cursor-pointer transition focus-within:bg-stone-200/50 dark:focus-within:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-upload w-4" aria-hidden="true"></i> Restaurar JSON</span>
-                            <input type="file" id="importJsonInput" accept=".json" onchange="importJSON(event); toggleSettingsMenu();" class="sr-only">
+                            <input type="file" id="importJsonInput" accept=".json" onchange="FuelTrackerApp.importJSON(event); FuelTrackerApp.toggleSettingsMenu();" class="sr-only">
                         </label>
 
                         <hr class="border-stone-300 dark:border-slate-700/60 my-1">
 
-                        <button role="menuitem" onclick="handleExportExcel()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                        <button role="menuitem" onclick="FuelTrackerApp.handleExportExcel()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-file-excel w-4" aria-hidden="true"></i> Exportar Excel</span>
-                        </button>
-                        <button role="menuitem" onclick="handleExportPDF()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-file-pdf w-4" aria-hidden="true"></i> Exportar PDF</span>
                         </button>
                         
                         <hr class="border-stone-300 dark:border-slate-700/60 my-1">
 
-                        <button role="menuitem" onclick="handleResetDatabase()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                        <button role="menuitem" onclick="FuelTrackerApp.handleResetDatabase()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-trash-arrow-up w-4" aria-hidden="true"></i> Zerar App</span>
                         </button>
                     </div>
@@ -220,28 +220,17 @@
                 </div>
             </aside>
 
-            <!-- CARD DE STATUS DA VERSÃO LITE -->
-            <section aria-label="Status do Limite Lite" class="glass-card p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-xs flex items-center justify-between gap-3">
-                <div class="space-y-0.5">
-                    <span class="font-bold text-amber-700 dark:text-amber-400 block uppercase tracking-wider text-[10px]">Modo de Degustação Lite</span>
-                    <p class="text-stone-700 dark:text-slate-300 font-medium">Uso atual: <span id="liteCounterText" class="font-black text-amber-600 dark:text-amber-400">0/10</span> registros</p>
-                </div>
-                <button onclick="openLimitModal()" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold rounded-xl text-[11px] shadow transition flex items-center gap-1">
-                    <i class="fa-solid fa-crown text-xs"></i> Obter PRO
-                </button>
-            </section>
-
             <nav aria-label="Navegação principal" class="grid grid-cols-4 gap-1 bg-stone-200/70 dark:bg-slate-800/80 p-1 rounded-xl text-[11px] font-semibold border border-stone-300/70 dark:border-slate-700/60">
-                <button id="tabDashboard" onclick="switchTab('dashboard')" aria-selected="true" class="py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                <button id="tabDashboard" onclick="FuelTrackerApp.switchTab('dashboard')" aria-selected="true" class="py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-600">
                     <i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Resumo
                 </button>
-                <button id="tabHistory" onclick="switchTab('history')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <button id="tabHistory" onclick="FuelTrackerApp.switchTab('history')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     <i class="fa-solid fa-list-ul" aria-hidden="true"></i> Histórico
                 </button>
-                <button id="tabAnalytics" onclick="switchTab('analytics')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <button id="tabAnalytics" onclick="FuelTrackerApp.switchTab('analytics')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Análise
                 </button>
-                <button id="tabRevision" onclick="switchTab('revision')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <button id="tabRevision" onclick="FuelTrackerApp.switchTab('revision')" aria-selected="false" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     <i class="fa-solid fa-wrench" aria-hidden="true"></i> Revisão
                 </button>
             </nav>
@@ -257,11 +246,11 @@
                     <div class="grid grid-cols-2 gap-2.5">
                         <div class="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
                             <label for="calcPrecoA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Preço Etanol (R$)</label>
-                            <input type="number" id="calcPrecoA" step="0.01" placeholder="Ex: 3.79" oninput="calcularDecisaoPosto()" class="w-full bg-white dark:bg-slate-900 border border-emerald-500/40 rounded-lg px-2.5 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                            <input type="text" id="calcPrecoA" inputmode="numeric" placeholder="Ex: 3,69" oninput="FuelTrackerApp.maskDecimalTwoDigits(this); FuelTrackerApp.calcularDecisaoPosto();" class="w-full bg-white dark:bg-slate-900 border border-emerald-500/40 rounded-lg px-2.5 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                         </div>
                         <div class="p-2 rounded-xl bg-orange-500/10 border border-orange-500/30">
                             <label for="calcPrecoG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Preço Gasolina (R$)</label>
-                            <input type="number" id="calcPrecoG" step="0.01" placeholder="Ex: 5.89" oninput="calcularDecisaoPosto()" class="w-full bg-white dark:bg-slate-900 border border-orange-500/40 rounded-lg px-2.5 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+                            <input type="text" id="calcPrecoG" inputmode="numeric" placeholder="Ex: 5,89" oninput="FuelTrackerApp.maskDecimalTwoDigits(this); FuelTrackerApp.calcularDecisaoPosto();" class="w-full bg-white dark:bg-slate-900 border border-orange-500/40 rounded-lg px-2.5 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                         </div>
                     </div>
                     <div id="resultadoCalcPosto" aria-live="polite" class="text-center p-2 rounded-xl bg-stone-200/50 dark:bg-slate-900/90 border border-stone-300/60 dark:border-slate-800 text-xs font-semibold text-stone-500 dark:text-slate-400">
@@ -297,22 +286,22 @@
                     </div>
 
                     <div role="group" aria-label="Filtro de critério para cálculo do Km/L" class="grid grid-cols-3 gap-1 bg-stone-200/70 dark:bg-slate-900/90 p-1 rounded-xl text-[10px] border border-stone-300/70 dark:border-slate-800 text-center">
-                        <button id="filterTankOnly" onclick="setKmlFilterCriterion('tank')" class="py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button id="filterTankOnly" onclick="FuelTrackerApp.setKmlFilterCriterion('tank')" class="py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Tanque Cheio
                         </button>
-                        <button id="filterRangeOnly" onclick="setKmlFilterCriterion('range')" class="py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button id="filterRangeOnly" onclick="FuelTrackerApp.setKmlFilterCriterion('range')" class="py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Faixa (5-23)
                         </button>
-                        <button id="filterBoth" onclick="setKmlFilterCriterion('both')" class="py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button id="filterBoth" onclick="FuelTrackerApp.setKmlFilterCriterion('both')" class="py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Ambos
                         </button>
                     </div>
 
                     <div role="group" aria-label="Modo de cálculo de médias" class="flex rounded-lg bg-stone-200/70 dark:bg-slate-900/80 p-0.5 border border-stone-300/70 dark:border-slate-800 text-xs">
-                        <button id="avgModeAll" onclick="setAvgMode('all')" class="flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button id="avgModeAll" onclick="FuelTrackerApp.setAvgMode('all')" class="flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Média Geral (Todos)
                         </button>
-                        <button id="avgMode5" onclick="setAvgMode('last5')" class="flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button id="avgMode5" onclick="FuelTrackerApp.setAvgMode('last5')" class="flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Últimos 5 Abastecimentos
                         </button>
                     </div>
@@ -342,12 +331,12 @@
                             <i id="formIcon" class="fa-solid fa-circle-plus text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i>
                             <span id="formTitle">Novo Abastecimento</span>
                         </h2>
-                        <button id="cancelEditBtn" onclick="resetForm()" class="hidden text-xs text-rose-600 dark:text-rose-400 hover:underline focus:outline-none focus:ring-1 focus:ring-rose-500 rounded">
+                        <button id="cancelEditBtn" onclick="FuelTrackerApp.resetForm()" class="hidden text-xs text-rose-600 dark:text-rose-400 hover:underline focus:outline-none focus:ring-1 focus:ring-rose-500 rounded">
                             Cancelar Edição
                         </button>
                     </div>
 
-                    <form id="fuelForm" onsubmit="handleFormSubmit(event)" class="space-y-3 text-xs">
+                    <form id="fuelForm" onsubmit="FuelTrackerApp.handleFormSubmit(event)" class="space-y-3 text-xs">
                         <input type="hidden" id="editIndex" value="-1">
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -363,23 +352,23 @@
 
                         <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/30">
                             <div class="min-w-0">
-                                <label for="inputLitrosA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Litros Etanol</label>
-                                <input type="number" id="inputLitrosA" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                                <label for="inputPrecoA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Preço/L Etanol (R$)</label>
+                                <input type="text" id="inputPrecoA" inputmode="numeric" placeholder="0,00" oninput="FuelTrackerApp.maskDecimalTwoDigits(this)" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                             </div>
                             <div class="min-w-0">
-                                <label for="inputPrecoA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">Preço/L Etanol (R$)</label>
-                                <input type="number" id="inputPrecoA" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                                <label for="inputValorA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">Total Etanol (R$)</label>
+                                <input type="text" id="inputValorA" inputmode="numeric" placeholder="0,00" oninput="FuelTrackerApp.maskDecimalTwoDigits(this)" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-orange-500/10 dark:bg-orange-950/20 border border-orange-500/30">
                             <div class="min-w-0">
-                                <label for="inputLitrosG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Litros Gasolina</label>
-                                <input type="number" id="inputLitrosG" step="0.01" min="0" placeholder="0.00" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+                                <label for="inputPrecoG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Preço/L Gas (R$)</label>
+                                <input type="text" id="inputPrecoG" inputmode="numeric" placeholder="0,00" oninput="FuelTrackerApp.maskDecimalTwoDigits(this)" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                             </div>
                             <div class="min-w-0">
-                                <label for="inputPrecoG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5">Preço/L Gas (R$)</label>
-                                <input type="number" id="inputPrecoG" step="0.01" min="0" placeholder="0.00" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+                                <label for="inputValorG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5">Total Gasolina (R$)</label>
+                                <input type="text" id="inputValorG" inputmode="numeric" placeholder="0,00" oninput="FuelTrackerApp.maskDecimalTwoDigits(this)" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                             </div>
                         </div>
 
@@ -399,7 +388,7 @@
                 <section aria-label="Últimos registros" class="space-y-2">
                     <div class="flex items-center justify-between px-1">
                         <h2 class="text-xs font-bold text-stone-700 dark:text-slate-300 uppercase tracking-wider">Últimos Registros</h2>
-                        <button onclick="switchTab('history')" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded">Ver Todos &rarr;</button>
+                        <button onclick="FuelTrackerApp.switchTab('history')" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded">Ver Todos &rarr;</button>
                     </div>
                     <div id="recentRecordsList" class="space-y-2"></div>
                 </section>
@@ -412,23 +401,23 @@
                 </div>
 
                 <div role="group" aria-label="Filtro rápido por combustível" class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                    <button onclick="setHistoryFilter('ALL')" id="filterBtnALL" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-600">
+                    <button onclick="FuelTrackerApp.setHistoryFilter('ALL')" id="filterBtnALL" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-600">
                         Todos
                     </button>
-                    <button onclick="setHistoryFilter('A')" id="filterBtnA" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    <button onclick="FuelTrackerApp.setHistoryFilter('A')" id="filterBtnA" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         <i class="fa-solid fa-leaf text-emerald-600 dark:text-emerald-400 mr-1" aria-hidden="true"></i> Etanol
                     </button>
-                    <button onclick="setHistoryFilter('G')" id="filterBtnG" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    <button onclick="FuelTrackerApp.setHistoryFilter('G')" id="filterBtnG" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         <i class="fa-solid fa-fire text-orange-500 dark:text-orange-400 mr-1" aria-hidden="true"></i> Gasolina
                     </button>
-                    <button onclick="setHistoryFilter('M')" id="filterBtnM" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    <button onclick="FuelTrackerApp.setHistoryFilter('M')" id="filterBtnM" class="px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         <i class="fa-solid fa-shuffle text-purple-600 dark:text-purple-400 mr-1" aria-hidden="true"></i> Misto
                     </button>
                 </div>
 
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-stone-400 text-xs" aria-hidden="true"></i>
-                    <input type="text" id="historySearch" oninput="renderHistoryList()" placeholder="Buscar por data ou km..." aria-label="Buscar histórico por data ou quilometragem" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-stone-400 dark:focus:border-slate-600 focus:ring-1 focus:ring-emerald-500">
+                    <input type="text" id="historySearch" oninput="FuelTrackerApp.renderHistoryList()" placeholder="Buscar por data ou km..." aria-label="Buscar histórico por data ou quilometragem" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-stone-400 dark:focus:border-slate-600 focus:ring-1 focus:ring-emerald-500">
                 </div>
 
                 <div id="fullHistoryList" aria-live="polite" class="space-y-2.5 max-h-[520px] overflow-y-auto pr-1"></div>
@@ -490,7 +479,7 @@
                                 <p class="text-[10px] text-stone-500 dark:text-slate-400">Gestão do intervalo de troca de óleo/revisão</p>
                             </div>
                         </div>
-                        <button onclick="openRevisionModal()" class="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1">
+                        <button onclick="FuelTrackerApp.openRevisionModal()" class="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1">
                             <i class="fa-solid fa-gear"></i> Configurar
                         </button>
                     </div>
@@ -523,7 +512,7 @@
                                 <p class="text-[10px] text-stone-500 dark:text-slate-400">Controle de desgaste e alinhamento</p>
                             </div>
                         </div>
-                        <button onclick="openTireModal()" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1">
+                        <button onclick="FuelTrackerApp.openTireModal()" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1">
                             <i class="fa-solid fa-gear"></i> Configurar
                         </button>
                     </div>
@@ -556,7 +545,7 @@
                                 <p class="text-[10px] text-stone-500 dark:text-slate-400">Controle de vencimento de documentos</p>
                             </div>
                         </div>
-                        <button onclick="openCnhModal()" class="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1">
+                        <button onclick="FuelTrackerApp.openCnhModal()" class="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1">
                             <i class="fa-solid fa-gear"></i> Configurar
                         </button>
                     </div>
@@ -586,126 +575,157 @@
 
         <footer class="py-2.5 px-5 bg-[#f5f0e6] dark:bg-slate-900 border-t border-stone-300/60 dark:border-slate-800 flex items-center justify-between text-[11px] text-stone-500 dark:text-slate-400 transition-colors">
             <span class="flex items-center gap-1.5">
-                <span id="storagePulse" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse" aria-hidden="true"></span>
-                <span id="storageStatus">Base Local Lite (Máx. 10)</span>
+                <span id="storagePulse" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
+                <span id="storageStatus">Base Local Ativa</span>
             </span>
-            <span id="appVersionFooter" class="font-mono text-[10px] text-amber-500 font-bold">v1.2 Lite</span>
+            <span id="appVersionFooter" class="font-mono text-[10px] text-stone-400 dark:text-slate-500">v1.2</span>
         </footer>
     </div>
 
-<!-- MODAL BLOQUEIO / CONVITE PRO (VERSÃO LITE) -->
-<div id="limitModal" role="dialog" aria-modal="true" aria-labelledby="limitTitle" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
-    <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-amber-500/50 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative space-y-4 text-center">
-        <button onclick="closeLimitModal()" aria-label="Fechar" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-
-        <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center text-3xl font-black mx-auto shadow-inner">
-            <i class="fa-solid fa-crown"></i>
-        </div>
-
-        <div class="space-y-1">
-            <h3 id="limitTitle" class="text-base font-extrabold text-stone-900 dark:text-white">Recurso Exclusivo PRO</h3>
-            <p id="limitModalText" class="text-xs text-stone-600 dark:text-slate-300">Esta funcionalidade está disponível apenas na versão <strong class="text-amber-500">PRO</strong>.</p>
-        </div>
-
-        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-left space-y-2 text-stone-700 dark:text-slate-300">
-            <p class="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                <i class="fa-solid fa-star"></i> O que você ganha no PRO:
-            </p>
-            <ul class="list-disc list-inside space-y-1 text-[11px]">
-                <li>Registros de abastecimento ilimitados</li>
-                <li>Controle de Rodízio de Pneus</li>
-                <li>Alerta de Validade da CNH & Toxicológico</li>
-                <li>Relatórios avançados em PDF e Excel</li>
-            </ul>
-        </div>
-
-        <div class="pt-2 space-y-2">
-            <button onclick="closeLimitModal()" class="w-full py-2.5 bg-stone-200 dark:bg-slate-800 hover:bg-stone-300 dark:hover:bg-slate-700 text-stone-800 dark:text-white font-bold rounded-xl transition text-xs">
-                Entendi, continuar na degustação
+    <!-- MODAL DE UPGRADE / CHECKOUT PRO -->
+    <div id="upgradeModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <button onclick="FuelTrackerApp.closeUpgradeModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
             </button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DO MANUAL DO USUÁRIO -->
-<div id="manualModal" role="dialog" aria-modal="true" aria-labelledby="manualTitle" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
-    <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-stone-300 dark:border-slate-700 w-full max-w-lg max-h-[85vh] rounded-3xl p-6 shadow-2xl relative flex flex-col space-y-4">
-        <button onclick="closeManualModal()" aria-label="Fechar manual" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded">
-            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
-
-        <div class="flex items-center gap-3 border-b border-stone-300 dark:border-slate-800 pb-3">
-            <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xl font-black" aria-hidden="true">
-                <i class="fa-solid fa-book-open"></i>
-            </div>
-            <div>
-                <h3 id="manualTitle" class="text-base font-bold text-stone-900 dark:text-white">Manual do Usuário (Versão Lite)</h3>
-                <p class="text-xs text-stone-500 dark:text-slate-400">Fuel Tracker Lite — Guia de Uso & Informações da Versão de Demonstração</p>
-            </div>
-        </div>
-
-        <div class="flex-1 overflow-y-auto space-y-4 text-xs text-stone-600 dark:text-slate-300 pr-1 leading-relaxed">
-            <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-800 dark:text-amber-300">
-                <strong>Nota sobre a Versão Lite:</strong> Esta versão permite experimentar todas as funcionalidades principais por até <strong>10 abastecimentos</strong>. As funções de Rodízio de Pneus e Validades de Documentos são exclusivas da versão <strong>PRO</strong>.
-            </div>
-
-            <p class="text-stone-500 dark:text-slate-400">O Fuel Tracker é uma aplicação focada na gestão inteligente de abastecimentos, métricas de consumo e acompanhamento de manutenção preventiva do seu veículo.</p>
             
-            <section aria-label="1. Decisão no Posto" class="space-y-1.5">
-                <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="fa-solid fa-calculator" aria-hidden="true"></i> 1. Decisão no Posto (Calculadora Etanol vs. Gasolina)
-                </h4>
-                <p>Localizada no painel principal, esta ferramenta calcula instantaneamente qual combustível oferece maior vantagem financeira para o seu momento de abastecimento.</p>
-            </section>
+            <div class="text-center space-y-3">
+                <div class="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <h3 class="text-xl font-black text-stone-900 dark:text-white">Migre para o Fuel Tracker PRO</h3>
+                <p class="text-xs text-stone-500 dark:text-slate-400">Desbloqueie registros ilimitados, relatórios avançados e gráficos detalhados de desempenho.</p>
+            </div>
 
-            <section aria-label="2. Navegação pelas Abas" class="space-y-1.5">
-                <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="fa-solid fa-compass" aria-hidden="true"></i> 2. Navegação pelas Abas
-                </h4>
-                <p>O aplicativo divide suas funções em 4 telas acessíveis pelo menu superior: Resumo, Histórico, Análise e Revisão.</p>
-            </section>
-        </div>
-
-        <div class="pt-2 border-t border-stone-300 dark:border-slate-800">
-            <button onclick="closeManualModal()" class="w-full py-2.5 bg-stone-200 dark:bg-slate-800 hover:bg-stone-300 dark:hover:bg-slate-700 text-stone-900 dark:text-white font-bold rounded-xl transition text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                Fechar Manual
-            </button>
+            <div class="mt-6 space-y-3">
+                <button onclick="FuelTrackerApp.processProUpgrade('card')" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl shadow transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-credit-card"></i>
+                    Assinar Agora (R$ 9,90/ano)
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-    <!-- MODAL DE CONFIGURAÇÃO DE MANUTENÇÃO PREVISTA -->
-    <div id="revisionModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
-        <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-blue-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
-            <button onclick="closeRevisionModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
-                <i class="fa-solid fa-xmark"></i>
+    <!-- MODAL DO MANUAL DO USUÁRIO -->
+    <div id="manualModal" role="dialog" aria-modal="true" aria-labelledby="manualTitle" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-stone-300 dark:border-slate-700 w-full max-w-lg max-h-[85vh] rounded-3xl p-6 shadow-2xl relative flex flex-col space-y-4">
+            <button onclick="FuelTrackerApp.closeManualModal()" aria-label="Fechar manual" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
-            <div class="flex items-center gap-2 border-b border-stone-300 dark:border-slate-800 pb-3">
-                <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                    <i class="fa-solid fa-wrench"></i>
+
+            <div class="flex items-center gap-3 border-b border-stone-300 dark:border-slate-800 pb-3">
+                <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-xl font-black" aria-hidden="true">
+                    <i class="fa-solid fa-book-open"></i>
                 </div>
-                <h3 class="text-sm font-bold text-stone-900 dark:text-white">Manutenção Prevista</h3>
-            </div>
-            <form onsubmit="saveRevisionConfig(event)" class="space-y-3 text-xs">
                 <div>
-                    <label for="revisionIntervalInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Intervalo de Manutenção (Km)</label>
-                    <input type="number" id="revisionIntervalInput" required step="500" min="500" placeholder="Ex: 10000" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-blue-500">
+                    <h3 id="manualTitle" class="text-base font-bold text-stone-900 dark:text-white">Manual do Usuário</h3>
+                    <p class="text-xs text-stone-500 dark:text-slate-400">Fuel Tracker — Como aproveitar ao máximo cada funcionalidade</p>
                 </div>
-                <div class="pt-2">
-                    <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition">
-                        Salvar Configuração
-                    </button>
-                </div>
-            </form>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-4 text-xs text-stone-600 dark:text-slate-300 pr-1 leading-relaxed">
+                <p class="text-stone-500 dark:text-slate-400">
+                    O <strong>Fuel Tracker</strong> é o assistente completo para a gestão do seu veículo. Veja abaixo como usar cada recurso para economizar combustível, acompanhar a eficiência do seu motor e manter o controle total do histórico e das datas das próximas manutenções.
+                </p>
+
+                <!-- 1. DECISÃO NO POSTO -->
+                <section aria-label="1. Decisão no Posto" class="space-y-1.5">
+                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-calculator" aria-hidden="true"></i> 1. Decisão no Posto (Etanol vs. Gasolina)
+                    </h4>
+                    <p><strong>Para que serve:</strong> Descobrir instantaneamente qual combustível dará mais autonomia pelo menor preço no momento do abastecimento.</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li><strong>Como usar:</strong> Antes de abastecer, abra o app e digite os preços por litro do Etanol e da Gasolina no painel da aba Resumo. O app dirá exatamente qual escolher e o valor limite onde o etanol deixa de valer a pena.</li>
+                        <li><strong>Como aproveitar melhor:</strong> Inicialmente, o app usa o cálculo padrão (70%). À medida que você abastece com tanque cheio, ele aprende o consumo real do seu motor e ajusta o "Fator" de forma personalizada. Quanto mais você usa, mais precisa fica a recomendação!</li>
+                    </ul>
+                </section>
+
+                <!-- 2. ABA RESUMO -->
+                <section aria-label="2. Aba Resumo" class="space-y-1.5">
+                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-gauge-high" aria-hidden="true"></i> 2. Aba Resumo: Indicadores e Novo Cadastro
+                    </h4>
+                    <p><strong>Para que serve:</strong> Acompanhar seus custos gerais e registrar cada parada no posto sem complicações.</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li><strong>Quilometragem e Gasto Total:</strong> Use para saber exatamente quanto o seu carro custa por quilômetro rodado (R$/km) e planeje orçamentos de viagens ou custos mensais de rodagem.</li>
+                        <li><strong>Médias de Consumo (km/L):</strong> Compara o rendimento em km/L entre Etanol, Gasolina e Misto. Alternar para a opção "Últimos 5 Abastecimentos" é ideal para testar se uma troca de posto, combustível de marca diferente ou calibragem de pneus melhorou o rendimento recente.</li>
+                        <li><strong>Filtros de Qualidade (Tanque Cheio / Faixa):</strong> Mantenha em "Ambos" para ignorar dados discrepantes ou abastecimentos parciais que distorceriam sua média real.</li>
+                        <li><strong>Formulário de Cadastro:</strong> Preencha a data, o odômetro atual (km do painel) e os valores gastos. Marque sempre "Tanque Cheio?" quando encher o tanque para garantir cálculos perfeitos de consumo.</li>
+                    </ul>
+                </section>
+
+                <!-- 3. ABA HISTÓRICO -->
+                <section aria-label="3. Aba Histórico" class="space-y-1.5">
+                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> 3. Aba Histórico
+                    </h4>
+                    <p><strong>Para que serve:</strong> Consultar, buscar ou corrigir todos os registros de abastecimentos anteriores.</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li><strong>Filtros por Combustível:</strong> Clique nos botões (Etanol, Gasolina, Misto) para analisar separadamente a frequência com que você usa cada tipo de combustível.</li>
+                        <li><strong>Barra de Busca:</strong> Digite uma data específica ou um número de quilometragem para achar rapidamente aquele abastecimento antigo.</li>
+                        <li><strong>Edição/Exclusão:</strong> Errou a digitação no posto? Encontre o registro e edite os valores para manter seus dados sempre limpos.</li>
+                    </ul>
+                </section>
+
+                <!-- 4. ABA ANÁLISE -->
+                <section aria-label="4. Aba Análise" class="space-y-1.5">
+                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line" aria-hidden="true"></i> 4. Aba Análise (Gráficos e Insights)
+                    </h4>
+                    <p><strong>Para que serve:</strong> Visualizar tendências de consumo ao longo do tempo e identificar desperdícios.</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li><strong>Métricas Mensais:</strong> Mostra o volume em litros e o valor gasto nos últimos 30 dias para você controlar a fatura do cartão ou orçamento do mês.</li>
+                        <li><strong>Gráfico de Evolução (km/L):</strong> Identifique se o consumo aumentou subitamente — um indicativo claro de pneu murcho, necessidade de alinhamento ou combustível adulterado.</li>
+                        <li><strong>Gráfico de Distribuição e Insights:</strong> Entenda a proporção de uso de cada combustível e leia as dicas automáticas do sistema para otimizar seus gastos.</li>
+                    </ul>
+                </section>
+
+                <!-- 5. ABA REVISÃO -->
+                <section aria-label="5. Aba Revisão" class="space-y-1.5">
+                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-wrench" aria-hidden="true"></i> 5. Aba Revisão (Manutenção e Documentos)
+                    </h4>
+                    <p><strong>Para que serve:</strong> Evitar multas, perdas de garantia e quebras mecânicas por falta de manutenção preventiva.</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li><strong>Manutenção Prevista (Troca de Óleo):</strong> O app estima a data aproximada da sua próxima revisão com base na sua média diária de uso. Clique em Configurar para ajustar o intervalo (ex: a cada 10.000 km ou 5.000 km).</li>
+                        <li><strong>Rodízio de Pneus:</strong> Acompanhe a barra de progresso para saber exatamente quando fazer o rodízio e alinhamento, estendendo a vida útil dos pneus.</li>
+                        <li><strong>CNH e Exame Toxicológico:</strong> Cadastre as datas de vencimento e receba alertas destacados no topo do aplicativo antes que seus documentos vençam.</li>
+                    </ul>
+                </section>
+
+                <!-- 6. OPÇÕES E BACKUP -->
+                <section aria-label="6. Opções e Backup" class="space-y-1.5">
+                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-gear" aria-hidden="true"></i> 6. Opções, Backup e Relatórios
+                    </h4>
+                    <p><strong>Para que serve:</strong> Gerenciar a interface e proteger seus dados contra perdas.</p>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li><strong>Exportar/Restaurar JSON:</strong> Gere cópias de segurança (backups) e restaure seus dados ao trocar de celular.</li>
+                        <li><strong>Relatórios em Excel:</strong> Exporte planilhas para controle financeiro pessoal ou comprovação em trabalhos com veículos (Uber, entregas, frotas).</li>
+                        <li><strong>Aparência:</strong> Alterne entre o modo Escuro e Claro para facilitar a visualização durante o dia ou à noite.</li>
+                    </ul>
+                </section>
+
+                <!-- 7. ARMAZENAMENTO E PRIVACIDADE -->
+                <section aria-label="7. Armazenamento e Privacidade" class="space-y-1.5 border-t border-stone-200 dark:border-slate-800 pt-3">
+                    <h4 class="font-bold text-emerald-600 dark:text-emerald-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> 7. Armazenamento e Privacidade
+                    </h4>
+                    <p>
+                        Seus dados pertencem 100% a você! O aplicativo não exige login nem senha e armazena todas as informações localmente no seu dispositivo. Faça exports periódicos em JSON para manter seu backup sempre protegido.
+                    </p>
+                    <p class="text-amber-600 dark:text-amber-400 font-medium pt-1">
+                        ⚠ <strong>Aviso de fase de testes:</strong> Nesta versão BETA, o aplicativo necessita de conexão com a internet para ser carregado. Assim que a versão final for aprovada, o app será atualizado para funcionar totalmente offline, mantendo todo o seu histórico e cadastros armazenados com segurança no seu dispositivo.
+                    </p>
+                </section>
+            </div>
         </div>
     </div>
 
     <!-- MODAL DE CONFIGURAÇÃO DE RODÍZIO DE PNEUS -->
     <div id="tireModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
         <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
-            <button onclick="closeTireModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
+            <button onclick="FuelTrackerApp.closeTireModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
             <div class="flex items-center gap-2 border-b border-stone-300 dark:border-slate-800 pb-3">
@@ -714,7 +734,7 @@
                 </div>
                 <h3 class="text-sm font-bold text-stone-900 dark:text-white">Rodízio de Pneus</h3>
             </div>
-            <form onsubmit="saveTireConfig(event)" class="space-y-3 text-xs">
+            <form onsubmit="FuelTrackerApp.saveTireConfig(event)" class="space-y-3 text-xs">
                 <div>
                     <label for="tireIntervalInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Intervalo de Rodízio (Km)</label>
                     <input type="number" id="tireIntervalInput" required step="500" placeholder="Ex: 10000" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-amber-500">
@@ -735,7 +755,7 @@
     <!-- MODAL DE CONFIGURAÇÃO DE CNH E TOXICOLÓGICO -->
     <div id="cnhModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
         <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-purple-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
-            <button onclick="closeCnhModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
+            <button onclick="FuelTrackerApp.closeCnhModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
                 <i class="fa-solid fa-xmark"></i>
             </button>
             <div class="flex items-center gap-2 border-b border-stone-300 dark:border-slate-800 pb-3">
@@ -744,14 +764,14 @@
                 </div>
                 <h3 class="text-sm font-bold text-stone-900 dark:text-white">CNH & Exame Toxicológico</h3>
             </div>
-            <form onsubmit="saveCnhConfig(event)" class="space-y-3 text-xs">
+            <form onsubmit="FuelTrackerApp.saveCnhConfig(event)" class="space-y-3 text-xs">
                 <div>
                     <label for="cnhExpiryInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Vencimento da CNH</label>
                     <input type="date" id="cnhExpiryInput" required class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-purple-500">
                 </div>
                 <div class="pt-1">
                     <label class="flex items-center gap-2 cursor-pointer select-none">
-                        <input type="checkbox" id="hasToxicCheckbox" onchange="toggleToxicField()" class="w-4 h-4 rounded text-purple-500 focus:ring-purple-500 bg-white dark:bg-slate-900 border-stone-300 dark:border-slate-700">
+                        <input type="checkbox" id="hasToxicCheckbox" onchange="FuelTrackerApp.toggleToxicField()" class="w-4 h-4 rounded text-purple-500 focus:ring-purple-500 bg-white dark:bg-slate-900 border-stone-300 dark:border-slate-700">
                         <span class="font-semibold text-stone-700 dark:text-slate-200">Exige Exame Toxicológico?</span>
                     </label>
                 </div>
@@ -773,1098 +793,6 @@
         <span id="toastMsg">Mensagem de confirmação</span>
     </div>
 
-    <script>
-        const STORAGE_KEY = 'fuel_tracker_lite_records';
-        const THEME_STORAGE_KEY = 'fuel_tracker_theme';
-        const TIRE_STORAGE_KEY = 'fuel_tracker_tire_config';
-        const CNH_STORAGE_KEY = 'fuel_tracker_cnh_config';
-        const REVISION_STORAGE_KEY = 'fuel_tracker_revision_config';
-
-        const MAX_LITE_RECORDS = 10;
-        const KML_MIN = 5.0;
-        const KML_MAX = 23.0;
-
-        let records = [];
-        let tireConfig = { interval: 10000, lastKm: 0 };
-        let cnhConfig = { expiryDate: '', hasToxic: false, toxicExpiryDate: '' };
-        let revisionConfig = { interval: 10000 };
-
-        let currentAvgMode = 'all';
-        let currentKmlCriterion = 'both';
-        let currentHistoryFilter = 'ALL';
-        let chartInstance = null;
-        let distChartInstance = null;
-        let deferredPrompt = null;
-
-        let cachedHistoryFragment = null;
-        let isHistoryDirty = true;
-
-        window.addEventListener('DOMContentLoaded', () => {
-            initTheme();
-            initOfflineNetworkMonitoring();
-            const inputData = document.getElementById('inputData');
-            if (inputData) inputData.value = new Date().toISOString().split('T')[0];
-            loadRecords();
-            loadTireConfig();
-            loadCnhConfig();
-            loadRevisionConfig();
-            recalculateMetricsAndRender();
-            updateLiteCounterUI();
-        });
-
-        // RECURSOS PWA & OFFLINE
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const installBtn = document.getElementById('pwaInstallBtn');
-            if (installBtn) installBtn.classList.remove('hidden');
-        });
-
-        function installPWA() {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    showToast('Instalando o Fuel Tracker Lite...', 'fa-download', 'text-emerald-500');
-                }
-                deferredPrompt = null;
-                const installBtn = document.getElementById('pwaInstallBtn');
-                if (installBtn) installBtn.classList.add('hidden');
-            });
-        }
-
-        function initOfflineNetworkMonitoring() {
-            const updateOnlineStatus = () => {
-                const indicator = document.getElementById('offlineIndicator');
-                if (indicator) {
-                    if (navigator.onLine) {
-                        indicator.classList.add('hidden');
-                    } else {
-                        indicator.classList.remove('hidden');
-                        showToast('Modo offline ativado!', 'fa-wifi-slash', 'text-amber-500');
-                    }
-                }
-            };
-
-            window.addEventListener('online', updateOnlineStatus);
-            window.addEventListener('offline', updateOnlineStatus);
-            updateOnlineStatus();
-        }
-
-        // TEMA CLARO / ESCURO
-        function initTheme() {
-            const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
-            applyTheme(savedTheme);
-        }
-
-        function toggleTheme() {
-            const isDark = document.documentElement.classList.contains('dark');
-            const newTheme = isDark ? 'light' : 'dark';
-            applyTheme(newTheme);
-            localStorage.setItem(THEME_STORAGE_KEY, newTheme);
-            showToast(`Modo ${newTheme === 'dark' ? 'Escuro' : 'Claro'} ativado!`, 'fa-palette', 'text-sky-500');
-            
-            if (!document.getElementById('viewAnalytics').classList.contains('hidden')) {
-                renderCharts();
-            }
-        }
-
-        function applyTheme(theme) {
-            const html = document.documentElement;
-            const icon = document.getElementById('themeMenuIcon');
-            const label = document.getElementById('themeMenuLabel');
-
-            if (theme === 'light') {
-                html.classList.remove('dark');
-                if (icon) icon.className = 'fa-solid fa-moon w-4';
-                if (label) label.innerText = 'Claro';
-            } else {
-                html.classList.add('dark');
-                if (icon) icon.className = 'fa-solid fa-sun w-4';
-                if (label) label.innerText = 'Escuro';
-            }
-        }
-
-        function shareAppWithFriend() {
-            const shareData = {
-                title: 'Fuel Tracker Lite - Controle de Combustível',
-                text: 'Dá uma olhada no Fuel Tracker Lite! O app ideal para controlar abastecimentos, médias de consumo e manutenção:',
-                url: window.location.href
-            };
-
-            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-                try {
-                    navigator.share(shareData);
-                    showToast('Obrigado por indicar!', 'fa-heart', 'text-rose-500');
-                } catch (err) {}
-            } else {
-                try {
-                    navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-                    showToast('Link de indicação copiado!', 'fa-copy', 'text-teal-500');
-                } catch (e) {
-                    alert(`Compartilhe o app enviando o link:\n${window.location.href}`);
-                }
-            }
-        }
-
-        function toggleSettingsMenu() {
-            const dropdown = document.getElementById('settingsDropdown');
-            const gearBtn = document.getElementById('btnSettingsMenu');
-            if (dropdown) {
-                const isHidden = dropdown.classList.contains('hidden');
-                dropdown.classList.toggle('hidden');
-                if (gearBtn) {
-                    gearBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-                }
-            }
-        }
-
-        document.addEventListener('click', function(event) {
-            const dropdown = document.getElementById('settingsDropdown');
-            const gearBtn = event.target.closest('button[onclick*="toggleSettingsMenu"]');
-            if (dropdown && !dropdown.classList.contains('hidden') && !gearBtn && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-                const btn = document.getElementById('btnSettingsMenu');
-                if (btn) btn.setAttribute('aria-expanded', 'false');
-            }
-        });
-
-        function openManualModal() {
-            const modal = document.getElementById('manualModal');
-            if (modal) {
-                modal.classList.remove('opacity-0', 'pointer-events-none');
-                modal.classList.add('opacity-100');
-            }
-        }
-
-        function closeManualModal() {
-            const modal = document.getElementById('manualModal');
-            if (modal) {
-                modal.classList.remove('opacity-100');
-                modal.classList.add('opacity-0', 'pointer-events-none');
-            }
-        }
-
-        function openLimitModal(message) {
-            const modal = document.getElementById('limitModal');
-            const modalText = document.getElementById('limitModalText');
-            if (modalText && message) {
-                modalText.innerHTML = message;
-            } else if (modalText) {
-                modalText.innerHTML = 'Você atingiu o limite da versão <strong class="text-amber-500">Lite</strong> ou este recurso é exclusivo.';
-            }
-            if (modal) {
-                modal.classList.remove('opacity-0', 'pointer-events-none');
-                modal.classList.add('opacity-100');
-            }
-        }
-
-        function closeLimitModal() {
-            const modal = document.getElementById('limitModal');
-            if (modal) {
-                modal.classList.remove('opacity-100');
-                modal.classList.add('opacity-0', 'pointer-events-none');
-            }
-        }
-
-        function updateLiteCounterUI() {
-            const counterText = document.getElementById('liteCounterText');
-            if (counterText) {
-                counterText.innerText = `${records.length}/${MAX_LITE_RECORDS}`;
-            }
-        }
-
-        function showToast(message, iconClass = 'fa-circle-check', iconColor = 'text-emerald-500') {
-            const toast = document.getElementById('toast');
-            const toastMsg = document.getElementById('toastMsg');
-            const toastIcon = document.getElementById('toastIcon');
-
-            if (!toast || !toastMsg || !toastIcon) return;
-
-            toastMsg.innerText = message;
-            toastIcon.className = `fa-solid ${iconClass} ${iconColor} text-base`;
-
-            toast.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
-            toast.classList.add('opacity-100', 'translate-y-0');
-
-            setTimeout(() => {
-                toast.classList.remove('opacity-100', 'translate-y-0');
-                toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
-            }, 3000);
-        }
-
-        function formatDateBR(dateStr) {
-            if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            return dateStr;
-        }
-
-        function switchTab(tabName) {
-            const tabs = ['dashboard', 'history', 'analytics', 'revision'];
-            tabs.forEach(t => {
-                const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
-                const view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
-                if (btn && view) {
-                    if (t === tabName) {
-                        btn.className = 'py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-600';
-                        btn.setAttribute('aria-selected', 'true');
-                        view.classList.remove('hidden');
-                    } else {
-                        btn.className = 'py-2 rounded-lg text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-500';
-                        btn.setAttribute('aria-selected', 'false');
-                        view.classList.add('hidden');
-                    }
-                }
-            });
-
-            if (tabName === 'analytics') {
-                renderCharts();
-            } else if (tabName === 'history') {
-                renderHistoryList();
-            } else if (tabName === 'revision') {
-                renderRevisionForecast();
-                renderTireStatus();
-                renderCnhStatus();
-            }
-        }
-
-        function loadRevisionConfig() {
-            const saved = localStorage.getItem(REVISION_STORAGE_KEY);
-            if (saved) {
-                try { revisionConfig = JSON.parse(saved); } catch (e) { }
-            }
-        }
-
-        function saveRevisionConfig(e) {
-            e.preventDefault();
-            const interval = parseFloat(document.getElementById('revisionIntervalInput').value) || 10000;
-            revisionConfig = { interval };
-            localStorage.setItem(REVISION_STORAGE_KEY, JSON.stringify(revisionConfig));
-            closeRevisionModal();
-            renderRevisionForecast();
-            showToast('Configuração de Manutenção salva!', 'fa-circle-check', 'text-blue-500');
-        }
-
-        function openRevisionModal() {
-            document.getElementById('revisionIntervalInput').value = revisionConfig.interval || 10000;
-            const modal = document.getElementById('revisionModal');
-            if (modal) {
-                modal.classList.remove('opacity-0', 'pointer-events-none');
-                modal.classList.add('opacity-100');
-            }
-        }
-
-        function closeRevisionModal() {
-            const modal = document.getElementById('revisionModal');
-            if (modal) {
-                modal.classList.remove('opacity-100');
-                modal.classList.add('opacity-0', 'pointer-events-none');
-            }
-        }
-
-        function renderRevisionForecast() {
-            const forecastEl = document.getElementById('revisionForecast');
-            const subtextEl = document.getElementById('revisionSubtext');
-            const targetBadge = document.getElementById('revisionKmTarget');
-            const progressBar = document.getElementById('revisionProgressBar');
-
-            if (!forecastEl || !subtextEl || !targetBadge) return;
-
-            const interval = revisionConfig.interval || 10000;
-            targetBadge.innerText = `${interval.toLocaleString('pt-BR')} km`;
-
-            if (!records.length) {
-                forecastEl.innerText = "Sem dados suficientes";
-                subtextEl.innerText = "Cadastre abastecimentos para calcular a estimativa";
-                if (progressBar) progressBar.style.width = "0%";
-                return;
-            }
-
-            const currentOdo = Math.max(...records.map(r => Number(r.odo)));
-            const nextTarget = Math.ceil((currentOdo + 1) / interval) * interval;
-            const kmRemaining = nextTarget - currentOdo;
-            const currentCycleKm = interval - kmRemaining;
-            const progressPct = Math.min(100, Math.max(0, (currentCycleKm / interval) * 100));
-
-            if (progressBar) progressBar.style.width = `${progressPct}%`;
-
-            forecastEl.innerText = `Próxima revisão aos ${nextTarget.toLocaleString('pt-BR')} km`;
-            subtextEl.innerText = `Faltam ${kmRemaining.toLocaleString('pt-BR')} km`;
-        }
-
-        function loadTireConfig() {
-            const saved = localStorage.getItem(TIRE_STORAGE_KEY);
-            if (saved) {
-                try { tireConfig = JSON.parse(saved); } catch (e) { }
-            }
-        }
-
-        function saveTireConfig(e) {
-            e.preventDefault();
-            const interval = parseFloat(document.getElementById('tireIntervalInput').value) || 10000;
-            const lastKm = parseFloat(document.getElementById('tireLastKmInput').value) || 0;
-            
-            tireConfig = { interval, lastKm };
-            localStorage.setItem(TIRE_STORAGE_KEY, JSON.stringify(tireConfig));
-            closeTireModal();
-            renderTireStatus();
-            showToast('Configuração de Rodízio salva!', 'fa-circle-check', 'text-amber-500');
-        }
-
-        // TRAVA DO RODÍZIO DE PNEUS NA VERSÃO LITE
-        function openTireModal() {
-            openLimitModal('O gerenciamento de <strong>Rodízio de Pneus</strong> é uma função exclusiva da versão <strong>PRO</strong>.');
-        }
-
-        function closeTireModal() {
-            const modal = document.getElementById('tireModal');
-            if (modal) {
-                modal.classList.remove('opacity-100');
-                modal.classList.add('opacity-0', 'pointer-events-none');
-            }
-        }
-
-        function renderTireStatus() {
-            const forecastEl = document.getElementById('tireForecast');
-            const subtextEl = document.getElementById('tireSubtext');
-            const targetBadge = document.getElementById('tireTargetBadge');
-            const progressBar = document.getElementById('tireProgressBar');
-
-            if (!forecastEl || !subtextEl || !targetBadge) return;
-
-            forecastEl.className = "text-xl font-black text-amber-500";
-            forecastEl.innerText = "Recurso PRO Bloqueado";
-            subtextEl.innerText = "Disponível apenas na versão PRO";
-            targetBadge.innerText = "Versão PRO";
-            if (progressBar) progressBar.style.width = "0%";
-        }
-
-        function loadCnhConfig() {
-            const saved = localStorage.getItem(CNH_STORAGE_KEY);
-            if (saved) {
-                try { cnhConfig = JSON.parse(saved); } catch (e) { }
-            }
-        }
-
-        function saveCnhConfig(e) {
-            e.preventDefault();
-            const expiryDate = document.getElementById('cnhExpiryInput').value;
-            const hasToxic = document.getElementById('hasToxicCheckbox').checked;
-            const toxicExpiryDate = hasToxic ? document.getElementById('toxicExpiryInput').value : '';
-
-            cnhConfig = { expiryDate, hasToxic, toxicExpiryDate };
-            localStorage.setItem(CNH_STORAGE_KEY, JSON.stringify(cnhConfig));
-            closeCnhModal();
-            renderCnhStatus();
-            showToast('Validades salvas com sucesso!', 'fa-circle-check', 'text-purple-500');
-        }
-
-        // TRAVA DE CNH & TOXICOLÓGICO NA VERSÃO LITE
-        function openCnhModal() {
-            openLimitModal('A gestão de <strong>CNH e Exame Toxicológico</strong> é um recurso exclusivo da versão <strong>PRO</strong>.');
-        }
-
-        function closeCnhModal() {
-            const modal = document.getElementById('cnhModal');
-            if (modal) {
-                modal.classList.remove('opacity-100');
-                modal.classList.add('opacity-0', 'pointer-events-none');
-            }
-        }
-
-        function toggleToxicField() {
-            const hasToxic = document.getElementById('hasToxicCheckbox').checked;
-            const toxicGroup = document.getElementById('toxicFieldGroup');
-            if (hasToxic) {
-                toxicGroup.classList.remove('hidden');
-            } else {
-                toxicGroup.classList.add('hidden');
-            }
-        }
-
-        function calculateDaysRemaining(dateStr) {
-            if (!dateStr) return null;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const targetParts = dateStr.split('-');
-            if (targetParts.length !== 3) return null;
-            const targetDate = new Date(targetParts[0], targetParts[1] - 1, targetParts[2]);
-            
-            const diffTime = targetDate - today;
-            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        function renderCnhStatus() {
-            const cnhDateText = document.getElementById('cnhDateText');
-            const cnhDaysBadge = document.getElementById('cnhDaysBadge');
-            const toxicCard = document.getElementById('toxicCard');
-            const toxicDateText = document.getElementById('toxicDateText');
-            const toxicDaysBadge = document.getElementById('toxicDaysBadge');
-
-            if (cnhDateText) cnhDateText.innerText = "Disponível na versão PRO";
-            if (cnhDaysBadge) {
-                cnhDaysBadge.innerText = "PRO";
-                cnhDaysBadge.className = 'font-black text-xs text-amber-500';
-            }
-
-            if (toxicCard) toxicCard.classList.remove('hidden');
-            if (toxicDateText) toxicDateText.innerText = "Disponível na versão PRO";
-            if (toxicDaysBadge) {
-                toxicDaysBadge.innerText = "PRO";
-                toxicDaysBadge.className = 'font-black text-xs text-amber-500';
-            }
-        }
-
-        function getFatorRendimentoDinamico() {
-            const validA = records.filter(r => r.full && r.comb === 'A' && r.kml >= KML_MIN && r.kml <= KML_MAX);
-            const validG = records.filter(r => r.comb === 'G' && r.full && r.kml >= KML_MIN && r.kml <= KML_MAX);
-
-            if (!validA.length || !validG.length) return 0.70;
-
-            const avgKmlA = validA.reduce((a, b) => a + b.kml, 0) / validA.length;
-            const avgKmlG = validG.reduce((a, b) => a + b.kml, 0) / validG.length;
-
-            return avgKmlA / avgKmlG;
-        }
-
-        function calcularDecisaoPosto() {
-            const precoA = parseFloat(document.getElementById('calcPrecoA').value);
-            const precoG = parseFloat(document.getElementById('calcPrecoG').value);
-            const resEl = document.getElementById('resultadoCalcPosto');
-
-            const fator = getFatorRendimentoDinamico();
-            const fatorPct = fator * 100;
-
-            const labelFator = document.getElementById('labelFatorPosto');
-            if (labelFator) labelFator.innerText = `Fator: ${fatorPct.toFixed(1)}%`;
-
-            if (!precoA || !precoG) {
-                resEl.className = "text-center p-2 rounded-xl bg-stone-200/50 dark:bg-slate-900/90 border border-stone-300/60 dark:border-slate-800 text-xs font-semibold text-stone-500 dark:text-slate-400";
-                resEl.innerHTML = "Insira os preços para comparar a vantagem.";
-                return;
-            }
-
-            const razio = (precoA / precoG) * 100;
-            const precoMaxA = precoG * fator;
-
-            if (razio <= fatorPct) {
-                resEl.className = "text-center p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/80 border border-emerald-500/40 text-xs font-bold text-emerald-700 dark:text-emerald-400";
-                resEl.innerHTML = `<i class="fa-solid fa-leaf text-emerald-600 dark:text-emerald-400 mr-1"></i> Abasteça com ETANOL! (${razio.toFixed(1)}% | Máx: R$ ${precoMaxA.toFixed(2)})`;
-            } else {
-                resEl.className = "text-center p-2 rounded-xl bg-orange-500/10 dark:bg-orange-950/80 border border-orange-500/40 text-xs font-bold text-orange-700 dark:text-orange-400";
-                resEl.innerHTML = `<i class="fa-solid fa-fire text-orange-600 dark:text-orange-400 mr-1"></i> Abasteça com GASOLINA! (Etanol até R$ ${precoMaxA.toFixed(2)})`;
-            }
-        }
-
-        function handleExportJSON() {
-            toggleSettingsMenu();
-            exportJSON();
-        }
-
-        function handleExportExcel() {
-            toggleSettingsMenu();
-            exportToExcel();
-        }
-
-        function handleExportPDF() {
-            toggleSettingsMenu();
-            exportToPDF();
-        }
-
-        function handleResetDatabase() {
-            toggleSettingsMenu();
-            resetDatabase();
-        }
-
-        async function exportJSON() {
-            if (records.length === 0) {
-                alert('Não há dados para exportar.');
-                return;
-            }
-            const fileName = `FuelTracker_Lite_Backup_${new Date().toISOString().split('T')[0]}.json`;
-            const jsonStr = JSON.stringify(records, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", URL.createObjectURL(blob));
-            downloadAnchor.setAttribute("download", fileName);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            showToast('Backup JSON exportado!', 'fa-download', 'text-purple-500');
-        }
-
-        function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (Array.isArray(importedData)) {
-                        if (importedData.length > MAX_LITE_RECORDS) {
-                            alert(`O arquivo possui ${importedData.length} registros. A versão Lite aceita apenas até ${MAX_LITE_RECORDS} lançamentos. Apenas os 10 primeiros serão importados.`);
-                        }
-
-                        records = importedData.slice(0, MAX_LITE_RECORDS).map(item => {
-                            const litersA = Number(item.litersA || item.litrosA) || 0;
-                            const priceA = Number(item.priceA || item.precoA) || 0;
-                            const litersG = Number(item.litersG || item.litrosG) || 0;
-                            const priceG = Number(item.priceG || item.precoG) || 0;
-                            const totL = Number(item.totL) || (litersA + litersG);
-                            const totR = Number(item.totR) || ((litersA * priceA) + (litersG * priceG));
-                            
-                            let comb = item.comb;
-                            if (!comb) {
-                                if (litersA > 0 && litersG > 0) comb = 'M';
-                                else if (litersA > 0) comb = 'A';
-                                else comb = 'G';
-                            }
-
-                            return {
-                                date: item.date || new Date().toISOString().split('T')[0],
-                                odo: Number(item.odo) || 0,
-                                litersA, priceA, litersG, priceG,
-                                full: item.full !== undefined ? Boolean(item.full) : true,
-                                totL, totR, comb,
-                                dist: Number(item.dist) || 0,
-                                kml: Number(item.kml) || 0
-                            };
-                        });
-
-                        recalculateDistancesAndKml();
-                        saveRecords();
-                        recalculateMetricsAndRender();
-                        updateLiteCounterUI();
-                        showToast('Dados importados com sucesso!', 'fa-circle-check', 'text-emerald-500');
-                    }
-                } catch (err) {
-                    alert('Erro ao ler o arquivo JSON.');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function renderKPIs() {
-            const kpiTotalKm = document.getElementById('kpiTotalKm');
-            const kpiOdometro = document.getElementById('kpiOdometro');
-            const kpiGastoTotal = document.getElementById('kpiGastoTotal');
-            const kpiCustoMedio = document.getElementById('kpiCustoMedio');
-
-            if (!records.length) {
-                if (kpiTotalKm) kpiTotalKm.innerText = '0 km';
-                if (kpiOdometro) kpiOdometro.innerText = 'Odômetro: 0 km';
-                if (kpiGastoTotal) kpiGastoTotal.innerText = 'R$ 0,00';
-                if (kpiCustoMedio) kpiCustoMedio.innerText = 'Custo/km: R$ 0,00';
-                return;
-            }
-
-            const minOdo = Number(records[0].odo);
-            const maxOdo = Number(records[records.length - 1].odo);
-            const totalKm = maxOdo - minOdo;
-            const totalGasto = records.reduce((acc, r) => acc + (r.totR || 0), 0);
-            const custoKm = totalKm > 0 ? (totalGasto / totalKm) : 0;
-
-            if (kpiTotalKm) kpiTotalKm.innerText = `${totalKm.toLocaleString('pt-BR')} km`;
-            if (kpiOdometro) kpiOdometro.innerText = `Odômetro: ${maxOdo.toLocaleString('pt-BR')} km`;
-            if (kpiGastoTotal) kpiGastoTotal.innerText = `R$ ${totalGasto.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            if (kpiCustoMedio) kpiCustoMedio.innerText = `Custo/km: R$ ${custoKm.toFixed(2)}`;
-        }
-
-        function setKmlFilterCriterion(criterion) {
-            currentKmlCriterion = criterion;
-            const filterTankOnly = document.getElementById('filterTankOnly');
-            const filterRangeOnly = document.getElementById('filterRangeOnly');
-            const filterBoth = document.getElementById('filterBoth');
-
-            if (filterTankOnly) filterTankOnly.className = criterion === 'tank' ? 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow' : 'py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition';
-            if (filterRangeOnly) filterRangeOnly.className = criterion === 'range' ? 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow' : 'py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition';
-            if (filterBoth) filterBoth.className = criterion === 'both' ? 'py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold transition shadow' : 'py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition';
-
-            renderAverages();
-        }
-
-        function setAvgMode(mode) {
-            currentAvgMode = mode;
-            const avgModeAll = document.getElementById('avgModeAll');
-            const avgMode5 = document.getElementById('avgMode5');
-
-            if (avgModeAll) avgModeAll.className = mode === 'all' ? 'flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm' : 'flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition';
-            if (avgMode5) avgMode5.className = mode === 'last5' ? 'flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm' : 'flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition';
-
-            renderAverages();
-        }
-
-        function filterKmlRecords(recordList) {
-            return recordList.filter(r => {
-                if (r.kml <= 0) return false;
-                if (currentKmlCriterion === 'tank') return r.full;
-                if (currentKmlCriterion === 'range') return r.kml >= KML_MIN && r.kml <= KML_MAX;
-                return r.full && r.kml >= KML_MIN && r.kml <= KML_MAX;
-            });
-        }
-
-        function renderAverages() {
-            let baseRecords = [...records];
-            if (currentAvgMode === 'last5') {
-                baseRecords = baseRecords.slice(-5);
-            }
-
-            const filtered = filterKmlRecords(baseRecords);
-
-            const calculateFuelAvg = (fuelType) => {
-                const list = filtered.filter(r => r.comb === fuelType);
-                if (!list.length) return '0.00';
-                const sum = list.reduce((acc, r) => acc + r.kml, 0);
-                return (sum / list.length).toFixed(2);
-            };
-
-            const avgAlcoholVal = document.getElementById('avgAlcoholVal');
-            const avgGasVal = document.getElementById('avgGasVal');
-            const avgMixedVal = document.getElementById('avgMixedVal');
-
-            if (avgAlcoholVal) avgAlcoholVal.innerText = calculateFuelAvg('A');
-            if (avgGasVal) avgGasVal.innerText = calculateFuelAvg('G');
-            if (avgMixedVal) avgMixedVal.innerText = calculateFuelAvg('M');
-        }
-
-        function loadRecords() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    records = JSON.parse(saved);
-                    records.sort((a, b) => Number(a.odo) - Number(b.odo));
-                } catch (e) {
-                    records = [];
-                }
-            } else {
-                records = [];
-            }
-        }
-
-        function saveRecords() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-            isHistoryDirty = true;
-            updateLiteCounterUI();
-        }
-
-        function recalculateDistancesAndKml() {
-            records.sort((a, b) => Number(a.odo) - Number(b.odo));
-            for (let i = 0; i < records.length; i++) {
-                if (i === 0) {
-                    records[i].dist = 0;
-                    records[i].kml = 0;
-                } else {
-                    const prev = records[i - 1];
-                    const dist = Number(records[i].odo) - Number(prev.odo);
-                    records[i].dist = dist > 0 ? dist : 0;
-                    records[i].kml = (records[i].dist > 0 && records[i].totL > 0) ? (records[i].dist / records[i].totL) : 0;
-                }
-            }
-        }
-
-        function recalculateMetricsAndRender() {
-            recalculateDistancesAndKml();
-            renderKPIs();
-            renderAverages();
-            renderRecentRecords();
-            renderHistoryList();
-            calcularDecisaoPosto();
-        }
-
-        // TRAVA DA VERSÃO LITE PARA CADASTRO DE ABASTECIMENTOS
-        function handleFormSubmit(e) {
-            e.preventDefault();
-
-            const editIndex = parseInt(document.getElementById('editIndex').value, 10);
-
-            // VERIFICAÇÃO DE LIMITE LITE
-            if (editIndex === -1 && records.length >= MAX_LITE_RECORDS) {
-                openLimitModal('Você atingiu o limite de <strong>10 abastecimentos</strong> da versão <strong>Lite</strong>. Adquira a versão <strong>PRO</strong> para lançamentos ilimitados.');
-                return;
-            }
-
-            const date = document.getElementById('inputData').value;
-            const odo = parseFloat(document.getElementById('inputOdometro').value);
-            const litersA = parseFloat(document.getElementById('inputLitrosA').value) || 0;
-            const priceA = parseFloat(document.getElementById('inputPrecoA').value) || 0;
-            const litersG = parseFloat(document.getElementById('inputLitrosG').value) || 0;
-            const priceG = parseFloat(document.getElementById('inputPrecoG').value) || 0;
-            const full = document.getElementById('inputTanqueCheio').checked;
-
-            if (litersA <= 0 && litersG <= 0) {
-                alert('Informe ao menos uma quantidade de litros (Etanol ou Gasolina).');
-                return;
-            }
-
-            const totL = litersA + litersG;
-            const totR = (litersA * priceA) + (litersG * priceG);
-
-            let comb = 'G';
-            if (litersA > 0 && litersG > 0) comb = 'M';
-            else if (litersA > 0) comb = 'A';
-
-            const newRecord = {
-                date, odo, litersA, priceA, litersG, priceG, full, totL, totR, comb, dist: 0, kml: 0
-            };
-
-            if (editIndex >= 0) {
-                records[editIndex] = newRecord;
-                showToast('Abastecimento atualizado!', 'fa-pen-to-square', 'text-amber-500');
-            } else {
-                records.push(newRecord);
-                showToast('Abastecimento salvo!', 'fa-circle-check', 'text-emerald-500');
-            }
-
-            saveRecords();
-            resetForm();
-            recalculateMetricsAndRender();
-        }
-
-        function resetForm() {
-            document.getElementById('fuelForm').reset();
-            document.getElementById('editIndex').value = "-1";
-            document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
-            document.getElementById('formTitle').innerText = "Novo Abastecimento";
-            document.getElementById('cancelEditBtn').classList.add('hidden');
-        }
-
-        function editRecord(index) {
-            const r = records[index];
-            if (!r) return;
-
-            document.getElementById('editIndex').value = index;
-            document.getElementById('inputData').value = r.date;
-            document.getElementById('inputOdometro').value = r.odo;
-            document.getElementById('inputLitrosA').value = r.litersA || '';
-            document.getElementById('inputPrecoA').value = r.priceA || '';
-            document.getElementById('inputLitrosG').value = r.litersG || '';
-            document.getElementById('inputPrecoG').value = r.priceG || '';
-            document.getElementById('inputTanqueCheio').checked = r.full;
-
-            document.getElementById('formTitle').innerText = "Editar Abastecimento";
-            document.getElementById('cancelEditBtn').classList.remove('hidden');
-
-            switchTab('dashboard');
-        }
-
-        function deleteRecord(index) {
-            if (confirm('Tem certeza que deseja excluir este registro?')) {
-                records.splice(index, 1);
-                saveRecords();
-                recalculateMetricsAndRender();
-                showToast('Registro excluído com sucesso.', 'fa-trash', 'text-rose-500');
-            }
-        }
-
-        function renderRecentRecords() {
-            const list = document.getElementById('recentRecordsList');
-            if (!list) return;
-
-            if (!records.length) {
-                list.innerHTML = `<div class="p-4 text-center text-xs text-stone-500 dark:text-slate-400 font-medium">Nenhum abastecimento cadastrado ainda.</div>`;
-                return;
-            }
-
-            const recent = [...records].reverse().slice(0, 3);
-            list.innerHTML = recent.map(r => {
-                const combIcon = r.comb === 'A' ? '<i class="fa-solid fa-leaf text-emerald-500"></i>' : (r.comb === 'G' ? '<i class="fa-solid fa-fire text-orange-500"></i>' : '<i class="fa-solid fa-shuffle text-purple-500"></i>');
-                return `
-                    <div class="glass-card p-3 rounded-xl border border-stone-300 dark:border-slate-800 flex items-center justify-between text-xs">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-7 h-7 rounded-lg bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-sm">
-                                ${combIcon}
-                            </div>
-                            <div>
-                                <span class="font-bold text-stone-900 dark:text-white block">${formatDateBR(r.date)} — ${r.odo.toLocaleString('pt-BR')} km</span>
-                                <span class="text-[10px] text-stone-500 dark:text-slate-400">${r.totL.toFixed(2)}L • R$ ${r.totR.toFixed(2)}</span>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <span class="font-black text-stone-900 dark:text-white block">${r.kml > 0 ? r.kml.toFixed(2) + ' km/L' : '-'}</span>
-                            <span class="text-[9px] font-semibold text-stone-400 uppercase">${r.full ? 'Tanque Cheio' : 'Parcial'}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function setHistoryFilter(type) {
-            currentHistoryFilter = type;
-            ['ALL', 'A', 'G', 'M'].forEach(t => {
-                const btn = document.getElementById('filterBtn' + t);
-                if (btn) {
-                    if (t === type) {
-                        btn.className = 'px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold shadow transition whitespace-nowrap';
-                    } else {
-                        btn.className = 'px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-slate-800 text-stone-700 dark:text-slate-300 hover:bg-stone-300 dark:hover:bg-slate-700 font-medium transition whitespace-nowrap';
-                    }
-                }
-            });
-            renderHistoryList();
-        }
-
-        function renderHistoryList() {
-            const list = document.getElementById('fullHistoryList');
-            const searchInput = document.getElementById('historySearch');
-            const countBadge = document.getElementById('historyCountBadge');
-
-            if (!list) return;
-
-            let filtered = [...records];
-
-            if (currentHistoryFilter !== 'ALL') {
-                filtered = filtered.filter(r => r.comb === currentHistoryFilter);
-            }
-
-            if (searchInput && searchInput.value.trim() !== '') {
-                const query = searchInput.value.toLowerCase();
-                filtered = filtered.filter(r => 
-                    r.date.includes(query) || 
-                    formatDateBR(r.date).includes(query) || 
-                    r.odo.toString().includes(query)
-                );
-            }
-
-            if (countBadge) countBadge.innerText = `${filtered.length} registro(s)`;
-
-            if (!filtered.length) {
-                list.innerHTML = `<div class="p-6 text-center text-xs text-stone-500 dark:text-slate-400 font-medium">Nenhum registro encontrado.</div>`;
-                return;
-            }
-
-            const items = [...filtered].reverse();
-            list.innerHTML = items.map(r => {
-                const originalIndex = records.indexOf(r);
-                const combIcon = r.comb === 'A' ? '<i class="fa-solid fa-leaf text-emerald-500"></i>' : (r.comb === 'G' ? '<i class="fa-solid fa-fire text-orange-500"></i>' : '<i class="fa-solid fa-shuffle text-purple-500"></i>');
-                const combLabel = r.comb === 'A' ? 'Etanol' : (r.comb === 'G' ? 'Gasolina' : 'Misto');
-
-                return `
-                    <div class="glass-card p-3 rounded-2xl border border-stone-300 dark:border-slate-800 flex items-center justify-between text-xs transition hover:border-stone-400 dark:hover:border-slate-700">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-stone-200 dark:bg-slate-800 flex items-center justify-center text-base">
-                                ${combIcon}
-                            </div>
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-black text-stone-900 dark:text-white">${formatDateBR(r.date)}</span>
-                                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-stone-200 dark:bg-slate-800 text-stone-600 dark:text-slate-300 font-semibold">${combLabel}</span>
-                                </div>
-                                <div class="text-[10px] text-stone-500 dark:text-slate-400 mt-0.5">
-                                    Odômetro: ${r.odo.toLocaleString('pt-BR')} km • ${r.totL.toFixed(2)}L
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-3">
-                            <div class="text-right">
-                                <span class="font-black text-emerald-600 dark:text-emerald-400 block">R$ ${r.totR.toFixed(2)}</span>
-                                <span class="text-[10px] text-stone-500 dark:text-slate-400 font-bold block">${r.kml > 0 ? r.kml.toFixed(2) + ' km/L' : '-'}</span>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <button onclick="editRecord(${originalIndex})" title="Editar" class="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 flex items-center justify-center transition">
-                                    <i class="fa-solid fa-pen text-[10px]"></i>
-                                </button>
-                                <button onclick="deleteRecord(${originalIndex})" title="Excluir" class="w-6 h-6 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition">
-                                    <i class="fa-solid fa-trash text-[10px]"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderCharts() {
-            if (!records.length) return;
-
-            const isDark = document.documentElement.classList.contains('dark');
-            const textColor = isDark ? '#cbd5e1' : '#334155';
-            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-
-            // Métrica mensal
-            const now = new Date();
-            const past30Days = new Date(now.setDate(now.getDate() - 30));
-            const recentMonthRecords = records.filter(r => new Date(r.date) >= past30Days);
-
-            const totalLitrosMes = recentMonthRecords.reduce((acc, r) => acc + (r.totL || 0), 0);
-            const totalGastoMes = recentMonthRecords.reduce((acc, r) => acc + (r.totR || 0), 0);
-
-            const metricLitrosMes = document.getElementById('metricLitrosMes');
-            const metricGastoMes = document.getElementById('metricGastoMes');
-
-            if (metricLitrosMes) metricLitrosMes.innerText = `${totalLitrosMes.toFixed(1)} L`;
-            if (metricGastoMes) metricGastoMes.innerText = `R$ ${totalGastoMes.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-
-            // Gráfico 1: Evolução Km/L
-            const ctx1 = document.getElementById('consumptionChart');
-            if (ctx1) {
-                if (chartInstance) chartInstance.destroy();
-
-                const validRecords = records.filter(r => r.kml > 0);
-                const labels = validRecords.map(r => formatDateBR(r.date));
-                const dataKml = validRecords.map(r => r.kml.toFixed(2));
-
-                chartInstance = new Chart(ctx1, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Km/L',
-                            data: dataKml,
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            fill: true,
-                            tension: 0.3,
-                            pointBackgroundColor: '#10b981'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { ticks: { color: textColor, font: { size: 9 } }, grid: { color: gridColor } },
-                            y: { ticks: { color: textColor, font: { size: 9 } }, grid: { color: gridColor } }
-                        }
-                    }
-                });
-            }
-
-            // Gráfico 2: Distribuição por Combustível
-            const ctx2 = document.getElementById('fuelDistChart');
-            if (ctx2) {
-                if (distChartInstance) distChartInstance.destroy();
-
-                const countA = records.filter(r => r.comb === 'A').length;
-                const countG = records.filter(r => r.comb === 'G').length;
-                const countM = records.filter(r => r.comb === 'M').length;
-
-                distChartInstance = new Chart(ctx2, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Etanol', 'Gasolina', 'Misto'],
-                        datasets: [{
-                            data: [countA, countG, countM],
-                            backgroundColor: ['#10b981', '#f97316', '#8b5cf6'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { color: textColor, font: { size: 10 } }
-                            }
-                        }
-                    }
-                });
-            }
-
-            renderInsightText();
-        }
-
-        function renderInsightText() {
-            const insightText = document.getElementById('insightText');
-            if (!insightText) return;
-
-            if (records.length < 2) {
-                insightText.innerText = 'Cadastre pelo menos 2 abastecimentos para gerar dados analíticos de consumo e economia.';
-                return;
-            }
-
-            const validA = records.filter(r => r.comb === 'A' && r.kml > 0);
-            const validG = records.filter(r => r.comb === 'G' && r.kml > 0);
-
-            if (validA.length && validG.length) {
-                const avgA = validA.reduce((acc, r) => acc + r.kml, 0) / validA.length;
-                const avgG = validG.reduce((acc, r) => acc + r.kml, 0) / validG.length;
-                const ratio = (avgA / avgG) * 100;
-
-                insightText.innerHTML = `O rendimento relativo do Etanol no seu veículo é de <strong>${ratio.toFixed(1)}%</strong> em relação à Gasolina. Utilize a calculadora de posto para abastecer de forma ideal!`;
-            } else {
-                insightText.innerText = 'Acompanhe seus abastecimentos com Etanol e Gasolina para calcular o fator de rendimento exato do seu veículo.';
-            }
-        }
-
-        function resetDatabase() {
-            if (confirm('Atenção: Isso irá apagar TODOS os dados do aplicativo. Deseja continuar?')) {
-                localStorage.removeItem(STORAGE_KEY);
-                records = [];
-                recalculateMetricsAndRender();
-                updateLiteCounterUI();
-                showToast('Base de dados zerada!', 'fa-trash', 'text-rose-500');
-            }
-        }
-
-        function exportToExcel() {
-            if (!records.length) {
-                alert('Não há dados para exportar.');
-                return;
-            }
-
-            const data = records.map(r => ({
-                Data: formatDateBR(r.date),
-                'Odômetro (Km)': r.odo,
-                'Litros Etanol': r.litersA,
-                'Preço/L Etanol': r.priceA,
-                'Litros Gasolina': r.litersG,
-                'Preço/L Gasolina': r.priceG,
-                'Total Litros': r.totL,
-                'Total Gasto (R$)': r.totR,
-                'Combustível': r.comb === 'A' ? 'Etanol' : (r.comb === 'G' ? 'Gasolina' : 'Misto'),
-                'Tanque Cheio': r.full ? 'Sim' : 'Não',
-                'Distância (Km)': r.dist,
-                'Média (Km/L)': r.kml.toFixed(2)
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Abastecimentos");
-            XLSX.writeFile(wb, `FuelTracker_Lite_${new Date().toISOString().split('T')[0]}.xlsx`);
-            showToast('Planilha Excel gerada!', 'fa-file-excel', 'text-emerald-500');
-        }
-
-        function exportToPDF() {
-            if (!records.length) {
-                alert('Não há dados para exportar.');
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            doc.setFontSize(16);
-            doc.text("Fuel Tracker Lite - Relatório de Abastecimentos", 14, 15);
-
-            doc.setFontSize(10);
-            doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 22);
-
-            const tableData = records.map(r => [
-                formatDateBR(r.date),
-                `${r.odo.toLocaleString('pt-BR')} km`,
-                r.comb === 'A' ? 'Etanol' : (r.comb === 'G' ? 'Gasolina' : 'Misto'),
-                `${r.totL.toFixed(2)} L`,
-                `R$ ${r.totR.toFixed(2)}`,
-                r.kml > 0 ? `${r.kml.toFixed(2)} km/L` : '-'
-            ]);
-
-            doc.autoTable({
-                startY: 28,
-                head: [['Data', 'Odômetro', 'Combustível', 'Litros', 'Total', 'Média']],
-                body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [16, 185, 129] }
-            });
-
-            doc.save(`FuelTracker_Lite_${new Date().toISOString().split('T')[0]}.pdf`);
-            showToast('Relatório PDF gerado!', 'fa-file-pdf', 'text-rose-500');
-        }
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
