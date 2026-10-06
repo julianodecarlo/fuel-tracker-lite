@@ -456,8 +456,10 @@ const FuelTrackerApp = (() => {
     function handleFormSubmit(e) {
         e.preventDefault();
 
-        // Limite do plano Lite (Exemplo: Máximo de 15 abastecimentos cadastrados)
-        if (!planStatus.isPro && records.length >= 15) {
+        const editIndex = parseInt(document.getElementById('editIndex').value, 10);
+
+        // Limite do plano Lite (Máximo de 10 abastecimentos cadastrados)
+        if (!planStatus.isPro && records.length >= 10 && (isNaN(editIndex) || editIndex < 0)) {
             openUpgradeModal();
             return;
         }
@@ -469,7 +471,6 @@ const FuelTrackerApp = (() => {
         const precoG = parseDecimalValue(document.getElementById('inputPrecoG').value);
         const valorG = parseDecimalValue(document.getElementById('inputValorG').value);
         const fullTank = document.getElementById('inputTanqueCheio').checked;
-        const editIndex = parseInt(document.getElementById('editIndex').value, 10);
 
         if (!date || isNaN(odo)) {
             alert('Por favor, preencha a data e o odômetro corretamente.');
