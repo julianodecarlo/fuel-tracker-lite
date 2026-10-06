@@ -257,6 +257,20 @@ const FuelTrackerApp = (() => {
         }
     }
 
+    // Alternar plano para testes (Dev)
+    function toggleDevPlan() {
+      const currentStatus = localStorage.getItem('fuelTrackerPro');
+      if (currentStatus === 'true') {
+      localStorage.setItem('fuelTrackerPro', 'false');
+      alert('Modo de Teste: Alterado para LITE 🚗');
+    } else {
+      localStorage.setItem('fuelTrackerPro', 'true');
+      alert('Modo de Teste: Alterado para PRO 🚀');
+    }
+    location.reload();
+  }  
+
+    
     function processProUpgrade(paymentMethod) {
         // Simulação do gateway de pagamento (Stripe / Mercado Pago / PIX)
         showToast('Processando pagamento...', 'fa-spinner', 'text-sky-500');
