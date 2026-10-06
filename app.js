@@ -8,6 +8,8 @@ const FuelTrackerApp = (() => {
     const CNH_STORAGE_KEY = 'fuel_tracker_cnh_config';
     const REVISION_STORAGE_KEY = 'fuel_tracker_revision_config';
     const PLAN_STORAGE_KEY = 'fuel_tracker_plan_status';
+    const PRO_FLAG_KEY = 'fuelTrackerPro';
+    const LITE_RECORD_LIMIT = 10;
 
     const KML_MIN = 5.0;
     const KML_MAX = 23.0;
@@ -218,27 +220,25 @@ const FuelTrackerApp = (() => {
     }
 
     // --- 3. MIGRAÇÃO E CHECKOUT PRO ---
+    function isProPlan() {
+        return localStorage.getItem(PRO_FLAG_KEY) === 'true';
+    }
+
     function renderPlanBadge() {
         const badge = document.getElementById('appBadge');
         const upgradeBtn = document.getElementById('btnUpgradePro');
+        const analyticsTab = document.getElementById('tabAnalytics');
+        const pro = isProPlan();
 
         if (badge) {
-            if (planStatus.isPro) {
-                badge.innerText = 'PRO';
-                badge.className = 'text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold';
-            } else {
-                badge.innerText = 'LITE';
-                badge.className = 'text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold';
-            }
+            badge.innerText = pro ? 'PRO' : 'LITE';
+            badge.className = pro
+                ? 'text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold'
+                : 'text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold';
         }
 
-        if (upgradeBtn) {
-            if (planStatus.isPro) {
-                upgradeBtn.classList.add('hidden');
-            } else {
-                upgradeBtn.classList.remove('hidden');
-            }
-        }
+        if (upgradeBtn) upgradeBtn.classList.toggle('hidden', pro);
+        if (analyticsTab) analyticsTab.classList.toggle('hidden', !pro);
     }
 
     function openUpgradeModal() {
@@ -258,17 +258,12 @@ const FuelTrackerApp = (() => {
     }
 
     // Alternar plano para testes (Dev)
-    window.toggleDevPlan = function() {
-      const currentStatus = localStorage.getItem('fuelTrackerPro');
-      if (currentStatus === 'true') {
-      localStorage.setItem('fuelTrackerPro', 'false');
-      alert('Modo de Teste: Alterado para LITE 🚗');
-    } else {
-      localStorage.setItem('fuelTrackerPro', 'true');
-      alert('Modo de Teste: Alterado para PRO 🚀');
-    }
-    location.reload();
-  }  
+    window.toggleDevPlan = function () {
+        const next = isProPlan() ? 'false' : 'true';
+        localStorage.setItem(PRO_FLAG_KEY, next);
+        alert(next === 'true' ? 'Modo de Teste: Alterado para PRO' : 'Modo de Teste: Alterado para LITE');
+        location.reload();
+    };
 
     
     function processProUpgrade(paymentMethod) {
@@ -278,6 +273,7 @@ const FuelTrackerApp = (() => {
         setTimeout(() => {
             planStatus.isPro = true;
             planStatus.expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+            localStorage.setItem(PRO_FLAG_KEY, 'true');
             savePlanStatus();
             closeUpgradeModal();
             showToast('Parabéns! Você agora é PRO!', 'fa-circle-check', 'text-emerald-500');
@@ -431,6 +427,12 @@ const FuelTrackerApp = (() => {
     }
 
     function switchTab(tab) {
+        if (tab === 'analytics' && !isProPlan()) {
+            showToast('Relatórios avançados e gráficos comparativos são exclusivos do plano PRO.', 'fa-crown', 'text-amber-500');
+            openUpgradeModal();
+            return;
+        }
+
         const tabs = ['dashboard', 'history', 'analytics', 'revision'];
         tabs.forEach(t => {
             const view = document.getElementById(`view${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -459,7 +461,8 @@ const FuelTrackerApp = (() => {
         const editIndex = parseInt(document.getElementById('editIndex').value, 10);
 
         // Limite do plano Lite (Máximo de 10 abastecimentos cadastrados)
-        if (!planStatus.isPro && records.length >= 10 && (isNaN(editIndex) || editIndex < 0)) {
+        if (!isProPlan() && records.length >= LITE_RECORD_LIMIT && (isNaN(editIndex) || editIndex < 0)) {
+            showToast('Limite de 10 registros do plano LITE atingido. Migre para o PRO!', 'fa-crown', 'text-amber-500');
             openUpgradeModal();
             return;
         }
@@ -639,6 +642,10 @@ const FuelTrackerApp = (() => {
 
     function handleExportExcel() {
         toggleSettingsMenu();
+        if (!isProPlan()) {
+            openUpgradeModal();
+            return;
+        }
         if (!records.length) {
             alert('Não há dados cadastrados para exportar.');
             return;
@@ -1528,6 +1535,10 @@ const FuelTrackerApp = (() => {
                 if (btn) btn.setAttribute('aria-expanded', 'false');
             }
         });
+
+        if (localStorage.getItem(PRO_FLAG_KEY) === null) {
+            localStorage.setItem(PRO_FLAG_KEY, 'false');
+        }
 
         loadRecords();
         loadTireConfig();
