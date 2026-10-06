@@ -10,11 +10,16 @@ const FuelTrackerApp = (() => {
     const PLAN_STORAGE_KEY = 'fuel_tracker_plan_status';
     const PRO_FLAG_KEY = 'fuelTrackerPro';
     const LITE_RECORD_LIMIT = 10;
+    const VEHICLES_STORAGE_KEY = 'fuel_tracker_vehicles';
+    const ACTIVE_VEHICLE_STORAGE_KEY = 'fuel_tracker_active_vehicle';
+    const DEFAULT_VEHICLE_ID = 'default';
 
     const KML_MIN = 5.0;
     const KML_MAX = 23.0;
 
     let records = [];
+    let vehicles = [];
+    let activeVehicleId = DEFAULT_VEHICLE_ID;
     let tireConfig = { interval: 10000, lastKm: 0 };
     let cnhConfig = { expiryDate: '', hasToxic: false, toxicExpiryDate: '' };
     let revisionConfig = { interval: 10000 };
@@ -93,8 +98,43 @@ const FuelTrackerApp = (() => {
     }
 
     // --- 2. GERENCIAMENTO DE ARMAZENAMENTO E DADOS ---
+    function vehicleKey(baseKey) {
+        return activeVehicleId === DEFAULT_VEHICLE_ID ? baseKey : `${baseKey}_${activeVehicleId}`;
+    }
+
+    function isValidPlate(value) {
+        return /^[A-Z]{3}-[0-9]{4}$/.test(value);
+    }
+
+    function loadVehicles() {
+        const saved = localStorage.getItem(VEHICLES_STORAGE_KEY);
+        if (saved) {
+            try { vehicles = JSON.parse(saved); } catch (e) { vehicles = []; }
+        } else {
+            vehicles = [];
+        }
+        if (!Array.isArray(vehicles) || !vehicles.length) {
+            vehicles = [{ id: DEFAULT_VEHICLE_ID, name: 'Meu Veículo', plate: '' }];
+            saveVehicles();
+        }
+        const savedActive = localStorage.getItem(ACTIVE_VEHICLE_STORAGE_KEY);
+        activeVehicleId = vehicles.some(v => v.id === savedActive) ? savedActive : vehicles[0].id;
+    }
+
+    function saveVehicles() {
+        localStorage.setItem(VEHICLES_STORAGE_KEY, JSON.stringify(vehicles));
+    }
+
+    function saveActiveVehicle() {
+        localStorage.setItem(ACTIVE_VEHICLE_STORAGE_KEY, activeVehicleId);
+    }
+
+    function getActiveVehicle() {
+        return vehicles.find(v => v.id === activeVehicleId) || vehicles[0];
+    }
+
     function loadRecords() {
-        const data = localStorage.getItem(STORAGE_KEY);
+        const data = localStorage.getItem(vehicleKey(STORAGE_KEY));
         if (data) {
             try {
                 records = JSON.parse(data);
@@ -109,7 +149,7 @@ const FuelTrackerApp = (() => {
 
     function saveRecords() {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+            localStorage.setItem(vehicleKey(STORAGE_KEY), JSON.stringify(records));
             isHistoryDirty = true;
         } catch (e) {
             if (e.name === 'QuotaExceededError' || e.code === 22) {
@@ -121,7 +161,7 @@ const FuelTrackerApp = (() => {
     }
 
     function loadTireConfig() {
-        const saved = localStorage.getItem(TIRE_STORAGE_KEY);
+        const saved = localStorage.getItem(vehicleKey(TIRE_STORAGE_KEY));
         if (saved) {
             try { tireConfig = JSON.parse(saved); } catch (e) { }
         }
@@ -135,7 +175,7 @@ const FuelTrackerApp = (() => {
     }
 
     function loadRevisionConfig() {
-        const saved = localStorage.getItem(REVISION_STORAGE_KEY);
+        const saved = localStorage.getItem(vehicleKey(REVISION_STORAGE_KEY));
         if (saved) {
             try { revisionConfig = JSON.parse(saved); } catch (e) { }
         }
@@ -559,12 +599,78 @@ const FuelTrackerApp = (() => {
         document.getElementById('cancelEditBtn').classList.add('hidden');
     }
 
+    function renderVehicleSelector() {
+        const select = document.getElementById('vehicleSelect');
+        if (!select) return;
+        select.innerHTML = vehicles.map(v =>
+            `<option value="${sanitizeHTML(v.id)}"${v.id === activeVehicleId ? ' selected' : ''}>${sanitizeHTML(v.name)}${v.plate ? ' • ' + sanitizeHTML(v.plate) : ''}</option>`
+        ).join('');
+    }
+
+    function switchVehicle(id) {
+        if (!id || id === activeVehicleId || !vehicles.some(v => v.id === id)) return;
+        activeVehicleId = id;
+        saveActiveVehicle();
+        loadRecords();
+        loadTireConfig();
+        loadRevisionConfig();
+        resetForm();
+        recalculateMetricsAndRender();
+        showToast(`Veículo selecionado: ${getActiveVehicle().name}`, 'fa-car', 'text-emerald-500');
+    }
+
+    function openVehicleModal() {
+        if (!isProPlan()) {
+            blockLiteFeature('A gestão de frota e múltiplos veículos é exclusiva do plano PRO. Assine para cadastrar mais veículos!');
+            return;
+        }
+        document.getElementById('vehicleForm').reset();
+        const modal = document.getElementById('vehicleModal');
+        if (modal) {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100');
+        }
+    }
+
+    function closeVehicleModal() {
+        const modal = document.getElementById('vehicleModal');
+        if (modal) {
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+    }
+
+    function saveVehicle(e) {
+        e.preventDefault();
+        if (!isProPlan()) {
+            blockLiteFeature('A gestão de frota e múltiplos veículos é exclusiva do plano PRO. Assine para cadastrar mais veículos!');
+            return;
+        }
+        const name = document.getElementById('vehicleNameInput').value.trim();
+        const plate = document.getElementById('vehiclePlateInput').value.trim().toUpperCase();
+
+        if (!name) {
+            alert('Informe o nome/modelo do veículo.');
+            return;
+        }
+        if (!isValidPlate(plate)) {
+            alert('Placa inválida. Use o formato XXX-XXXX (ex: ABC-1234).');
+            return;
+        }
+
+        vehicles.push({ id: 'v_' + Date.now().toString(36), name, plate });
+        saveVehicles();
+        renderVehicleSelector();
+        closeVehicleModal();
+        showToast(`Veículo "${name}" cadastrado!`, 'fa-car', 'text-emerald-500');
+    }
+
     function handleResetDatabase() {
         if (confirm('ATENÇÃO: Todos os abastecimentos e configurações serão apagados permanentemente!\n\nDeseja continuar?')) {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(TIRE_STORAGE_KEY);
+            localStorage.removeItem(vehicleKey(STORAGE_KEY));
+            localStorage.removeItem(vehicleKey(TIRE_STORAGE_KEY));
             localStorage.removeItem(CNH_STORAGE_KEY);
-            localStorage.removeItem(REVISION_STORAGE_KEY);
+            localStorage.removeItem(vehicleKey(REVISION_STORAGE_KEY));
             records = [];
             tireConfig = { interval: 10000, lastKm: 0 };
             cnhConfig = { expiryDate: '', hasToxic: false, toxicExpiryDate: '' };
@@ -583,12 +689,19 @@ const FuelTrackerApp = (() => {
             tireConfig,
             cnhConfig,
             revisionConfig,
-            planStatus
+            planStatus,
+            vehicles,
+            activeVehicleId
         };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
         const dlAnchorElem = document.createElement('a');
         dlAnchorElem.setAttribute("href", dataStr);
-        dlAnchorElem.setAttribute("download", `fuel_tracker_backup_${new Date().toISOString().split('T')[0]}.json`);
+        if (isProPlan()) {
+            const plate = getActiveVehicle().plate || 'SEM-PLACA';
+            dlAnchorElem.setAttribute("download", `fuel_tracker_backup_placa ${plate}_${new Date().toISOString().split('T')[0]}.json`);
+        } else {
+            dlAnchorElem.setAttribute("download", `fuel_tracker_backup_${new Date().toISOString().split('T')[0]}.json`);
+        }
         dlAnchorElem.click();
         showToast('Backup JSON exportado!', 'fa-download', 'text-purple-500');
     }
@@ -609,7 +722,7 @@ const FuelTrackerApp = (() => {
                     rawRecords = Array.isArray(imported.records) ? imported.records : [];
                     if (imported.tireConfig) {
                         tireConfig = imported.tireConfig;
-                        localStorage.setItem(TIRE_STORAGE_KEY, JSON.stringify(tireConfig));
+                        localStorage.setItem(vehicleKey(TIRE_STORAGE_KEY), JSON.stringify(tireConfig));
                     }
                     if (imported.cnhConfig) {
                         cnhConfig = imported.cnhConfig;
@@ -617,12 +730,23 @@ const FuelTrackerApp = (() => {
                     }
                     if (imported.revisionConfig) {
                         revisionConfig = imported.revisionConfig;
-                        localStorage.setItem(REVISION_STORAGE_KEY, JSON.stringify(revisionConfig));
+                        localStorage.setItem(vehicleKey(REVISION_STORAGE_KEY), JSON.stringify(revisionConfig));
                     }
                     if (imported.planStatus) {
                         planStatus = imported.planStatus;
                         savePlanStatus();
                     }
+                    if (Array.isArray(imported.vehicles) && imported.vehicles.length) {
+                        vehicles = imported.vehicles
+                            .filter(v => v && v.id && v.name)
+                            .map(v => ({ id: String(v.id), name: String(v.name), plate: v.plate ? String(v.plate).toUpperCase() : '' }));
+                        saveVehicles();
+                    }
+                    if (imported.activeVehicleId && vehicles.some(v => v.id === imported.activeVehicleId)) {
+                        activeVehicleId = imported.activeVehicleId;
+                        saveActiveVehicle();
+                    }
+                    renderVehicleSelector();
                 } else {
                     alert('Formato JSON inválido.');
                     return;
@@ -1560,6 +1684,8 @@ const FuelTrackerApp = (() => {
             localStorage.setItem(PRO_FLAG_KEY, 'false');
         }
 
+        loadVehicles();
+        renderVehicleSelector();
         loadRecords();
         loadTireConfig();
         loadCnhConfig();
@@ -1607,6 +1733,10 @@ const FuelTrackerApp = (() => {
         installPWA,
         openUpgradeModal,
         closeUpgradeModal,
-        processProUpgrade
+        processProUpgrade,
+        switchVehicle,
+        openVehicleModal,
+        closeVehicleModal,
+        saveVehicle
     };
 })();
