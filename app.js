@@ -103,7 +103,16 @@ const FuelTrackerApp = (() => {
     }
 
     function isValidPlate(value) {
-        return /^[A-Z]{3}-[0-9]{4}$/.test(value);
+        return /^[A-Z]{3}-?[0-9][A-Z0-9][0-9]{2}$/.test(value);
+    }
+
+    function normalizePlate(value) {
+        const clean = value.replace(/[^A-Z0-9]/g, '');
+        return `${clean.slice(0, 3)}-${clean.slice(3)}`;
+    }
+
+    function maskPlateInput(value) {
+        return normalizePlate(value.toUpperCase());
     }
 
     function loadVehicles() {
@@ -647,7 +656,7 @@ const FuelTrackerApp = (() => {
             return;
         }
         const name = document.getElementById('vehicleNameInput').value.trim();
-        const plate = document.getElementById('vehiclePlateInput').value.trim().toUpperCase();
+        const plate = normalizePlate(document.getElementById('vehiclePlateInput').value.trim().toUpperCase());
 
         if (!name) {
             alert('Informe o nome/modelo do veículo.');
@@ -739,7 +748,7 @@ const FuelTrackerApp = (() => {
                     if (Array.isArray(imported.vehicles) && imported.vehicles.length) {
                         vehicles = imported.vehicles
                             .filter(v => v && v.id && v.name)
-                            .map(v => ({ id: String(v.id), name: String(v.name), plate: v.plate ? String(v.plate).toUpperCase() : '' }));
+                            .map(v => ({ id: String(v.id), name: String(v.name), plate: v.plate ? normalizePlate(String(v.plate).toUpperCase()) : '' }));
                         saveVehicles();
                     }
                     if (imported.activeVehicleId && vehicles.some(v => v.id === imported.activeVehicleId)) {
@@ -1737,6 +1746,7 @@ const FuelTrackerApp = (() => {
         switchVehicle,
         openVehicleModal,
         closeVehicleModal,
-        saveVehicle
+        saveVehicle,
+        maskPlateInput
     };
 })();

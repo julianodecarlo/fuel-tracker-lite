@@ -607,8 +607,8 @@
                     <input type="text" id="vehicleNameInput" required maxlength="40" placeholder="Ex: Gol 1.0" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
-                    <label for="vehiclePlateInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Placa (formato XXX-XXXX)</label>
-                    <input type="text" id="vehiclePlateInput" required maxlength="8" placeholder="Ex: ABC-1234" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white uppercase focus:outline-none focus:border-emerald-500">
+                    <label for="vehiclePlateInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Placa (ex: ABC-1234 ou ABC-1D23)</label>
+                    <input type="text" id="vehiclePlateInput" required maxlength="8" placeholder="Ex: ABC-1234" oninput="this.value = FuelTrackerApp.maskPlateInput(this.value)" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white uppercase focus:outline-none focus:border-emerald-500">
                 </div>
                 <div class="pt-2">
                     <button type="submit" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition">
