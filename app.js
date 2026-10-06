@@ -224,6 +224,13 @@ const FuelTrackerApp = (() => {
         return localStorage.getItem(PRO_FLAG_KEY) === 'true';
     }
 
+    const LITE_LOCK_MESSAGE = 'Recurso exclusivo do plano PRO! Atualize para desbloquear lançamentos ilimitados e configurações personalizadas.';
+
+    function blockLiteFeature(message = LITE_LOCK_MESSAGE) {
+        showToast(message, 'fa-crown', 'text-amber-500');
+        openUpgradeModal();
+    }
+
     function renderPlanBadge() {
         const badge = document.getElementById('appBadge');
         const upgradeBtn = document.getElementById('btnUpgradePro');
@@ -462,8 +469,7 @@ const FuelTrackerApp = (() => {
 
         // Limite do plano Lite (Máximo de 10 abastecimentos cadastrados)
         if (!isProPlan() && records.length >= LITE_RECORD_LIMIT && (isNaN(editIndex) || editIndex < 0)) {
-            showToast('Limite de 10 registros do plano LITE atingido. Migre para o PRO!', 'fa-crown', 'text-amber-500');
-            openUpgradeModal();
+            blockLiteFeature('A versão Lite é limitada a 10 lançamentos de abastecimento. Atualize para o PRO e registre sem limites!');
             return;
         }
 
@@ -1120,7 +1126,7 @@ const FuelTrackerApp = (() => {
 
         if (!forecastEl || !subtextEl || !targetBadge) return;
 
-        const interval = revisionConfig.interval || 10000;
+        const interval = isProPlan() ? (revisionConfig.interval || 10000) : 10000;
         targetBadge.innerText = `${interval.toLocaleString('pt-BR')} km`;
 
         if (!records.length) {
@@ -1183,14 +1189,16 @@ const FuelTrackerApp = (() => {
         if (!forecastEl || !subtextEl || !targetBadge) return;
 
         const currentOdo = records.length ? Math.max(...records.map(r => Number(r.odo))) : tireConfig.lastKm;
-        const targetKm = tireConfig.lastKm + tireConfig.interval;
+        const targetKm = tireConfig.lastKm + (isProPlan() ? tireConfig.interval : 10000);
         const kmRemaining = targetKm - currentOdo;
         
         targetBadge.innerText = `Meta: ${targetKm.toLocaleString('pt-BR')} km`;
 
         let progressPct = 0;
-        if (tireConfig.interval > 0) {
+        if (tireConfig.interval > 0 && isProPlan()) {
             progressPct = Math.min(100, Math.max(0, ((currentOdo - tireConfig.lastKm) / tireConfig.interval) * 100));
+        } else if (!isProPlan()) {
+            progressPct = Math.min(100, Math.max(0, ((currentOdo - tireConfig.lastKm) / 10000) * 100));
         }
 
         if (progressBar) progressBar.style.width = `${progressPct}%`;
@@ -1247,6 +1255,10 @@ const FuelTrackerApp = (() => {
     }
 
     function openRevisionModal() {
+        if (!isProPlan()) {
+            blockLiteFeature();
+            return;
+        }
         document.getElementById('revisionIntervalInput').value = revisionConfig.interval || 10000;
         const modal = document.getElementById('revisionModal');
         if (modal) {
@@ -1276,6 +1288,10 @@ const FuelTrackerApp = (() => {
     }
 
     function openTireModal() {
+        if (!isProPlan()) {
+            blockLiteFeature();
+            return;
+        }
         document.getElementById('tireIntervalInput').value = tireConfig.interval || 10000;
         document.getElementById('tireLastKmInput').value = tireConfig.lastKm || 0;
         const modal = document.getElementById('tireModal');
@@ -1307,6 +1323,10 @@ const FuelTrackerApp = (() => {
     }
 
     function openCnhModal() {
+        if (!isProPlan()) {
+            blockLiteFeature('O cadastro de validade da CNH e do Toxicológico é exclusivo do plano PRO. Assine para ativar os alertas de vencimento!');
+            return;
+        }
         document.getElementById('cnhExpiryInput').value = cnhConfig.expiryDate || '';
         document.getElementById('hasToxicCheckbox').checked = cnhConfig.hasToxic || false;
         document.getElementById('toxicExpiryInput').value = cnhConfig.toxicExpiryDate || '';
