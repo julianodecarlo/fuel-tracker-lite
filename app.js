@@ -258,7 +258,7 @@ const FuelTrackerApp = (() => {
     }
 
     // Alternar plano para testes (Dev)
-    function toggleDevPlan() {
+    window.toggleDevPlan = function() {
       const currentStatus = localStorage.getItem('fuelTrackerPro');
       if (currentStatus === 'true') {
       localStorage.setItem('fuelTrackerPro', 'false');
