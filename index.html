@@ -860,6 +860,68 @@
         </div>
     </div>
 
+    <!-- MODAL DE BACKUP / RESTAURAÇÃO -->
+    <div id="backupModal" role="dialog" aria-modal="true" aria-labelledby="backupTitle" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-start justify-center p-4 pt-6 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-emerald-500/40 w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-3xl p-5 shadow-2xl relative space-y-4">
+            <button onclick="FuelTrackerApp.closeBackupModal()" aria-label="Fechar backup" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-2 border-b border-stone-300 dark:border-slate-800 pb-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <h3 id="backupTitle" class="text-sm font-bold text-stone-900 dark:text-white">Backup & Restauração</h3>
+            </div>
+
+            <!-- SELETOR DE ABAS -->
+            <div role="group" aria-label="Escopo do backup" class="grid grid-cols-2 gap-1 bg-stone-200/70 dark:bg-slate-800/80 p-1 rounded-xl text-xs font-semibold border border-stone-300/70 dark:border-slate-700/60">
+                <button id="backupTabActive" onclick="FuelTrackerApp.switchBackupTab('active')" class="py-2 rounded-lg bg-emerald-500 text-slate-950 font-bold shadow transition focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                    <i class="fa-solid fa-car mr-1" aria-hidden="true"></i> Veículo Ativo
+                </button>
+                <button id="backupTabFull" onclick="FuelTrackerApp.switchBackupTab('full')" class="py-2 rounded-lg text-stone-600 dark:text-slate-300 font-semibold hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <i class="fa-solid fa-layer-group mr-1" aria-hidden="true"></i> Aplicativo Completo
+                </button>
+            </div>
+
+            <!-- ABA 1: VEÍCULO ATIVO -->
+            <div id="backupPaneActive" class="space-y-3 text-xs">
+                <p class="text-stone-500 dark:text-slate-400 leading-relaxed">
+                    Copie ou recupere os dados exclusivamente do veículo que está selecionado no momento.
+                </p>
+                <button onclick="FuelTrackerApp.handleExportJSON()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i> Exportar Backup
+                </button>
+                <label id="backupLabelImportActive" for="backupImportActiveInput" class="w-full py-2.5 bg-white dark:bg-slate-900 hover:bg-stone-100 dark:hover:bg-slate-800 border border-stone-300 dark:border-slate-700 text-stone-900 dark:text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-emerald-500">
+                    <i class="fa-solid fa-upload" aria-hidden="true"></i> Restaurar Backup
+                </label>
+                <input type="file" id="backupImportActiveInput" accept=".json" class="sr-only" onchange="FuelTrackerApp.importJSON(event)">
+            </div>
+
+            <!-- ABA 2: APLICATIVO COMPLETO -->
+            <div id="backupPaneFull" class="space-y-3 text-xs hidden">
+                <p class="text-stone-500 dark:text-slate-400 leading-relaxed">
+                    Gere uma cópia de segurança de todo o aplicativo — todos os veículos, configurações e históricos — ou restaure-a em um novo dispositivo.
+                </p>
+                <button onclick="FuelTrackerApp.exportFullBackup()" class="w-full p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border-2 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold rounded-2xl shadow-sm transition flex items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                    <i class="fa-download fa-solid text-xl" aria-hidden="true"></i>
+                    <span>
+                        <span class="block">Exportar Tudo</span>
+                        <span class="block text-[10px] font-medium text-stone-500 dark:text-slate-400">Baixar backup geral (.json)</span>
+                    </span>
+                </button>
+                <button onclick="FuelTrackerApp.importFullBackup()" class="w-full p-4 bg-blue-500/10 hover:bg-blue-500/20 border-2 border-blue-500/40 text-blue-700 dark:text-blue-400 font-bold rounded-2xl shadow-sm transition flex items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    <i class="fa-upload fa-solid text-xl" aria-hidden="true"></i>
+                    <span>
+                        <span class="block">Restaurar Tudo</span>
+                        <span class="block text-[10px] font-medium text-stone-500 dark:text-slate-400">Enviar backup geral (.json)</span>
+                    </span>
+                </button>
+            </div>
+
+            <input type="file" id="importFullFile" accept=".json" style="display:none" onchange="FuelTrackerApp.handleFullImportFile(event)">
+        </div>
+    </div>
+
     <div id="toast" role="status" aria-live="polite" class="fixed bottom-5 right-5 bg-[#f5f0e6] dark:bg-slate-800 text-stone-900 dark:text-white border border-stone-300 dark:border-slate-700 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-10 pointer-events-none z-50 text-xs font-medium">
         <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-600 dark:text-emerald-400 text-base" aria-hidden="true"></i>
         <span id="toastMsg">Mensagem de confirmação</span>
