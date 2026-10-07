@@ -481,6 +481,16 @@ const FuelTrackerApp = (() => {
         }, 3000);
     }
 
+    function handleAnalyticsClick(e) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (!isProPlan()) {
+            showToast('Relatórios avançados e gráficos comparativos são exclusivos do plano PRO.', 'fa-crown', 'text-amber-500');
+            openUpgradeModal();
+            return;
+        }
+        switchTab('analytics');
+    }
+
     function switchTab(tab) {
         if (tab === 'analytics' && !isProPlan()) {
             showToast('Relatórios avançados e gráficos comparativos são exclusivos do plano PRO.', 'fa-crown', 'text-amber-500');
@@ -627,6 +637,12 @@ const FuelTrackerApp = (() => {
 
     function switchVehicle(id) {
         if (!id || id === activeVehicleId || !vehicles.some(v => v.id === id)) return;
+        if (!isProPlan()) {
+            renderVehicleSelector();
+            showToast('A gestão de múltiplos veículos é exclusiva do plano PRO. Assine para trocar ou cadastrar veículos!', 'fa-crown', 'text-amber-500');
+            openUpgradeModal();
+            return;
+        }
         activeVehicleId = id;
         saveActiveVehicle();
         loadRecords();
@@ -1789,6 +1805,15 @@ const FuelTrackerApp = (() => {
         });
 
         document.addEventListener('click', function(event) {
+            const liteLockBtn = event.target.closest('button[data-lite-locked]');
+            if (liteLockBtn && !isProPlan()) {
+                event.preventDefault();
+                event.stopPropagation();
+                showToast('A customização de manutenção, rodízio e validades é exclusiva do plano PRO!', 'fa-crown', 'text-amber-500');
+                openUpgradeModal();
+                return;
+            }
+
             const dropdown = document.getElementById('settingsDropdown');
             const gearBtn = event.target.closest('button[onclick*="toggleSettingsMenu"]');
             if (dropdown && !dropdown.classList.contains('hidden') && !gearBtn && !dropdown.contains(event.target)) {
@@ -1821,6 +1846,7 @@ const FuelTrackerApp = (() => {
         maskDecimalTwoDigits,
         calcularDecisaoPosto,
         switchTab,
+        handleAnalyticsClick,
         setAvgMode,
         setKmlFilterCriterion,
         setHistoryFilter,
