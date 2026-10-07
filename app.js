@@ -294,7 +294,6 @@ const FuelTrackerApp = (() => {
         }
 
         if (upgradeBtn) upgradeBtn.classList.toggle('hidden', pro);
-        if (analyticsTab) analyticsTab.classList.toggle('hidden', !pro);
     }
 
     function openUpgradeModal() {
@@ -1082,6 +1081,7 @@ const FuelTrackerApp = (() => {
         renderTireStatus();
         renderCnhStatus();
         calcularDecisaoPosto();
+        updateOdometerPlaceholder();
 
         if (!document.getElementById('viewAnalytics').classList.contains('hidden')) {
             renderCharts();
