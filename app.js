@@ -625,6 +625,36 @@ const FuelTrackerApp = (() => {
         ).join('');
     }
 
+    function renderVehicleList() {
+        const container = document.getElementById('vehicleListContainer');
+        if (!container) return;
+        if (!vehicles.length) {
+            container.innerHTML = '<p class="text-xs text-stone-500 dark:text-slate-400 text-center py-2">Nenhum veículo cadastrado.</p>';
+            return;
+        }
+        container.innerHTML = vehicles.map(v => {
+            const isActive = v.id === activeVehicleId;
+            return `
+            <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl border ${isActive ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-stone-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="font-bold text-stone-900 dark:text-white truncate">${sanitizeHTML(v.name)}</span>
+                        ${isActive ? '<span class="text-[9px] uppercase font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded">Ativo</span>' : ''}
+                    </div>
+                    <span class="text-[10px] text-stone-500 dark:text-slate-400">${v.plate ? sanitizeHTML(v.plate) : 'Sem placa'}</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="FuelTrackerApp.editVehicle('${sanitizeHTML(v.id)}')" aria-label="Editar veículo" class="w-7 h-7 rounded-lg bg-stone-200 dark:bg-slate-800 text-sky-600 dark:text-sky-400 hover:bg-stone-300 dark:hover:bg-slate-700 transition flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-sky-500">
+                        <i class="fa-solid fa-pen text-[10px]" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" onclick="FuelTrackerApp.deleteVehicle('${sanitizeHTML(v.id)}')" aria-label="Excluir veículo" class="w-7 h-7 rounded-lg bg-stone-200 dark:bg-slate-800 text-rose-600 dark:text-rose-400 hover:bg-stone-300 dark:hover:bg-slate-700 transition flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-rose-500">
+                        <i class="fa-solid fa-trash-can text-[10px]" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
     function switchVehicle(id) {
         if (!id || id === activeVehicleId || !vehicles.some(v => v.id === id)) return;
         activeVehicleId = id;
@@ -643,6 +673,7 @@ const FuelTrackerApp = (() => {
             return;
         }
         document.getElementById('vehicleForm').reset();
+        renderVehicleList();
         const modal = document.getElementById('vehicleModal');
         if (modal) {
             modal.classList.remove('opacity-0', 'pointer-events-none');
@@ -1714,6 +1745,7 @@ const FuelTrackerApp = (() => {
 
         loadVehicles();
         renderVehicleSelector();
+        renderVehicleList();
         loadRecords();
         loadTireConfig();
         loadCnhConfig();
@@ -1767,6 +1799,7 @@ const FuelTrackerApp = (() => {
         openVehicleModal,
         closeVehicleModal,
         saveVehicle,
+        renderVehicleList,
         maskPlateInput
     };
 })();
