@@ -868,6 +868,171 @@ const FuelTrackerApp = (() => {
         reader.readAsText(file);
     }
 
+    // --- BACKUP GERAL (FULL BACKUP) ---
+    function getVehicleScopedKey(baseKey, vehicleId) {
+        return vehicleId === DEFAULT_VEHICLE_ID ? baseKey : `${baseKey}_${vehicleId}`;
+    }
+
+    function pad2(n) {
+        return String(n).padStart(2, '0');
+    }
+
+    function exportFullBackup() {
+        try {
+            const exportedVehicles = vehicles.map(v => {
+                const id = String(v.id);
+                let recs = [];
+                try { recs = JSON.parse(localStorage.getItem(getVehicleScopedKey(STORAGE_KEY, id)) || '[]'); } catch (e) { }
+                let tire = null;
+                try { tire = JSON.parse(localStorage.getItem(getVehicleScopedKey(TIRE_STORAGE_KEY, id)) || 'null'); } catch (e) { }
+                let rev = null;
+                try { rev = JSON.parse(localStorage.getItem(getVehicleScopedKey(REVISION_STORAGE_KEY, id)) || 'null'); } catch (e) { }
+                return {
+                    id,
+                    name: v.name,
+                    plate: v.plate || '',
+                    records: Array.isArray(recs) ? recs : [],
+                    tireConfig: tire,
+                    revisionConfig: rev
+                };
+            });
+
+            const backupData = {
+                app: 'FuelTracker',
+                backupType: 'full',
+                version: 1,
+                createdAt: new Date().toISOString(),
+                activeVehicleId: String(activeVehicleId),
+                cnhConfig,
+                planStatus,
+                vehicles: exportedVehicles
+            };
+
+            const now = new Date();
+            const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}_${pad2(now.getHours())}-${pad2(now.getMinutes())}`;
+            const fileName = `fuel_tracker_backup_${exportedVehicles.length}-Veiculos_${stamp}.json`;
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", fileName);
+            dlAnchorElem.click();
+
+            showToast(`Backup geral de ${exportedVehicles.length} veículo(s) exportado!`, 'fa-download', 'text-emerald-500');
+        } catch (err) {
+            showToast('Erro ao gerar o backup geral.', 'fa-triangle-exclamation', 'text-rose-500');
+        }
+    }
+
+    function importFullBackup() {
+        const input = document.getElementById('importFullFile');
+        if (input) input.click();
+    }
+
+    function handleFullImportFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+
+                if (!imported || typeof imported !== 'object' || !Array.isArray(imported.vehicles) || !imported.vehicles.length) {
+                    alert('Arquivo de backup geral inválido. Utilize um arquivo "Exportar Tudo" do Fuel Tracker.');
+                    return;
+                }
+
+                const count = imported.vehicles.length;
+                const approved = confirm(`A restauração do backup geral substituirá TODOS os veículos, históricos e configurações atuais (${count} veículo(s) no arquivo). Deseja continuar?`);
+                if (!approved) return;
+
+                const cleanedVehicles = [];
+                imported.vehicles.forEach(v => {
+                    if (!v || v.id === undefined || v.id === null || v.id === '') return;
+                    const id = String(v.id);
+                    cleanedVehicles.push({
+                        id,
+                        name: String(v.name || 'Veículo'),
+                        plate: v.plate ? normalizePlate(String(v.plate).toUpperCase()) : ''
+                    });
+                    localStorage.setItem(getVehicleScopedKey(STORAGE_KEY, id), JSON.stringify(Array.isArray(v.records) ? v.records : []));
+                    if (v.tireConfig) {
+                        localStorage.setItem(getVehicleScopedKey(TIRE_STORAGE_KEY, id), JSON.stringify(v.tireConfig));
+                    }
+                    if (v.revisionConfig) {
+                        localStorage.setItem(getVehicleScopedKey(REVISION_STORAGE_KEY, id), JSON.stringify(v.revisionConfig));
+                    }
+                });
+
+                if (!cleanedVehicles.length) {
+                    alert('O backup não contém veículos válidos.');
+                    return;
+                }
+
+                localStorage.setItem(VEHICLES_STORAGE_KEY, JSON.stringify(cleanedVehicles));
+                const activeId = imported.activeVehicleId && cleanedVehicles.some(v => v.id === String(imported.activeVehicleId))
+                    ? String(imported.activeVehicleId)
+                    : cleanedVehicles[0].id;
+                localStorage.setItem(ACTIVE_VEHICLE_STORAGE_KEY, activeId);
+
+                if (imported.cnhConfig) {
+                    localStorage.setItem(CNH_STORAGE_KEY, JSON.stringify(imported.cnhConfig));
+                }
+                if (imported.planStatus) {
+                    localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(imported.planStatus));
+                }
+
+                showToast('Backup geral restaurado! Recarregando o aplicativo...', 'fa-upload', 'text-blue-500');
+                setTimeout(() => { window.location.reload(); }, 800);
+            } catch (err) {
+                alert('Erro ao ler o arquivo JSON. Verifique se o arquivo está correto.');
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function openBackupModal() {
+        const modal = document.getElementById('backupModal');
+        if (modal) {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100');
+            switchBackupTab('active');
+        }
+    }
+
+    function closeBackupModal() {
+        const modal = document.getElementById('backupModal');
+        if (modal) {
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+    }
+
+    function switchBackupTab(tab) {
+        const paneActive = document.getElementById('backupPaneActive');
+        const paneFull = document.getElementById('backupPaneFull');
+        const btnActive = document.getElementById('backupTabActive');
+        const btnFull = document.getElementById('backupTabFull');
+        if (!paneActive || !paneFull || !btnActive || !btnFull) return;
+
+        const activeClass = 'py-2 rounded-lg bg-emerald-500 text-slate-950 font-bold shadow transition focus:outline-none focus:ring-2 focus:ring-emerald-600';
+        const idleClass = 'py-2 rounded-lg text-stone-600 dark:text-slate-300 font-semibold hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-2 focus:ring-emerald-500';
+
+        if (tab === 'full') {
+            paneActive.classList.add('hidden');
+            paneFull.classList.remove('hidden');
+            btnActive.className = idleClass;
+            btnFull.className = activeClass;
+        } else {
+            paneFull.classList.add('hidden');
+            paneActive.classList.remove('hidden');
+            btnFull.className = idleClass;
+            btnActive.className = activeClass;
+        }
+    }
+
     function handleExportExcel() {
         toggleSettingsMenu();
         if (!isProPlan()) {
@@ -1851,6 +2016,12 @@ const FuelTrackerApp = (() => {
         renderVehicleList,
         editVehicle,
         deleteVehicle,
-        maskPlateInput
+        maskPlateInput,
+        exportFullBackup,
+        importFullBackup,
+        handleFullImportFile,
+        openBackupModal,
+        closeBackupModal,
+        switchBackupTab
     };
 })();
