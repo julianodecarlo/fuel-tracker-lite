@@ -193,11 +193,11 @@
                         <hr class="border-stone-300 dark:border-slate-700/60 my-1">
 
                         <button role="menuitem" onclick="FuelTrackerApp.handleExportJSON()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-download w-4" aria-hidden="true"></i> Exportar JSON</span>
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-download w-4" aria-hidden="true"></i> Exportar Backup</span>
                         </button>
                         
                         <label id="labelImportJSON" for="importJsonInput" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between cursor-pointer transition focus-within:bg-stone-200/50 dark:focus-within:bg-slate-700/60">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-upload w-4" aria-hidden="true"></i> Restaurar JSON</span>
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-upload w-4" aria-hidden="true"></i> Restaurar Backup</span>
                         </label>
                         <input type="file" id="importJsonInput" accept=".json" onchange="FuelTrackerApp.importJSON(event); FuelTrackerApp.toggleSettingsMenu();" class="sr-only">
 
@@ -351,7 +351,7 @@
                             </div>
                             <div class="flex flex-col min-w-0">
                                 <label for="inputOdometro" class="block text-[11px] font-medium text-stone-700 dark:text-slate-300 mb-1">Odômetro (Km)</label>
-                                <input type="number" id="inputOdometro" step="1" required placeholder="Ex: 14600" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                                <input type="number" id="inputOdometro" step="1" required placeholder="Ex: 10000" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
                             </div>
                         </div>
 

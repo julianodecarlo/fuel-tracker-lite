@@ -603,9 +603,19 @@ const FuelTrackerApp = (() => {
         document.getElementById('fuelForm').reset();
         document.getElementById('editIndex').value = -1;
         document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
+        updateOdometerPlaceholder();
         document.getElementById('formTitle').innerText = 'Novo Abastecimento';
         document.getElementById('formIcon').className = 'fa-solid fa-circle-plus text-emerald-500';
         document.getElementById('cancelEditBtn').classList.add('hidden');
+    }
+
+    function updateOdometerPlaceholder() {
+        const odoInput = document.getElementById('inputOdometro');
+        if (!odoInput) return;
+        const lastOdo = records.length ? Math.max(...records.map(r => Number(r.odo))) : null;
+        odoInput.placeholder = lastOdo !== null && !isNaN(lastOdo)
+            ? `Último: ${lastOdo.toLocaleString('pt-BR')}`
+            : 'Ex: 10000';
     }
 
     function renderVehicleSelector() {
@@ -1219,8 +1229,9 @@ const FuelTrackerApp = (() => {
             const litersG = r.precoG > 0 ? (r.valorG / r.precoG) : 0;
 
             let fuelDetails = [];
-            if (r.valorA > 0) fuelDetails.push(`Etanol: R$ ${formatDecimalTwoDigits(r.valorA)} (${r.precoA > 0 ? 'R$ ' + formatDecimalTwoDigits(r.precoA) + '/L • ' + formatDecimalTwoDigits(litersA) + ' L' : ''})`);
-            if (r.valorG > 0) fuelDetails.push(`Gasolina: R$ ${formatDecimalTwoDigits(r.valorG)} (${r.precoG > 0 ? 'R$ ' + formatDecimalTwoDigits(r.precoG) + '/L • ' + formatDecimalTwoDigits(litersG) + ' L' : ''})`);
+            if (r.valorA > 0) fuelDetails.push('<i class="fa-solid fa-leaf text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i> Etanol: R$ ' + formatDecimalTwoDigits(r.valorA) + ' (' + (r.precoA > 0 ? 'R$ ' + formatDecimalTwoDigits(r.precoA) + '/L • ' + formatDecimalTwoDigits(litersA) + ' L' : '') + ')');
+            if (r.valorG > 0) fuelDetails.push('<i class="fa-solid fa-fire text-orange-500" aria-hidden="true"></i> Gasolina: R$ ' + formatDecimalTwoDigits(r.valorG) + ' (' + (r.precoG > 0 ? 'R$ ' + formatDecimalTwoDigits(r.precoG) + '/L • ' + formatDecimalTwoDigits(litersG) + ' L' : '') + ')');
+            if (r.valorA > 0 && r.valorG > 0) fuelDetails.push('<i class="fa-solid fa-shuffle text-purple-600 dark:text-purple-400" aria-hidden="true"></i> Misto');
 
             const tankBadge = r.fullTank 
                 ? '<span class="text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">Tanque Cheio</span>'
@@ -1727,6 +1738,7 @@ const FuelTrackerApp = (() => {
         editRecord,
         deleteRecord,
         resetForm,
+        updateOdometerPlaceholder,
         renderHistoryList,
         toggleTheme,
         shareAppWithFriend,
