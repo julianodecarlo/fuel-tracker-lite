@@ -187,14 +187,9 @@
 
                         <hr class="border-stone-300 dark:border-slate-700/60 my-1">
 
-                        <button role="menuitem" onclick="FuelTrackerApp.handleExportJSON()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-download w-4" aria-hidden="true"></i> Exportar Backup</span>
+                        <button role="menuitem" onclick="FuelTrackerApp.openBackupModal()" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-database w-4" aria-hidden="true"></i> Backup / Restaurar</span>
                         </button>
-                        
-                        <label id="labelImportJSON" for="importJsonInput" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between cursor-pointer transition focus-within:bg-stone-200/50 dark:focus-within:bg-slate-700/60">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-upload w-4" aria-hidden="true"></i> Restaurar Backup</span>
-                        </label>
-                        <input type="file" id="importJsonInput" accept=".json" onchange="FuelTrackerApp.importJSON(event); FuelTrackerApp.toggleSettingsMenu();" class="sr-only">
 
                         <hr class="border-stone-300 dark:border-slate-700/60 my-1">
 
