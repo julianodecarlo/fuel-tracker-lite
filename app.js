@@ -1794,6 +1794,7 @@ window.FuelTrackerApp = (() => {
 
     function init() {
         try {
+            console.log('App inicializado');
             initApp();
         } catch (err) {
             console.error('Erro na inicialização do Fuel Tracker:', err);
