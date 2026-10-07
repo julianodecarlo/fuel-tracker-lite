@@ -642,12 +642,89 @@ const FuelTrackerApp = (() => {
             blockLiteFeature('A gestão de frota e múltiplos veículos é exclusiva do plano PRO. Assine para cadastrar mais veículos!');
             return;
         }
-        document.getElementById('vehicleForm').reset();
+        resetVehicleForm();
+        renderVehicleList();
         const modal = document.getElementById('vehicleModal');
         if (modal) {
             modal.classList.remove('opacity-0', 'pointer-events-none');
             modal.classList.add('opacity-100');
         }
+    }
+
+    function renderVehicleList() {
+        const listEl = document.getElementById('vehicleListContainer');
+        if (!listEl) return;
+
+        if (!vehicles.length) {
+            listEl.innerHTML = '<div class="text-[11px] text-stone-400 dark:text-slate-500 text-center py-2">Nenhum veículo cadastrado.</div>';
+            return;
+        }
+
+        listEl.innerHTML = vehicles.map(v => {
+            const isActive = v.id === activeVehicleId;
+            return `
+                <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl border ${isActive ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-stone-300 dark:border-slate-700 bg-white dark:bg-slate-900'}">
+                    <div class="min-w-0">
+                        <div class="font-bold text-stone-900 dark:text-white truncate">${sanitizeHTML(v.name)}</div>
+                        <div class="text-[10px] text-stone-500 dark:text-slate-400">${v.plate ? sanitizeHTML(v.plate) : 'Sem placa'}${isActive ? ' • <span class=\"text-emerald-600 dark:text-emerald-400 font-bold\">Ativo</span>' : ''}</div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="FuelTrackerApp.editVehicle('${sanitizeHTML(v.id)}')" class="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 flex items-center justify-center transition" title="Editar" aria-label="Editar veículo">
+                            <i class="fa-solid fa-pen text-xs"></i>
+                        </button>
+                        <button onclick="FuelTrackerApp.deleteVehicle('${sanitizeHTML(v.id)}')" class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition" title="Excluir" aria-label="Excluir veículo">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function editVehicle(id) {
+        const vehicle = vehicles.find(v => v.id === id);
+        if (!vehicle) return;
+        document.getElementById('editVehicleId').value = id;
+        document.getElementById('vehicleNameInput').value = vehicle.name;
+        document.getElementById('vehiclePlateInput').value = vehicle.plate || '';
+        document.getElementById('vehicleFormHeading').innerText = 'Editar Veículo';
+        document.getElementById('vehicleSaveBtn').innerText = 'Salvar Alterações';
+        document.getElementById('vehicleCancelEditBtn').classList.remove('hidden');
+    }
+
+    function resetVehicleForm() {
+        document.getElementById('vehicleForm').reset();
+        document.getElementById('editVehicleId').value = -1;
+        document.getElementById('vehicleFormHeading').innerText = '+ Veículo';
+        document.getElementById('vehicleSaveBtn').innerText = 'Cadastrar Veículo';
+        document.getElementById('vehicleCancelEditBtn').classList.add('hidden');
+    }
+
+    function deleteVehicle(id) {
+        if (vehicles.length <= 1) {
+            alert('Não é possível excluir o único veículo cadastrado.');
+            return;
+        }
+        const vehicle = vehicles.find(v => v.id === id);
+        if (!vehicle) return;
+        if (!confirm(`Excluir o veículo "${vehicle.name}"? Os abastecimentos vinculados a ele também serão removidos.`)) return;
+
+        vehicles = vehicles.filter(v => v.id !== id);
+        localStorage.removeItem(vehicleKey(STORAGE_KEY));
+        if (activeVehicleId === id) {
+            activeVehicleId = vehicles[0].id;
+            saveActiveVehicle();
+            loadRecords();
+            loadTireConfig();
+            loadRevisionConfig();
+            resetForm();
+            recalculateMetricsAndRender();
+        }
+        saveVehicles();
+        renderVehicleSelector();
+        renderVehicleList();
+        resetVehicleForm();
+        showToast(`Veículo "${vehicle.name}" excluído.`, 'fa-trash', 'text-rose-500');
     }
 
     function closeVehicleModal() {
@@ -666,6 +743,7 @@ const FuelTrackerApp = (() => {
         }
         const name = document.getElementById('vehicleNameInput').value.trim();
         const plate = normalizePlate(document.getElementById('vehiclePlateInput').value.trim().toUpperCase());
+        const editId = document.getElementById('editVehicleId').value;
 
         if (!name) {
             alert('Informe o nome/modelo do veículo.');
@@ -676,11 +754,23 @@ const FuelTrackerApp = (() => {
             return;
         }
 
-        vehicles.push({ id: 'v_' + Date.now().toString(36), name, plate });
-        saveVehicles();
-        renderVehicleSelector();
-        closeVehicleModal();
-        showToast(`Veículo "${name}" cadastrado!`, 'fa-car', 'text-emerald-500');
+        if (editId && editId !== '-1' && vehicles.some(v => v.id === editId)) {
+            const existing = vehicles.find(v => v.id === editId);
+            existing.name = name;
+            existing.plate = plate;
+            saveVehicles();
+            renderVehicleSelector();
+            renderVehicleList();
+            resetVehicleForm();
+            showToast(`Veículo "${name}" atualizado!`, 'fa-pen-to-square', 'text-sky-500');
+        } else {
+            vehicles.push({ id: 'v_' + Date.now().toString(36), name, plate });
+            saveVehicles();
+            renderVehicleSelector();
+            renderVehicleList();
+            resetVehicleForm();
+            showToast(`Veículo "${name}" cadastrado!`, 'fa-car', 'text-emerald-500');
+        }
     }
 
     function handleResetDatabase() {
@@ -1767,6 +1857,9 @@ const FuelTrackerApp = (() => {
         openVehicleModal,
         closeVehicleModal,
         saveVehicle,
+        editVehicle,
+        deleteVehicle,
+        resetVehicleForm,
         maskPlateInput
     };
 })();
