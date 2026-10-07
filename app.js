@@ -799,7 +799,9 @@ const FuelTrackerApp = (() => {
             dlAnchorElem.setAttribute("download", `fuel_tracker_backup_${new Date().toISOString().split('T')[0]}.json`);
         }
         dlAnchorElem.click();
-        showToast('Backup JSON exportado!', 'fa-download', 'text-purple-500');
+        showToast('Backup gerado com sucesso!', 'fa-download', 'text-purple-500');
+        closeBackupModal();
+        switchTab('dashboard');
     }
 
     function importJSON(event) {
@@ -867,7 +869,9 @@ const FuelTrackerApp = (() => {
 
                 saveRecords();
                 recalculateMetricsAndRender();
-                showToast('Dados restaurados com sucesso!', 'fa-upload', 'text-blue-500');
+                closeBackupModal();
+                showToast('Dados restaurados com sucesso! Atualizando o aplicativo...', 'fa-upload', 'text-blue-500');
+                setTimeout(() => { window.location.reload(); }, 1200);
             } catch (err) {
                 alert('Erro ao ler o arquivo JSON. Verifique se o arquivo está correto.');
             }
@@ -926,7 +930,9 @@ const FuelTrackerApp = (() => {
             dlAnchorElem.setAttribute("download", fileName);
             dlAnchorElem.click();
 
-            showToast(`Backup geral de ${exportedVehicles.length} veículo(s) exportado!`, 'fa-download', 'text-emerald-500');
+            showToast(`Backup gerado com sucesso! ${exportedVehicles.length} veículo(s) incluído(s).`, 'fa-download', 'text-emerald-500');
+            closeBackupModal();
+            switchTab('dashboard');
         } catch (err) {
             showToast('Erro ao gerar o backup geral.', 'fa-triangle-exclamation', 'text-rose-500');
         }
@@ -1003,8 +1009,9 @@ const FuelTrackerApp = (() => {
                     localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(imported.planStatus));
                 }
 
-                showToast('Backup geral restaurado! Recarregando o aplicativo...', 'fa-upload', 'text-blue-500');
-                setTimeout(() => { window.location.reload(); }, 800);
+                closeBackupModal();
+                showToast('Dados restaurados com sucesso! Atualizando o aplicativo...', 'fa-upload', 'text-blue-500');
+                setTimeout(() => { window.location.reload(); }, 1200);
             } catch (err) {
                 alert('Erro ao ler o arquivo JSON. Verifique se o arquivo está correto.');
             }
