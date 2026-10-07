@@ -171,7 +171,7 @@
                             <span id="themeMenuLabel" class="text-[10px] uppercase font-bold text-stone-400">Escuro</span>
                         </button>
 
-                        <button role="menuitem" onclick="if (!localStorage.getItem('fuelTrackerPro') || localStorage.getItem('fuelTrackerPro') !== 'true') { FuelTrackerApp.toggleSettingsMenu(); FuelTrackerApp.openUpgradeModal(); } else { FuelTrackerApp.openVehicleModal(); FuelTrackerApp.toggleSettingsMenu(); }" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
+                        <button role="menuitem" onclick="FuelTrackerApp.toggleSettingsMenu(); FuelTrackerApp.openVehicleModal();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-car w-4" aria-hidden="true"></i> Veículos</span>
                         </button>
 

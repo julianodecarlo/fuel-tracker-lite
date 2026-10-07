@@ -1,5 +1,5 @@
 // app.js - Módulo Encapsulado do Fuel Tracker (com Suporte ao Plano PRO)
-const FuelTrackerApp = (() => {
+window.FuelTrackerApp = (() => {
     'use strict';
 
     const STORAGE_KEY = 'fuel_tracker_records';
@@ -483,8 +483,9 @@ const FuelTrackerApp = (() => {
 
     function handleAnalyticsClick(e) {
         if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
         if (!isProPlan()) {
-            showToast('Relatórios avançados e gráficos comparativos são exclusivos do plano PRO.', 'fa-crown', 'text-amber-500');
+            showToast('Recurso exclusivo do plano PRO: relatórios avançados e gráficos comparativos.', 'fa-crown', 'text-amber-500');
             openUpgradeModal();
             return;
         }
@@ -1792,6 +1793,14 @@ const FuelTrackerApp = (() => {
     }
 
     function init() {
+        try {
+            initApp();
+        } catch (err) {
+            console.error('Erro na inicialização do Fuel Tracker:', err);
+        }
+    }
+
+    function initApp() {
         initTheme();
         initOfflineNetworkMonitoring();
         const inputData = document.getElementById('inputData');
@@ -1889,3 +1898,15 @@ const FuelTrackerApp = (() => {
         maskPlateInput
     };
 })();
+
+// Exposição global de fallback para os handlers do DOM
+window.openUpgradeModal = function () {
+    if (window.FuelTrackerApp && typeof window.FuelTrackerApp.openUpgradeModal === 'function') {
+        window.FuelTrackerApp.openUpgradeModal();
+    }
+};
+window.showToast = function (message, iconClass, iconColor) {
+    if (window.FuelTrackerApp && typeof window.FuelTrackerApp.showToast === 'function') {
+        window.FuelTrackerApp.showToast(message, iconClass, iconColor);
+    }
+};

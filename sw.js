@@ -1,5 +1,5 @@
 // sw.js - Service Worker
-const CACHE_NAME = 'fuel-tracker-v2';
+const CACHE_NAME = 'fuel-tracker-v3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
