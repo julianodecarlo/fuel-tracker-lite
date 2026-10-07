@@ -1480,7 +1480,7 @@ const FuelTrackerApp = (() => {
         e.preventDefault();
         const interval = parseFloat(document.getElementById('revisionIntervalInput').value) || 10000;
         revisionConfig = { interval };
-        localStorage.setItem(REVISION_STORAGE_KEY, JSON.stringify(revisionConfig));
+        localStorage.setItem(vehicleKey(REVISION_STORAGE_KEY), JSON.stringify(revisionConfig));
         closeRevisionModal();
         renderRevisionForecast();
         showToast('Configuração de Manutenção salva!', 'fa-circle-check', 'text-blue-500');

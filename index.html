@@ -790,6 +790,32 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIGURAÇÃO DE MANUTENÇÃO PREVISTA -->
+    <div id="revisionModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-blue-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
+            <button onclick="FuelTrackerApp.closeRevisionModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-2 border-b border-stone-300 dark:border-slate-800 pb-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-oil-can"></i>
+                </div>
+                <h3 class="text-sm font-bold text-stone-900 dark:text-white">Manutenção Prevista</h3>
+            </div>
+            <form onsubmit="FuelTrackerApp.saveRevisionConfig(event)" class="space-y-3 text-xs">
+                <div>
+                    <label for="revisionIntervalInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Intervalo de Revisão (Km)</label>
+                    <input type="number" id="revisionIntervalInput" required step="500" placeholder="Ex: 10000" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl shadow-lg transition">
+                        Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL DE CONFIGURAÇÃO DE CNH E TOXICOLÓGICO -->
     <div id="cnhModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
         <div class="bg-[#fbf8f3] dark:bg-slate-900 border border-purple-500/40 w-full max-w-sm rounded-3xl p-5 shadow-2xl relative space-y-4">
