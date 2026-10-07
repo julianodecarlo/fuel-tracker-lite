@@ -883,11 +883,19 @@
                 <p class="text-stone-500 dark:text-slate-400 leading-relaxed">
                     Copie ou recupere os dados exclusivamente do veículo que está selecionado no momento.
                 </p>
-                <button onclick="FuelTrackerApp.handleExportJSON()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-600">
-                    <i class="fa-solid fa-download" aria-hidden="true"></i> Exportar Backup
+                <button onclick="FuelTrackerApp.handleExportJSON()" class="w-full p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border-2 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold rounded-2xl shadow-sm transition flex items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                    <i class="fa-download fa-solid text-xl" aria-hidden="true"></i>
+                    <span>
+                        <span class="block">Exportar Veículo Ativo</span>
+                        <span class="block text-[10px] font-medium text-stone-500 dark:text-slate-400">Baixar dados do veículo selecionado (.json)</span>
+                    </span>
                 </button>
-                <label id="backupLabelImportActive" for="backupImportActiveInput" class="w-full py-2.5 bg-white dark:bg-slate-900 hover:bg-stone-100 dark:hover:bg-slate-800 border border-stone-300 dark:border-slate-700 text-stone-900 dark:text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-emerald-500">
-                    <i class="fa-solid fa-upload" aria-hidden="true"></i> Restaurar Backup
+                <label id="backupLabelImportActive" for="backupImportActiveInput" class="w-full p-4 bg-blue-500/10 hover:bg-blue-500/20 border-2 border-blue-500/40 text-blue-700 dark:text-blue-400 font-bold rounded-2xl shadow-sm transition flex items-center gap-3 text-left cursor-pointer focus-within:ring-2 focus-within:ring-blue-600">
+                    <i class="fa-upload fa-solid text-xl" aria-hidden="true"></i>
+                    <span>
+                        <span class="block">Restaurar Veículo Ativo</span>
+                        <span class="block text-[10px] font-medium text-stone-500 dark:text-slate-400">Enviar backup do veículo selecionado (.json)</span>
+                    </span>
                 </label>
                 <input type="file" id="backupImportActiveInput" accept=".json" class="sr-only" onchange="FuelTrackerApp.importJSON(event)">
             </div>

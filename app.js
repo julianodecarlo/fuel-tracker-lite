@@ -764,19 +764,17 @@ const FuelTrackerApp = (() => {
     }
 
     function handleResetDatabase() {
-        if (confirm('ATENÇÃO: Todos os abastecimentos e configurações serão apagados permanentemente!\n\nDeseja continuar?')) {
-            localStorage.removeItem(vehicleKey(STORAGE_KEY));
-            localStorage.removeItem(vehicleKey(TIRE_STORAGE_KEY));
-            localStorage.removeItem(CNH_STORAGE_KEY);
-            localStorage.removeItem(vehicleKey(REVISION_STORAGE_KEY));
-            records = [];
-            tireConfig = { interval: 10000, lastKm: 0 };
-            cnhConfig = { expiryDate: '', hasToxic: false, toxicExpiryDate: '' };
-            revisionConfig = { interval: 10000 };
-            saveRecords();
-            recalculateMetricsAndRender();
-            toggleSettingsMenu();
-            showToast('Base de dados zerada.', 'fa-trash-arrow-up', 'text-red-500');
+        if (confirm('ATENÇÃO: Todos os dados do Fuel Tracker serão apagados permanentemente — veículos, abastecimentos, históricos e configurações!\n\nDeseja continuar?')) {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.indexOf('fuel_tracker') === 0 || key === PRO_FLAG_KEY)) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            showToast('Aplicativo zerado. Recarregando...', 'fa-trash-arrow-up', 'text-red-500');
+            setTimeout(() => { window.location.reload(); }, 800);
         }
     }
 
@@ -835,9 +833,19 @@ const FuelTrackerApp = (() => {
                         savePlanStatus();
                     }
                     if (Array.isArray(imported.vehicles) && imported.vehicles.length) {
-                        vehicles = imported.vehicles
+                        // Mescla sem excluir: atualiza veículos existentes e adiciona apenas os novos
+                        const incoming = imported.vehicles
                             .filter(v => v && v.id && v.name)
                             .map(v => ({ id: String(v.id), name: String(v.name), plate: v.plate ? normalizePlate(String(v.plate).toUpperCase()) : '' }));
+                        incoming.forEach(v => {
+                            const existing = vehicles.find(x => x.id === v.id);
+                            if (existing) {
+                                existing.name = v.name;
+                                existing.plate = v.plate;
+                            } else {
+                                vehicles.push(v);
+                            }
+                        });
                         saveVehicles();
                     }
                     if (imported.activeVehicleId && vehicles.some(v => v.id === imported.activeVehicleId)) {
@@ -929,6 +937,18 @@ const FuelTrackerApp = (() => {
         if (input) input.click();
     }
 
+    function isValidFullBackup(data) {
+        if (!data || typeof data !== 'object') return false;
+        if (data.app !== 'FuelTracker' || data.backupType !== 'full') return false;
+        if (!Array.isArray(data.vehicles) || !data.vehicles.length) return false;
+        return data.vehicles.every(v => {
+            if (!v || v.id === undefined || v.id === null || v.id === '') return false;
+            if (!Array.isArray(v.records)) return false;
+            if (v.records.length && !validateImportedRecords(v.records)) return false;
+            return true;
+        });
+    }
+
     function handleFullImportFile(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -938,8 +958,8 @@ const FuelTrackerApp = (() => {
             try {
                 const imported = JSON.parse(e.target.result);
 
-                if (!imported || typeof imported !== 'object' || !Array.isArray(imported.vehicles) || !imported.vehicles.length) {
-                    alert('Arquivo de backup geral inválido. Utilize um arquivo "Exportar Tudo" do Fuel Tracker.');
+                if (!isValidFullBackup(imported)) {
+                    alert('Arquivo de backup geral inválido ou corrompido. Utilize um arquivo gerado pelo "Exportar Tudo" do Fuel Tracker.');
                     return;
                 }
 
@@ -1932,6 +1952,9 @@ const FuelTrackerApp = (() => {
 
     function init() {
         initTheme();
+        if (navigator.storage && typeof navigator.storage.persist === 'function') {
+            navigator.storage.persist().catch(() => { });
+        }
         initOfflineNetworkMonitoring();
         const inputData = document.getElementById('inputData');
         if (inputData) inputData.value = new Date().toISOString().split('T')[0];
