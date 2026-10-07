@@ -1,5 +1,5 @@
 // app.js - Módulo Encapsulado do Fuel Tracker (com Suporte ao Plano PRO)
-window.FuelTrackerApp = (() => {
+const FuelTrackerApp = (() => {
     'use strict';
 
     const STORAGE_KEY = 'fuel_tracker_records';
@@ -481,17 +481,6 @@ window.FuelTrackerApp = (() => {
         }, 3000);
     }
 
-    function handleAnalyticsClick(e) {
-        if (e && typeof e.preventDefault === 'function') e.preventDefault();
-        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-        if (!isProPlan()) {
-            showToast('Recurso exclusivo do plano PRO: relatórios avançados e gráficos comparativos.', 'fa-crown', 'text-amber-500');
-            openUpgradeModal();
-            return;
-        }
-        switchTab('analytics');
-    }
-
     function switchTab(tab) {
         if (tab === 'analytics' && !isProPlan()) {
             showToast('Relatórios avançados e gráficos comparativos são exclusivos do plano PRO.', 'fa-crown', 'text-amber-500');
@@ -638,12 +627,6 @@ window.FuelTrackerApp = (() => {
 
     function switchVehicle(id) {
         if (!id || id === activeVehicleId || !vehicles.some(v => v.id === id)) return;
-        if (!isProPlan()) {
-            renderVehicleSelector();
-            showToast('A gestão de múltiplos veículos é exclusiva do plano PRO. Assine para trocar ou cadastrar veículos!', 'fa-crown', 'text-amber-500');
-            openUpgradeModal();
-            return;
-        }
         activeVehicleId = id;
         saveActiveVehicle();
         loadRecords();
@@ -1793,15 +1776,6 @@ window.FuelTrackerApp = (() => {
     }
 
     function init() {
-        try {
-            console.log('App inicializado');
-            initApp();
-        } catch (err) {
-            console.error('Erro na inicialização do Fuel Tracker:', err);
-        }
-    }
-
-    function initApp() {
         initTheme();
         initOfflineNetworkMonitoring();
         const inputData = document.getElementById('inputData');
@@ -1815,15 +1789,6 @@ window.FuelTrackerApp = (() => {
         });
 
         document.addEventListener('click', function(event) {
-            const liteLockBtn = event.target.closest('button[data-lite-locked]');
-            if (liteLockBtn && !isProPlan()) {
-                event.preventDefault();
-                event.stopPropagation();
-                showToast('A customização de manutenção, rodízio e validades é exclusiva do plano PRO!', 'fa-crown', 'text-amber-500');
-                openUpgradeModal();
-                return;
-            }
-
             const dropdown = document.getElementById('settingsDropdown');
             const gearBtn = event.target.closest('button[onclick*="toggleSettingsMenu"]');
             if (dropdown && !dropdown.classList.contains('hidden') && !gearBtn && !dropdown.contains(event.target)) {
@@ -1856,7 +1821,6 @@ window.FuelTrackerApp = (() => {
         maskDecimalTwoDigits,
         calcularDecisaoPosto,
         switchTab,
-        handleAnalyticsClick,
         setAvgMode,
         setKmlFilterCriterion,
         setHistoryFilter,
@@ -1899,15 +1863,3 @@ window.FuelTrackerApp = (() => {
         maskPlateInput
     };
 })();
-
-// Exposição global de fallback para os handlers do DOM
-window.openUpgradeModal = function () {
-    if (window.FuelTrackerApp && typeof window.FuelTrackerApp.openUpgradeModal === 'function') {
-        window.FuelTrackerApp.openUpgradeModal();
-    }
-};
-window.showToast = function (message, iconClass, iconColor) {
-    if (window.FuelTrackerApp && typeof window.FuelTrackerApp.showToast === 'function') {
-        window.FuelTrackerApp.showToast(message, iconClass, iconColor);
-    }
-};

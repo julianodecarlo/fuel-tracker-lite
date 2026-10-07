@@ -1,12 +1,14 @@
 // sw.js - Service Worker
-const CACHE_NAME = 'fuel-tracker-v4';
+const CACHE_NAME = 'fuel-tracker-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
     './app.js',
-    './icons/icon-192.png',
-    './icons/icon-512.png'
+    './vendor/tailwind.js',
+    './vendor/chart.js',
+    './vendor/xlsx.full.min.js',
+    './vendor/fontawesome/css/all.min.css'
 ];
 
 self.addEventListener('install', (event) => {
@@ -27,20 +29,10 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Network-first para HTML/JS: garante que o usuário receba a versão mais recente
-// e cai para o cache apenas quando offline.
 self.addEventListener('fetch', (event) => {
-    if (event.request.method !== 'GET') return;
-
     event.respondWith(
-        fetch(event.request)
-            .then((networkResponse) => {
-                if (networkResponse && networkResponse.ok) {
-                    const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-                }
-                return networkResponse;
-            })
-            .catch(() => caches.match(event.request))
+        caches.match(event.request).then((cachedResponse) => {
+            return cachedResponse || fetch(event.request);
+        })
     );
 });
