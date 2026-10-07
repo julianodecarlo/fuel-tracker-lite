@@ -689,6 +689,42 @@ const FuelTrackerApp = (() => {
         }
     }
 
+    function editVehicle(id) {
+        const vehicle = vehicles.find(v => v.id === id);
+        if (!vehicle) return;
+        document.getElementById('vehicleNameInput').value = vehicle.name;
+        document.getElementById('vehiclePlateInput').value = vehicle.plate || '';
+        document.getElementById('vehicleEditId').value = vehicle.id;
+    }
+
+    function deleteVehicle(id) {
+        if (vehicles.length <= 1) {
+            showToast('Não é possível excluir o único veículo', 'fa-triangle-exclamation', 'text-amber-500');
+            return;
+        }
+        const vehicle = vehicles.find(v => v.id === id);
+        if (!vehicle) return;
+        if (!confirm(`Excluir o veículo "${vehicle.name}"? Os abastecimentos vinculados a ele também não serão mais exibidos.`)) return;
+
+        const wasActive = id === activeVehicleId;
+        vehicles = vehicles.filter(v => v.id !== id);
+        saveVehicles();
+
+        if (wasActive) {
+            activeVehicleId = vehicles[0].id;
+            saveActiveVehicle();
+            loadRecords();
+            loadTireConfig();
+            loadRevisionConfig();
+            resetForm();
+        }
+
+        renderVehicleSelector();
+        renderVehicleList();
+        recalculateMetricsAndRender();
+        showToast(`Veículo "${vehicle.name}" excluído.`, 'fa-trash-can', 'text-rose-500');
+    }
+
     function saveVehicle(e) {
         e.preventDefault();
         if (!isProPlan()) {
@@ -697,6 +733,7 @@ const FuelTrackerApp = (() => {
         }
         const name = document.getElementById('vehicleNameInput').value.trim();
         const plate = normalizePlate(document.getElementById('vehiclePlateInput').value.trim().toUpperCase());
+        const editId = document.getElementById('vehicleEditId').value;
 
         if (!name) {
             alert('Informe o nome/modelo do veículo.');
@@ -707,11 +744,23 @@ const FuelTrackerApp = (() => {
             return;
         }
 
-        vehicles.push({ id: 'v_' + Date.now().toString(36), name, plate });
+        const existingIndex = editId ? vehicles.findIndex(v => v.id === editId) : -1;
+        if (existingIndex >= 0) {
+            vehicles[existingIndex] = { ...vehicles[existingIndex], name, plate };
+            showToast(`Veículo "${name}" atualizado!`, 'fa-pen', 'text-sky-500');
+        } else {
+            vehicles.push({ id: 'v_' + Date.now().toString(36), name, plate });
+            showToast(`Veículo "${name}" cadastrado!`, 'fa-car', 'text-emerald-500');
+        }
+
         saveVehicles();
         renderVehicleSelector();
+        renderVehicleList();
+        recalculateMetricsAndRender();
+
+        document.getElementById('vehicleEditId').value = '';
+        document.getElementById('vehicleForm').reset();
         closeVehicleModal();
-        showToast(`Veículo "${name}" cadastrado!`, 'fa-car', 'text-emerald-500');
     }
 
     function handleResetDatabase() {
@@ -1800,6 +1849,8 @@ const FuelTrackerApp = (() => {
         closeVehicleModal,
         saveVehicle,
         renderVehicleList,
+        editVehicle,
+        deleteVehicle,
         maskPlateInput
     };
 })();
