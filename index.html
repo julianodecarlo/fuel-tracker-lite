@@ -72,8 +72,6 @@
         body {
             padding-top: var(--sat);
             padding-bottom: var(--sab);
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
             content-visibility: auto;
         }
 
@@ -620,7 +618,7 @@
     </div>
 
     <!-- MODAL DE UPGRADE / CHECKOUT PRO -->
-    <div id="upgradeModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div id="upgradeModal" role="dialog" aria-modal="true" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-16 sm:pt-20 opacity-0 pointer-events-none transition-opacity duration-200">
         <div class="bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
             <button onclick="FuelTrackerApp.closeUpgradeModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>

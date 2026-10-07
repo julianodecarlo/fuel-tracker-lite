@@ -1101,10 +1101,10 @@ const FuelTrackerApp = (() => {
                 }
             }
 
-            return { ...r, kmlText };
+            return { ...r, kmlText, recordIndex: records.indexOf(r) };
         });
 
-        const recent = calculated.reverse().slice(0, 3);
+        const recent = calculated.reverse().slice(0, 5);
 
         if (!recent.length) {
             listEl.innerHTML = '<div class="p-4 text-center text-xs text-stone-400 dark:text-slate-500 glass-card rounded-2xl">Nenhum abastecimento cadastrado ainda.</div>';
@@ -1119,13 +1119,13 @@ const FuelTrackerApp = (() => {
             let fuelTag = '';
             let litersInfo = '';
             if (r.valorA > 0 && r.valorG > 0) {
-                fuelTag = '<span class="text-purple-600 dark:text-purple-400 font-bold">Misto</span>';
+                fuelTag = '<span class="text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1"><i class="fa-solid fa-shuffle" aria-hidden="true"></i>Misto</span>';
                 litersInfo = `${formatDecimalTwoDigits(litersA)} L Etanol + ${formatDecimalTwoDigits(litersG)} L Gasolina`;
             } else if (r.valorA > 0) {
-                fuelTag = '<span class="text-emerald-600 dark:text-emerald-400 font-bold">Etanol</span>';
+                fuelTag = '<span class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><i class="fa-solid fa-leaf" aria-hidden="true"></i>Etanol</span>';
                 litersInfo = `${formatDecimalTwoDigits(litersA)} L`;
             } else {
-                fuelTag = '<span class="text-orange-500 font-bold">Gasolina</span>';
+                fuelTag = '<span class="text-orange-500 font-bold flex items-center gap-1"><i class="fa-solid fa-fire" aria-hidden="true"></i>Gasolina</span>';
                 litersInfo = `${formatDecimalTwoDigits(litersG)} L`;
             }
 
@@ -1150,6 +1150,14 @@ const FuelTrackerApp = (() => {
                     <div class="text-right flex flex-col items-end gap-0.5">
                         <div class="font-black text-emerald-600 dark:text-emerald-400">R$ ${formatDecimalTwoDigits(total)}</div>
                         ${r.kmlText ? `<div class="text-xs font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 dark:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/40">${r.kmlText}</div>` : ''}
+                        <div class="flex items-center gap-1 mt-1">
+                            <button onclick="FuelTrackerApp.editRecord(${r.recordIndex})" class="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 flex items-center justify-center transition" title="Editar" aria-label="Editar registro">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="FuelTrackerApp.deleteRecord(${r.recordIndex})" class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition" title="Excluir" aria-label="Excluir registro">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
