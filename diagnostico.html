@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuel Tracker - Diagnóstico</title>
+<style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #0f172a; color: #e2e8f0; line-height: 1.45; }
+    h1 { font-size: 1.15rem; margin: 0 0 4px; }
+    p.sub { margin: 0 0 14px; color: #94a3b8; font-size: .85rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    td, th { padding: 8px 6px; border-bottom: 1px solid #1e293b; text-align: left; vertical-align: top; }
+    .ok { color: #34d399; font-weight: 700; } .bad { color: #fb7185; font-weight: 700; } .warn { color: #fbbf24; font-weight: 700; }
+    code { background: #1e293b; padding: 1px 5px; border-radius: 4px; font-size: .8rem; word-break: break-all; }
+    .box { margin-top: 16px; padding: 12px; border-radius: 10px; font-size: .85rem; }
+    .box.good { background: #064e3b; } .box.problem { background: #4c0519; }
+    a { color: #7dd3fc; }
+</style>
+</head>
+<body>
+<h1>Diagnóstico do Fuel Tracker</h1>
+<p class="sub">Confere se todos os arquivos necessários estão publicados junto com o app. Abra esta página no mesmo endereço do app.</p>
+<table id="tbl"><thead><tr><th>Arquivo</th><th>Para quê</th><th>Situação</th></tr></thead><tbody></tbody></table>
+<div id="result" class="box" hidden></div>
+<p class="sub" style="margin-top:16px"><a href="index.html">← Voltar ao app</a></p>
+
+<script>
+(function () {
+    // [caminho, para quê, obrigatório para funcionar offline?]
+    var FILES = [
+        ['index.html', 'O aplicativo', true],
+        ['app.js', 'Lógica do aplicativo', true],
+        ['core.js', 'Cálculos', true],
+        ['billing.js', 'Plano Lite/PRO', true],
+        ['manifest.json', 'Instalação como app', true],
+        ['sw.js', 'Funcionamento offline', true],
+        ['vendor/tailwind.css', 'Visual (estilos)', true],
+        ['vendor/fontawesome/css/all.min.css', 'Ícones (CSS)', true],
+        ['vendor/fontawesome/webfonts/fa-solid-900.woff2', 'Ícones (fonte) - sem ela os botões ficam sem figura', true],
+        ['vendor/chart.umd.js', 'Gráficos', true],
+        ['vendor/xlsx.full.min.js', 'Exportar para Excel', true],
+        ['icons/icon-192.png', 'Ícone do app / logo', true],
+        ['icons/icon-512.png', 'Ícone do app', true],
+        ['icons/icon-512-maskable.png', 'Ícone adaptativo (Android)', true],
+        ['icons/apple-touch-icon.png', 'Ícone iPhone/iPad', false]
+    ];
+    var tbody = document.querySelector('#tbl tbody'), missing = [];
+
+    function row(f, state, cls) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td><code></code></td><td></td><td class="' + cls + '"></td>';
+        tr.children[0].firstChild.textContent = f[0]; tr.children[1].textContent = f[1]; tr.children[2].textContent = state;
+        tbody.appendChild(tr);
+    }
+
+    function check(f) {
+        return fetch(f[0], { cache: 'no-store' }).then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.blob().then(function (b) {
+                if (b.size < 200) throw new Error('arquivo vazio/pequeno demais');
+                row(f, '✔ ok (' + Math.round(b.size / 1024) + ' KB)', 'ok');
+            });
+        }).catch(function (e) {
+            missing.push(f);
+            row(f, (f[2] ? '✖ NÃO ENCONTRADO' : '⚠ não encontrado') + ' (' + e.message + ')', f[2] ? 'bad' : 'warn');
+        });
+    }
+
+    Promise.all(FILES.map(check)).then(function () {
+        var el = document.getElementById('result'); el.hidden = false;
+        var required = missing.filter(function (f) { return f[2]; });
+        if (!required.length) {
+            el.className = 'box good';
+            el.textContent = '✔ Tudo certo: todos os arquivos estão publicados. O app deve funcionar offline depois da primeira visita.';
+        } else {
+            el.className = 'box problem';
+            el.innerHTML = '<b>✖ Faltam ' + required.length + ' arquivo(s) obrigatório(s).</b><br>' +
+                'Sintomas comuns: botões sem figuras (lixeira, lápis, engrenagem, "X"), exportar Excel falhando, gráficos vazios.<br><br>' +
+                '<b>Como corrigir:</b> na pasta do projeto, rode <code>baixar-dependencias.ps1</code> (Windows) ou baixe os arquivos manualmente ' +
+                'para as pastas indicadas acima, e <b>publique também a pasta <code>vendor/</code></b> (confira se o <code>.gitignore</code> não a exclui).';
+        }
+    });
+
+    if ('serviceWorker' in navigator && window.caches) {
+        caches.keys().then(function (keys) {
+            var ours = keys.filter(function (k) { return k.indexOf('fuel-tracker-') === 0; });
+            ours.forEach(function (k) {
+                caches.open(k).then(function (c) { return c.keys(); }).then(function (reqs) {
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = '<td><code></code></td><td>Cache offline do app (esperado: 15 itens)</td><td></td>';
+                    tr.children[0].firstChild.textContent = k; tr.children[2].textContent = reqs.length + ' itens';
+                    tr.children[2].className = reqs.length >= 15 ? 'ok' : 'warn';
+                    tbody.appendChild(tr);
+                });
+            });
+        });
+    }
+})();
+</script>
+</body>
+</html>
