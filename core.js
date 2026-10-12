@@ -90,6 +90,35 @@ const FuelCore = (() => {
         return L > 0 ? km / L : 0;
     }
 
+    // --- Períodos das métricas (30d | month | year | all) ---
+    // Compara datas "YYYY-MM-DD" como texto (sem fuso). "30d" = hoje e os 29 dias anteriores.
+    function filterRecordsByPeriod(records, periodKey, refDate = new Date()) {
+        if (!Array.isArray(records)) return [];
+        const ref = toLocalISODate(refDate);
+        switch (periodKey) {
+            case 'month': return records.filter(r => String(r.date).slice(0, 7) === ref.slice(0, 7));
+            case 'year': return records.filter(r => String(r.date).slice(0, 4) === ref.slice(0, 4));
+            case 'all': return [...records];
+            case '30d':
+            default: {
+                const start = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate() - 29);
+                const startIso = toLocalISODate(start);
+                return records.filter(r => String(r.date) >= startIso);
+            }
+        }
+    }
+
+    // Soma litros (valor ÷ preço de cada combustível) e gasto dos registros informados
+    function calculatePeriodTotals(records) {
+        let liters = 0;
+        let spent = 0;
+        (records || []).forEach(r => {
+            liters += litersOf(r);
+            spent += (r.valorA || 0) + (r.valorG || 0);
+        });
+        return { liters, spent: safeRound(spent, 2), count: (records || []).length };
+    }
+
     // --- Validação rígida de registro (portão final de qualquer dado vindo de fora) ---
     // Devolve um registro limpo e tipado, ou null se estiver corrompido.
     function sanitizeRecord(item) {
@@ -117,40 +146,6 @@ const FuelCore = (() => {
         if ([rec.precoA, rec.precoG, rec.valorA, rec.valorG].some(v => v < 0)) return null;
         if (rec.valorA <= 0 && rec.valorG <= 0) return null;
         return rec;
-    }
-
-    // --- Período de análise ---
-    // periodKey: '30d' (últimos 30 dias), 'month' (mês atual), 'year' (ano atual), 'all' (sem filtro).
-    // Compara strings YYYY-MM-DD (data local, sem desvio de fuso). Chave desconhecida = 'all'.
-    function filterRecordsByPeriod(records, periodKey, refDate = new Date()) {
-        const list = Array.isArray(records) ? records : [];
-        const ref = refDate instanceof Date && !Number.isNaN(refDate.getTime()) ? refDate : new Date();
-        const todayISO = toLocalISODate(ref);
-        if (periodKey === '30d') {
-            const start = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() - 30);
-            const startISO = toLocalISODate(start);
-            return list.filter(r => r && r.date >= startISO);
-        }
-        if (periodKey === 'month') {
-            const prefix = todayISO.slice(0, 7);
-            return list.filter(r => r && String(r.date).slice(0, 7) === prefix);
-        }
-        if (periodKey === 'year') {
-            const prefix = todayISO.slice(0, 4);
-            return list.filter(r => r && String(r.date).slice(0, 4) === prefix);
-        }
-        return [...list];
-    }
-
-    // Soma litros e valor gasto (A + G) dos registros informados.
-    function calculatePeriodTotals(records) {
-        let liters = 0;
-        let spent = 0;
-        (Array.isArray(records) ? records : []).forEach(r => {
-            liters += litersOf(r);
-            spent += (r.valorA || 0) + (r.valorG || 0);
-        });
-        return { liters: safeRound(liters, 1), spent: safeRound(spent, 2) };
     }
 
     return {
