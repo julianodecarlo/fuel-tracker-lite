@@ -11,28 +11,27 @@
 //  • ao alterar o CONTEÚDO de vendor/ ou icons/ (ex.: recompilar o vendor/tailwind.css) - são cache-first.
 // Os arquivos do app (index.html, app.js, core.js, billing.js) atualizam sozinhos quando há internet.
 const CACHE_PREFIX = 'fuel-tracker-';
-const CACHE_NAME = CACHE_PREFIX + 'v7';
+const CACHE_NAME = CACHE_PREFIX + 'v8';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const APP_SHELL = [
-    './',
-    './index.html',
-    './app.js',
-    './core.js',
-    './billing.js',
-    './manifest.json'
+    'index.html',
+    'app.js',
+    'core.js',
+    'billing.js',
+    'manifest.json'
 ];
 
 const STATIC_ASSETS = [
-    './vendor/tailwind.css',
-    './vendor/chart.umd.js',
-    './vendor/xlsx.full.min.js',
-    './vendor/fontawesome/css/all.min.css',
-    './vendor/fontawesome/webfonts/fa-solid-900.woff2',
-    './icons/icon-192.png',
-    './icons/icon-512.png',
-    './icons/icon-512-maskable.png',
-    './icons/apple-touch-icon.png'
+    'vendor/tailwind.css',
+    'vendor/chart.umd.js',
+    'vendor/xlsx.full.min.js',
+    'vendor/fontawesome/css/all.min.css',
+    'vendor/fontawesome/webfonts/fa-solid-900.woff2',
+    'icons/icon-192.png',
+    'icons/icon-512.png',
+    'icons/icon-512-maskable.png',
+    'icons/apple-touch-icon.png'
 ];
 
 // Caminho relativo ao escopo (funciona em domínio raiz ou subdiretório, ex.: usuario.github.io/projeto/)
