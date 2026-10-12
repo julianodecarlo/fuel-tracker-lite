@@ -40,7 +40,7 @@
     <link rel="stylesheet" href="vendor/tailwind.css">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css" onerror="this.onerror=null;console.warn('[Fuel Tracker] vendor/fontawesome nao encontrado: usando CDN (so funciona online). Veja diagnostico.html');this.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'">
     <script src="vendor/chart.umd.js" defer onerror="console.warn('[Fuel Tracker] vendor/chart.umd.js nao encontrado: usando CDN (so funciona online). Veja diagnostico.html');var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.js';document.head.appendChild(s)"></script>
-    <script src="vendor/xlsx.full.min.js" defer onerror="console.warn('[Fuel Tracker] vendor/xlsx.full.min.js nao encontrado: usando CDN (so funciona online). Veja diagnostico.html');var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s)"></script>
+    <script src="vendor/xlsx.full.min.js" defer onerror="console.warn('[Fuel Tracker] vendor/xlsx.full.min.js nao encontrado: usando CDN (so funciona online). Veja diagnostico.html');var s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js';document.head.appendChild(s)"></script>
     <style>
         :root {
             --sat: env(safe-area-inset-top);
@@ -238,7 +238,7 @@
 
                 <section aria-label="Indicadores gerais" class="grid grid-cols-2 gap-3">
                     <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
-                        <span class="text-[11px] font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-wider block">Total de Km Rodados</span>
+                        <span class="text-[11px] font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-wider block">Km Rodados no Período</span>
                         <div class="text-xl font-black text-stone-900 dark:text-white mt-1" id="kpiTotalKm">0 km</div>
                         <div class="text-[10px] text-stone-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                             <i class="fa-solid fa-gauge-high text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i>
@@ -403,14 +403,13 @@
             </div>
 
             <div id="viewAnalytics" role="tabpanel" aria-labelledby="tabAnalytics" class="space-y-4 hidden">
-                <!-- SELETOR DE PERÍODO -->
-                <div id="analysisPeriodSelector" role="group" aria-label="Período das métricas" class="flex rounded-lg bg-stone-200/70 dark:bg-slate-900/80 p-0.5 border border-stone-300/70 dark:border-slate-800 text-xs">
-                    <button type="button" id="periodBtn30d" data-period="30d" aria-pressed="true" onclick="FuelTrackerApp.setAnalysisPeriod('30d')" class="flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500">30 Dias</button>
-                    <button type="button" id="periodBtnMonth" data-period="month" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('month')" class="flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500">Mês Atual</button>
-                    <button type="button" id="periodBtnYear" data-period="year" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('year')" class="flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500">Ano Atual</button>
-                    <button type="button" id="periodBtnAll" data-period="all" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('all')" class="flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500">Todo o Período</button>
+                <!-- SELETOR DE PERÍODO DAS MÉTRICAS -->
+                <div role="group" aria-label="Período das métricas" class="flex gap-1 p-1 rounded-full border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
+                    <button type="button" data-period="30d" aria-pressed="true" onclick="FuelTrackerApp.setAnalysisPeriod('30d')" class="flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold bg-emerald-500 text-slate-950 shadow transition focus:outline-none focus:ring-2 focus:ring-emerald-500">30 Dias</button>
+                    <button type="button" data-period="month" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('month')" class="flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Mês Atual</button>
+                    <button type="button" data-period="year" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('year')" class="flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Ano Atual</button>
+                    <button type="button" data-period="all" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('all')" class="flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Todo o Período</button>
                 </div>
-
                 <!-- MÉTRICAS DE CONSUMO ADICIONAIS -->
                 <section aria-label="Métricas do período selecionado" class="grid grid-cols-2 gap-2.5">
                     <div class="glass-card p-3 rounded-xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 text-center">
