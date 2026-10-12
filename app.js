@@ -28,13 +28,6 @@ const FuelTrackerApp = (() => {
     let currentAvgMode = 'all';
     let currentKmlCriterion = 'both';
     let currentHistoryFilter = 'ALL';
-    let currentAnalysisPeriod = '30d';
-    const ANALYSIS_PERIOD_LABELS = {
-        '30d': 'Últimos 30 dias',
-        'month': 'Mês atual',
-        'year': 'Ano atual',
-        'all': 'Todo o período'
-    };
     let chartInstance = null;
     let distChartInstance = null;
     let deferredPrompt = null;
@@ -1675,32 +1668,30 @@ const FuelTrackerApp = (() => {
         }
     }
 
+    // --- Período dos quadros Litros Abastecidos / Gasto com Combustível (aba Análise) ---
+    let currentAnalysisPeriod = '30d';
+    const PERIOD_LABELS = { '30d': 'Últimos 30 dias', month: 'Mês atual', year: 'Ano atual', all: 'Todo o período' };
+    const PERIOD_BTN_ACTIVE = 'flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold bg-emerald-500 text-slate-950 shadow transition focus:outline-none focus:ring-2 focus:ring-emerald-500';
+    const PERIOD_BTN_INACTIVE = 'flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500';
+
     function updateAnalysisCards() {
-        // `records` já contém apenas os abastecimentos do veículo ativo
-        const filtered = FuelCore.filterRecordsByPeriod(records, currentAnalysisPeriod, new Date());
+        const filtered = FuelCore.filterRecordsByPeriod(records, currentAnalysisPeriod);
         const totals = FuelCore.calculatePeriodTotals(filtered);
-        const label = ANALYSIS_PERIOD_LABELS[currentAnalysisPeriod] || ANALYSIS_PERIOD_LABELS['30d'];
-
-        const metricLitrosMes = document.getElementById('metricLitrosMes');
-        const metricGastoMes = document.getElementById('metricGastoMes');
-        const labelLitros = document.getElementById('labelPeriodLitros');
-        const labelGasto = document.getElementById('labelPeriodGasto');
-
-        if (metricLitrosMes) metricLitrosMes.innerText = `${totals.liters.toFixed(1).replace('.', ',')} L`;
-        if (metricGastoMes) metricGastoMes.innerText = `R$ ${totals.spent.toFixed(2).replace('.', ',')}`;
-        if (labelLitros) labelLitros.innerText = label;
-        if (labelGasto) labelGasto.innerText = label;
+        const label = PERIOD_LABELS[currentAnalysisPeriod];
+        const set = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+        set('metricLitrosMes', `${safeRound(totals.liters, 1).toFixed(1).replace('.', ',')} L`);
+        set('metricGastoMes', `R$ ${formatDecimalTwoDigits(totals.spent)}`);
+        set('labelPeriodLitros', label);
+        set('labelPeriodGasto', label);
     }
 
     function setAnalysisPeriod(period) {
-        if (!ANALYSIS_PERIOD_LABELS[period]) return;
+        if (!PERIOD_LABELS[period]) return;
         currentAnalysisPeriod = period;
-        const activeCls = "flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500";
-        const idleCls = "flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500";
-        document.querySelectorAll('#analysisPeriodSelector [data-period]').forEach(btn => {
-            const isActive = btn.dataset.period === period;
-            btn.className = isActive ? activeCls : idleCls;
-            btn.setAttribute('aria-pressed', String(isActive));
+        document.querySelectorAll('[data-period]').forEach(btn => {
+            const active = btn.dataset.period === period;
+            btn.className = active ? PERIOD_BTN_ACTIVE : PERIOD_BTN_INACTIVE;
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
         updateAnalysisCards();
     }
@@ -2409,8 +2400,6 @@ const FuelTrackerApp = (() => {
         calcularDecisaoPosto,
         switchTab,
         setAvgMode,
-        setAnalysisPeriod,
-        updateAnalysisCards,
         setKmlFilterCriterion,
         setHistoryFilter,
         handleFormSubmit,
@@ -2438,6 +2427,8 @@ const FuelTrackerApp = (() => {
         openCnhModal,
         closeCnhModal,
         toggleToxicField,
+        setAnalysisPeriod,
+        updateAnalysisCards,
         closeImportModal,
         confirmImport,
         onImportTargetChange,
