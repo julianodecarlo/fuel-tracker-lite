@@ -1,0 +1,18 @@
+{
+  "name": "fuel-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fuel Tracker - PWA empacotado com Capacitor (assets locais, sem URL remota)",
+  "scripts": {
+    "test": "node tests/billing.test.js",
+    "build:web": "node scripts/copy-web.js",
+    "sync": "node scripts/copy-web.js && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "appId": "io.github.julianodecarlo.twa",
+  "appName": "Fuel Tracker",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
