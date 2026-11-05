@@ -309,9 +309,24 @@ const FuelTrackerApp = (() => {
         return !!v && typeof v === 'object' && v.id !== undefined && v.id !== null && v.id !== '';
     }
 
-    // Baixa um arquivo de texto via Blob (data: URI falha em backups grandes)
-    function downloadBlob(fileName, text) {
-        const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+    // ---- Gravação de arquivos (backup JSON / Excel) ----------------------------------------------
+    const LAST_BACKUP_KEY = 'fuel_tracker_last_backup';
+    const BACKUP_REF_KEY = 'fuel_tracker_backup_ref';
+    const BACKUP_REMINDER_DAYS = 30;
+    const BACKUP_FOLDER = 'FuelTracker';
+
+    function getNativePlugins() {
+        try {
+            const c = window.Capacitor;
+            if (c && typeof c.isNativePlatform === 'function' && c.isNativePlatform() && c.Plugins &&
+                c.Plugins.Filesystem) return { fs: c.Plugins.Filesystem, share: c.Plugins.Share || null };
+        } catch (e) { }
+        return null;
+    }
+
+    // Download clássico (navegador / PWA): data: URI falha em backups grandes, por isso usa Blob
+    function downloadBlobWeb(fileName, blobData, mime) {
+        const blob = new Blob([blobData], { type: mime });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -320,6 +335,93 @@ const FuelTrackerApp = (() => {
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function markBackupDone() {
+        try { localStorage.setItem(LAST_BACKUP_KEY, String(Date.now())); } catch (e) { }
+    }
+
+    /**
+     * Grava o arquivo. Retorna { ok: true, where } SOMENTE depois de confirmar a gravação.
+     * Nativo: Documentos/FuelTracker/ (confirmado com stat); se falhar, usa a pasta de cache do app e
+     * a folha de compartilhamento para o usuário escolher onde guardar. Web: download via Blob.
+     * opts: { text } para texto UTF-8 ou { base64 } para binário; mime.
+     */
+    async function saveFile(fileName, opts) {
+        const mime = opts.mime || 'application/octet-stream';
+        const native = getNativePlugins();
+        if (!native) {
+            const data = opts.base64 !== undefined
+                ? Uint8Array.from(atob(opts.base64), ch => ch.charCodeAt(0))
+                : opts.text;
+            downloadBlobWeb(fileName, data, mime);
+            markBackupDone();
+            return { ok: true, native: false, where: 'na pasta de downloads do navegador' };
+        }
+        const payload = opts.base64 !== undefined ? { data: opts.base64 } : { data: opts.text, encoding: 'utf8' };
+        const attempts = [
+            { directory: 'DOCUMENTS', path: BACKUP_FOLDER + '/' + fileName, label: 'Documentos/' + BACKUP_FOLDER + '/' + fileName },
+            { directory: 'CACHE', path: fileName, label: null }
+        ];
+        let lastErr = null;
+        for (const at of attempts) {
+            try {
+                await native.fs.writeFile(Object.assign({ path: at.path, directory: at.directory, recursive: true }, payload));
+                const st = await native.fs.stat({ path: at.path, directory: at.directory });
+                if (!st || !(st.size > 0)) throw new Error('arquivo vazio após gravar');
+                const uri = (st.uri) || (await native.fs.getUri({ path: at.path, directory: at.directory })).uri;
+                return { ok: true, native: true, where: at.label, uri, shareOnly: !at.label };
+            } catch (e) { lastErr = e; }
+        }
+        throw lastErr || new Error('falha ao gravar o arquivo');
+    }
+
+    // Oferece compartilhar o arquivo já gravado (nativo). Não afeta o sucesso da gravação.
+    async function offerShare(result, title) {
+        const native = getNativePlugins();
+        if (!native || !native.share || !result.uri) return;
+        try {
+            await native.share.share({ title, url: result.uri, dialogTitle: title });
+        } catch (e) { /* usuário cancelou o compartilhamento */ }
+    }
+
+    // Salva, confirma e informa o local exato. Só mostra sucesso após a gravação confirmada.
+    async function saveAndNotify(fileName, opts, label, successToast, iconClass, iconColor) {
+        let result;
+        try {
+            result = await saveFile(fileName, opts);
+        } catch (e) {
+            showToast('Não foi possível salvar o arquivo. Verifique o espaço e as permissões do aparelho.', 'fa-triangle-exclamation', 'text-rose-500');
+            return false;
+        }
+        if (result.native && result.shareOnly) {
+            // não foi possível gravar em Documentos: o usuário escolhe o destino na folha de compartilhamento
+            await offerShare(result, label);
+            markBackupDone();
+            showToast(successToast + ' Escolha onde guardar na tela de compartilhamento.', iconClass, iconColor);
+        } else if (result.native) {
+            markBackupDone();
+            showToast(successToast + ' Salvo em: ' + result.where, iconClass, iconColor);
+            if (confirm('Arquivo salvo em ' + result.where + '.\n\nDeseja compartilhar ou enviar uma cópia agora (Drive, e-mail, WhatsApp...)?')) {
+                await offerShare(result, label);
+            }
+        } else {
+            showToast(successToast, iconClass, iconColor);
+        }
+        return true;
+    }
+
+    // Lembrete após 30 dias sem backup (a contagem começa no primeiro uso depois desta versão)
+    function checkBackupReminder() {
+        try {
+            if (!records || !records.length) return;
+            const now = Date.now();
+            let ref = Number(localStorage.getItem(LAST_BACKUP_KEY)) || Number(localStorage.getItem(BACKUP_REF_KEY));
+            if (!ref) { localStorage.setItem(BACKUP_REF_KEY, String(now)); return; }
+            if (now - ref > BACKUP_REMINDER_DAYS * 86400000) {
+                showToast('Faz mais de ' + BACKUP_REMINDER_DAYS + ' dias sem backup. Abra Configurações > Backup e exporte seus dados.', 'fa-triangle-exclamation', 'text-amber-500');
+            }
+        } catch (e) { }
     }
 
     // Converte formatos (atual e legados) para o formato interno. NÃO é o portão de validação:
@@ -1092,7 +1194,7 @@ const FuelTrackerApp = (() => {
         }
     }
 
-    function handleExportJSON() {
+    async function handleExportJSON() {
         closeSettingsMenu();
         const backupData = {
             records,
@@ -1107,8 +1209,9 @@ const FuelTrackerApp = (() => {
         const fileName = isProPlan()
             ? `fuel_tracker_backup_placa ${getActiveVehicle().plate || 'SEM-PLACA'}_${today}.json`
             : `fuel_tracker_backup_${today}.json`;
-        downloadBlob(fileName, JSON.stringify(backupData, null, 2));
-        showToast('Backup gerado com sucesso!', 'fa-download', 'text-purple-500');
+        const saved = await saveAndNotify(fileName, { text: JSON.stringify(backupData, null, 2), mime: 'application/json' },
+            'Backup do Fuel Tracker', 'Backup gerado com sucesso!', 'fa-download', 'text-purple-500');
+        if (!saved) return;
         closeBackupModal();
         switchTab('dashboard');
     }
@@ -1303,7 +1406,7 @@ const FuelTrackerApp = (() => {
         return String(n).padStart(2, '0');
     }
 
-    function exportFullBackup() {
+    async function exportFullBackup() {
         try {
             const exportedVehicles = vehicles.map(v => {
                 const id = String(v.id);
@@ -1338,9 +1441,9 @@ const FuelTrackerApp = (() => {
             const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}_${pad2(now.getHours())}-${pad2(now.getMinutes())}`;
             const fileName = `fuel_tracker_backup_${exportedVehicles.length}-Veiculos_${stamp}.json`;
 
-            downloadBlob(fileName, JSON.stringify(backupData, null, 2));
-
-            showToast(`Backup gerado com sucesso! ${exportedVehicles.length} veículo(s) incluído(s).`, 'fa-download', 'text-emerald-500');
+            const saved = await saveAndNotify(fileName, { text: JSON.stringify(backupData, null, 2), mime: 'application/json' },
+                'Backup geral do Fuel Tracker', `Backup gerado com sucesso! ${exportedVehicles.length} veículo(s) incluído(s).`, 'fa-download', 'text-emerald-500');
+            if (!saved) return;
             closeBackupModal();
             switchTab('dashboard');
         } catch (err) {
@@ -1501,7 +1604,7 @@ const FuelTrackerApp = (() => {
         }
     }
 
-    function handleExportExcel() {
+    async function handleExportExcel() {
         closeSettingsMenu();
         if (!isProPlan()) {
             openUpgradeModal();
@@ -1530,8 +1633,16 @@ const FuelTrackerApp = (() => {
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Abastecimentos");
-        XLSX.writeFile(wb, `fuel_tracker_relatorio_${FuelCore.todayLocalISO()}.xlsx`);
-        showToast('Relatório Excel baixado!', 'fa-file-excel', 'text-emerald-500');
+        let base64;
+        try {
+            base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+        } catch (e) {
+            showToast('Erro ao gerar o arquivo Excel.', 'fa-triangle-exclamation', 'text-rose-500');
+            return;
+        }
+        await saveAndNotify(`fuel_tracker_relatorio_${FuelCore.todayLocalISO()}.xlsx`,
+            { base64, mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+            'Relatório Fuel Tracker', 'Relatório Excel gerado!', 'fa-file-excel', 'text-emerald-500');
     }
 
     function setAvgMode(mode) {
@@ -2403,6 +2514,7 @@ const FuelTrackerApp = (() => {
         // produção: carrega o cache validado (offline) e consulta a licença real na Google Play
         // (restaura/confirma/revoga). Mudanças chegam via FuelBilling.onChange.
         FuelBilling.init();
+        checkBackupReminder();
         // reconsulta a licença ao voltar do segundo plano (no máximo a cada 60 s)
         let lastBillingRefresh = Date.now();
         document.addEventListener('visibilitychange', function () {

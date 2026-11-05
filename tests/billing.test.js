@@ -376,6 +376,16 @@ test('código-fonte: sem processProUpgrade, sem Digital Goods API, sem compra si
     assert.ok(/restoreProPurchase\(\)/.test(html) && /FuelBilling\.restore\(\)/.test(app), 'botão Restaurar compra');
 });
 
+test('backup: usa Filesystem/Share no app nativo, confirma a gravação e não usa XLSX.writeFile', () => {
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    assert.ok(!/XLSX\.writeFile/.test(app) && !/downloadBlob\(/.test(app), 'sem download direto');
+    assert.ok(/Plugins\.Filesystem/.test(app) && /native\.share\.share/.test(app));
+    assert.ok(/fs\.stat\(/.test(app), 'confirma a gravação com stat antes de dizer sucesso');
+    assert.ok(/checkBackupReminder\(\);/.test(app) && /BACKUP_REMINDER_DAYS = 30/.test(app));
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+    assert.ok(pkg.dependencies['@capacitor/filesystem'] && pkg.dependencies['@capacitor/share']);
+});
+
 (async () => {
     let failed = 0;
     for (const [name, fn] of tests) {
