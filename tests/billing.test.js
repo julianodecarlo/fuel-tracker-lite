@@ -32,6 +32,7 @@ function makeFakeCdv(o, calls) {
             finish: async () => {
                 calls.finish.push(r.token);
                 if (o.ackFails) return;
+                if (o.finishError) return { isError: true, code: 6777001, message: 'falhou' };
                 tx.isAcknowledged = true;
                 tx.state = 'finished';
                 handlers.finished.forEach((cb) => cb(tx));
@@ -376,10 +377,51 @@ test('código-fonte: sem processProUpgrade, sem Digital Goods API, sem compra si
     assert.ok(/restoreProPurchase\(\)/.test(html) && /FuelBilling\.restore\(\)/.test(app), 'botão Restaurar compra');
 });
 
+test('finish() que resolve com erro retorna unverified na hora (sem esperar o timeout)', async () => {
+    const { win, calls } = makeWin({ finishError: true });
+    const b = create(win, { finishTimeoutMs: 15000 });
+    const t0 = Date.now();
+    assert.strictEqual((await b.purchase()).status, 'unverified');
+    assert.ok(Date.now() - t0 < 3000, 'não deve esperar o timeout');
+    assert.deepStrictEqual(calls.finish, ['tok-123']);
+    assert.strictEqual(b.isPro(), false);
+    assert.strictEqual(win.localStorage.getItem('fuelTrackerEntitlement'), null);
+});
+
+function loadSaveFile(cap, calls) {
+    const appRaw = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    const app = appRaw.split('\r\n').join('\n');
+    const END = '\n    }\n';
+    const grab = (start) => { const i = app.indexOf(start); assert.ok(i >= 0, 'trecho não encontrado: ' + start); return app.slice(i, app.indexOf(END, i) + END.length); };
+    const src = grab('function isNativeApp()') + grab('function getNativePlugins()') + grab('async function saveFile(');
+    const sandbox = {
+        window: { Capacitor: cap }, BACKUP_FOLDER: 'FuelTracker', Blob: function () {}, atob, Uint8Array,
+        downloadBlobWeb: () => { calls.web++; }, markBackupDone: () => {}
+    };
+    return require('vm').runInNewContext(src + '; saveFile', sandbox);
+}
+
+test('backup: registra Filesystem/Share quando o proxy não existe (app nativo)', async () => {
+    const calls = { web: 0, reg: [] };
+    const fsMock = { writeFile: async () => {}, stat: async () => ({ size: 5, uri: 'file:///x' }), getUri: async () => ({ uri: 'file:///x' }) };
+    const cap = { isNativePlatform: () => true, Plugins: {}, registerPlugin: (n) => { calls.reg.push(n); return n === 'Filesystem' ? fsMock : {}; } };
+    const r = await loadSaveFile(cap, calls)('b.json', { text: '{}', mime: 'application/json' });
+    assert.ok(r.ok && r.native && calls.web === 0);
+    assert.ok(calls.reg.includes('Filesystem'));
+});
+
+test('backup: nativo sem plugin de arquivos NÃO cai no download web (erro); web usa download', async () => {
+    const calls = { web: 0 };
+    await assert.rejects(() => loadSaveFile({ isNativePlatform: () => true, Plugins: {} }, calls)('b.json', { text: '{}' }));
+    assert.strictEqual(calls.web, 0);
+    const r = await loadSaveFile({ isNativePlatform: () => false }, calls)('b.json', { text: '{}' });
+    assert.ok(r.ok && r.native === false && calls.web === 1);
+});
+
 test('backup: usa Filesystem/Share no app nativo, confirma a gravação e não usa XLSX.writeFile', () => {
     const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
     assert.ok(!/XLSX\.writeFile/.test(app) && !/downloadBlob\(/.test(app), 'sem download direto');
-    assert.ok(/Plugins\.Filesystem/.test(app) && /native\.share\.share/.test(app));
+    assert.ok(/registerPlugin\(name\)/.test(app) && /'Filesystem'/.test(app) && /native\.share\.share/.test(app));
     assert.ok(/fs\.stat\(/.test(app), 'confirma a gravação com stat antes de dizer sucesso');
     assert.ok(/checkBackupReminder\(\);/.test(app) && /BACKUP_REMINDER_DAYS = 30/.test(app));
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));

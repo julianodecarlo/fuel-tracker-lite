@@ -206,7 +206,15 @@ const FuelBilling = (() => {
                         const t = setTimeout(() => { finishWaiters.delete(key); resolve(false); }, finishTimeoutMs);
                         finishWaiters.set(key, () => { clearTimeout(t); resolve(true); });
                     });
-                    try { await tx.finish(); } catch (e) { return 'unverified'; }
+                    let fin;
+                    try { fin = await tx.finish(); } catch (e) { fin = { isError: true }; }
+                    // finish() não lança: resolve com um objeto de erro quando falha
+                    if (fin && (fin.isError === true || fin.code !== undefined)) {
+                        const w = finishWaiters.get(key);
+                        finishWaiters.delete(key);
+                        if (w) w(); // libera o timer pendente; o resultado de `acked` é ignorado
+                        return 'unverified';
+                    }
                     if (!(await acked)) return 'unverified'; // sem acknowledge NÃO libera; a próxima abertura tenta de novo
                 }
                 await persistEntitlement(purchase.purchaseToken);

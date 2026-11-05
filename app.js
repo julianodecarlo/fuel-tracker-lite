@@ -315,11 +315,26 @@ const FuelTrackerApp = (() => {
     const BACKUP_REMINDER_DAYS = 30;
     const BACKUP_FOLDER = 'FuelTracker';
 
-    function getNativePlugins() {
+    function isNativeApp() {
         try {
             const c = window.Capacitor;
-            if (c && typeof c.isNativePlatform === 'function' && c.isNativePlatform() && c.Plugins &&
-                c.Plugins.Filesystem) return { fs: c.Plugins.Filesystem, share: c.Plugins.Share || null };
+            return !!(c && typeof c.isNativePlatform === 'function' && c.isNativePlatform());
+        } catch (e) { return false; }
+    }
+
+    // Sem bundler o proxy de Capacitor.Plugins pode não existir: registra explicitamente (como o PurchasePlugin)
+    function getNativePlugins() {
+        try {
+            if (!isNativeApp()) return null;
+            const c = window.Capacitor;
+            const plugins = c.Plugins || {};
+            const get = (name) => {
+                if (plugins[name]) return plugins[name];
+                if (typeof c.registerPlugin === 'function') return c.registerPlugin(name) || null;
+                return null;
+            };
+            const fs = get('Filesystem');
+            if (fs) return { fs, share: get('Share') };
         } catch (e) { }
         return null;
     }
@@ -350,6 +365,7 @@ const FuelTrackerApp = (() => {
     async function saveFile(fileName, opts) {
         const mime = opts.mime || 'application/octet-stream';
         const native = getNativePlugins();
+        if (!native && isNativeApp()) throw new Error('plugin de arquivos indisponível'); // nunca cai no download web no app nativo
         if (!native) {
             const data = opts.base64 !== undefined
                 ? Uint8Array.from(atob(opts.base64), ch => ch.charCodeAt(0))
