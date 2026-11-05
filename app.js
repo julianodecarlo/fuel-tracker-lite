@@ -693,12 +693,27 @@ const FuelTrackerApp = (() => {
         });
     }
 
+    // No app Capacitor, window.location.href vira https://localhost: compartilha sempre o link da Play Store
+    const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=io.github.julianodecarlo.twa';
+
     async function shareAppWithFriend() {
         const shareData = {
             title: 'Fuel Tracker - Controle de Combustível',
             text: 'Dá uma olhada no Fuel Tracker! O app ideal para controlar abastecimentos, médias de consumo (Etanol vs Gasolina) e manutenção do carro:',
-            url: window.location.href
+            url: PLAY_STORE_URL
         };
+
+        const native = getNativePlugins();
+        if (native && native.share) {
+            try {
+                await native.share.share(Object.assign({ dialogTitle: 'Indicar para um amigo' }, shareData));
+                showToast('Obrigado por indicar!', 'fa-heart', 'text-rose-500');
+                return;
+            } catch (err) {
+                if (/cancel/i.test(String(err && err.message))) return; // usuário fechou a folha
+                /* indisponível: segue para o plano B abaixo */
+            }
+        }
 
         if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
             try {
@@ -712,7 +727,7 @@ const FuelTrackerApp = (() => {
                 await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
                 showToast('Link de indicação copiado!', 'fa-copy', 'text-teal-500');
             } catch (e) {
-                alert(`Compartilhe o app enviando o link:\n${window.location.href}`);
+                alert(`Compartilhe o app enviando o link:\n${PLAY_STORE_URL}`);
             }
         }
     }

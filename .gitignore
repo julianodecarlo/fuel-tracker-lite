@@ -20,3 +20,6 @@ vitest.config.cts.timestamp-*.mjs
 *.jks
 signing-key-info.txt
 .env
+
+# Gerado por npm run build:web
+www/

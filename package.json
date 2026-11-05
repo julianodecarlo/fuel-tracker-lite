@@ -4,7 +4,7 @@
   "private": true,
   "description": "Fuel Tracker - PWA empacotado com Capacitor (assets locais, sem URL remota)",
   "scripts": {
-    "test": "node tests/billing.test.js",
+    "test": "node tests/billing.test.js && node tests/core.test.js",
     "build:web": "node scripts/copy-web.js",
     "sync": "node scripts/copy-web.js && npx cap sync android",
     "vendor:purchase": "node -e \"require('fs').copyFileSync('node_modules/capacitor-plugin-cdv-purchase/www/store.js','vendor/cdv-purchase/store.js')\""
