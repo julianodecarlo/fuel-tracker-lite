@@ -392,13 +392,7 @@ const FuelTrackerApp = (() => {
     // Única fonte de verdade da licença: o estado em memória do billing.js.
     // Produção: só vira PRO após compra confirmada (acknowledge) ou licença revalidada na Google Play
     // (offline: cache assinado validado pelo billing.js). Nenhuma chave solta do localStorage concede PRO.
-    // Localhost/127.0.0.1: flag de teste (restrita ao desenvolvimento).
-    // ⚠️ TEMPORÁRIO - teste fechado de 14 dias: PRO liberado para todos (espelha FuelBilling.TRIAL_FORCE_PRO).
-    // Para voltar ao normal, defina TRIAL_FORCE_PRO = false aqui E em billing.js.
-    const TRIAL_FORCE_PRO = true;
-
     function isProPlan() {
-        if (TRIAL_FORCE_PRO) return true;
         return FuelBilling.isPro();
     }
 
@@ -435,9 +429,11 @@ const FuelTrackerApp = (() => {
         const priceEl = document.getElementById('upgradePriceText');
         const btn = document.getElementById('btnConfirmUpgrade');
         const note = document.getElementById('upgradeNote');
+        const restoreBtn = document.getElementById('btnRestorePurchase');
         FuelBilling.getPriceText().then(text => { if (priceEl) priceEl.textContent = text; });
         FuelBilling.getAvailability().then(a => {
             if (btn) btn.disabled = !a.ok;
+            if (restoreBtn) restoreBtn.disabled = !a.ok;
             if (note) {
                 note.textContent = a.ok ? '' : (a.reason === 'unsupported'
                     ? 'A compra do PRO está disponível no aplicativo instalado pela Google Play.'
@@ -449,18 +445,6 @@ const FuelTrackerApp = (() => {
 
     function closeUpgradeModal() {
         hideModal('upgradeModal');
-    }
-
-    // Alternar plano para testes: SÓ existe em localhost/127.0.0.1 (FuelBilling.isDev() valida o hostname).
-    // Fora do localhost a função nem é criada e o billing.js recusa qualquer alteração de licença.
-    if (FuelBilling.isDev()) {
-        window.toggleDevPlan = function () {
-            if (!FuelBilling.isDev()) return;
-            const next = !isProPlan();
-            FuelBilling.devSetPro(next);
-            alert(next ? 'Modo de Teste: Alterado para PRO' : 'Modo de Teste: Alterado para LITE');
-            location.reload();
-        };
     }
 
     
@@ -493,6 +477,10 @@ const FuelTrackerApp = (() => {
             case 'unverified':
                 showToast('Pagamento recebido, mas ainda não foi possível confirmar. Abra o app com internet em até 3 dias; sem confirmação, o Google reembolsa automaticamente.', 'fa-triangle-exclamation', 'text-amber-500');
                 break;
+            case 'pending':
+                closeUpgradeModal();
+                showToast('Pagamento pendente. O PRO será liberado assim que a Google Play aprovar.', 'fa-clock', 'text-amber-500');
+                break;
             case 'rejected':
                 showToast('Não foi possível validar a compra. Tente novamente.', 'fa-triangle-exclamation', 'text-rose-500');
                 break;
@@ -501,7 +489,26 @@ const FuelTrackerApp = (() => {
         }
     }
 
-    // Chamado quando o plano muda (compra, restauração, reembolso ou alternância no modo dev)
+    // Botão "Restaurar compra": reconsulta a Google Play (reinstalação, aparelho novo, código promocional)
+    async function restoreProPurchase() {
+        const btn = document.getElementById('btnRestorePurchase');
+        if (btn) btn.disabled = true;
+        let result;
+        try { result = await FuelBilling.restore(); } catch (e) { result = { status: 'error' }; }
+        if (btn) btn.disabled = false;
+        if (result.status === 'pro') {
+            closeUpgradeModal();
+            showToast('Compra restaurada! Você é PRO.', 'fa-circle-check', 'text-emerald-500');
+        } else if (result.status === 'free') {
+            showToast('Nenhuma compra do PRO encontrada nesta conta Google.', 'fa-circle-info', 'text-stone-500');
+        } else if (result.status === 'unsupported') {
+            showToast('A compra do PRO está disponível no aplicativo instalado pela Google Play.', 'fa-triangle-exclamation', 'text-amber-500');
+        } else {
+            showToast('Não foi possível consultar a Google Play agora. Tente novamente.', 'fa-triangle-exclamation', 'text-rose-500');
+        }
+    }
+
+    // Chamado quando o plano muda (compra, restauração, ou reembolso)
     function onPlanChanged(pro) {
         planStatus.isPro = pro;
         planStatus.expiresAt = null;
@@ -2373,17 +2380,8 @@ const FuelTrackerApp = (() => {
             });
         }
 
-        const devMenu = document.getElementById('devPlanMenu');
-        // No Capacitor o app roda em https://localhost (isDev() = true): no build de teste o menu Dev fica oculto.
-        if (FuelBilling.isDev() && !TRIAL_FORCE_PRO) {
-            // localhost/127.0.0.1: menu "Dev: Lite/Pro" disponível apenas no desenvolvimento local
-            try { if (localStorage.getItem(PRO_FLAG_KEY) === null) localStorage.setItem(PRO_FLAG_KEY, 'false'); } catch (e) { }
-            if (devMenu) devMenu.classList.remove('hidden');
-        } else {
-            // produção pública: o menu Dev é REMOVIDO do DOM e a flag de teste é apagada
-            if (devMenu) devMenu.remove();
-            try { localStorage.removeItem(PRO_FLAG_KEY); } catch (e) { }
-        }
+        // remove resquício da flag de teste antiga, caso exista em instalações anteriores
+        try { localStorage.removeItem(PRO_FLAG_KEY); } catch (e) { }
         FuelBilling.onChange(onPlanChanged);
 
         document.addEventListener('keydown', handleGlobalKeydown);
@@ -2403,8 +2401,16 @@ const FuelTrackerApp = (() => {
         renderPlanBadge();
         recalculateMetricsAndRender();
         // produção: carrega o cache validado (offline) e consulta a licença real na Google Play
-        // (restaura/confirma/revoga). Localhost: não faz nada. Mudanças chegam via FuelBilling.onChange.
+        // (restaura/confirma/revoga). Mudanças chegam via FuelBilling.onChange.
         FuelBilling.init();
+        // reconsulta a licença ao voltar do segundo plano (no máximo a cada 60 s)
+        let lastBillingRefresh = Date.now();
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState !== 'visible') return;
+            if (Date.now() - lastBillingRefresh < 60000) return;
+            lastBillingRefresh = Date.now();
+            FuelBilling.refresh();
+        });
     }
 
     // Inicialização ao carregar o DOM
@@ -2452,6 +2458,7 @@ const FuelTrackerApp = (() => {
         openUpgradeModal,
         closeUpgradeModal,
         startProPurchase,
+        restoreProPurchase,
         switchVehicle,
         openVehicleModal,
         closeVehicleModal,

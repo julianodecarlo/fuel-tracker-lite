@@ -429,9 +429,11 @@ const FuelTrackerApp = (() => {
         const priceEl = document.getElementById('upgradePriceText');
         const btn = document.getElementById('btnConfirmUpgrade');
         const note = document.getElementById('upgradeNote');
+        const restoreBtn = document.getElementById('btnRestorePurchase');
         FuelBilling.getPriceText().then(text => { if (priceEl) priceEl.textContent = text; });
         FuelBilling.getAvailability().then(a => {
             if (btn) btn.disabled = !a.ok;
+            if (restoreBtn) restoreBtn.disabled = !a.ok;
             if (note) {
                 note.textContent = a.ok ? '' : (a.reason === 'unsupported'
                     ? 'A compra do PRO está disponível no aplicativo instalado pela Google Play.'
@@ -475,11 +477,34 @@ const FuelTrackerApp = (() => {
             case 'unverified':
                 showToast('Pagamento recebido, mas ainda não foi possível confirmar. Abra o app com internet em até 3 dias; sem confirmação, o Google reembolsa automaticamente.', 'fa-triangle-exclamation', 'text-amber-500');
                 break;
+            case 'pending':
+                closeUpgradeModal();
+                showToast('Pagamento pendente. O PRO será liberado assim que a Google Play aprovar.', 'fa-clock', 'text-amber-500');
+                break;
             case 'rejected':
                 showToast('Não foi possível validar a compra. Tente novamente.', 'fa-triangle-exclamation', 'text-rose-500');
                 break;
             default:
                 showToast('Não foi possível concluir a compra.', 'fa-triangle-exclamation', 'text-rose-500');
+        }
+    }
+
+    // Botão "Restaurar compra": reconsulta a Google Play (reinstalação, aparelho novo, código promocional)
+    async function restoreProPurchase() {
+        const btn = document.getElementById('btnRestorePurchase');
+        if (btn) btn.disabled = true;
+        let result;
+        try { result = await FuelBilling.restore(); } catch (e) { result = { status: 'error' }; }
+        if (btn) btn.disabled = false;
+        if (result.status === 'pro') {
+            closeUpgradeModal();
+            showToast('Compra restaurada! Você é PRO.', 'fa-circle-check', 'text-emerald-500');
+        } else if (result.status === 'free') {
+            showToast('Nenhuma compra do PRO encontrada nesta conta Google.', 'fa-circle-info', 'text-stone-500');
+        } else if (result.status === 'unsupported') {
+            showToast('A compra do PRO está disponível no aplicativo instalado pela Google Play.', 'fa-triangle-exclamation', 'text-amber-500');
+        } else {
+            showToast('Não foi possível consultar a Google Play agora. Tente novamente.', 'fa-triangle-exclamation', 'text-rose-500');
         }
     }
 
@@ -2378,6 +2403,14 @@ const FuelTrackerApp = (() => {
         // produção: carrega o cache validado (offline) e consulta a licença real na Google Play
         // (restaura/confirma/revoga). Mudanças chegam via FuelBilling.onChange.
         FuelBilling.init();
+        // reconsulta a licença ao voltar do segundo plano (no máximo a cada 60 s)
+        let lastBillingRefresh = Date.now();
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState !== 'visible') return;
+            if (Date.now() - lastBillingRefresh < 60000) return;
+            lastBillingRefresh = Date.now();
+            FuelBilling.refresh();
+        });
     }
 
     // Inicialização ao carregar o DOM
@@ -2425,6 +2458,7 @@ const FuelTrackerApp = (() => {
         openUpgradeModal,
         closeUpgradeModal,
         startProPurchase,
+        restoreProPurchase,
         switchVehicle,
         openVehicleModal,
         closeVehicleModal,

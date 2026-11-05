@@ -6,11 +6,13 @@
   "scripts": {
     "test": "node tests/billing.test.js",
     "build:web": "node scripts/copy-web.js",
-    "sync": "node scripts/copy-web.js && npx cap sync android"
+    "sync": "node scripts/copy-web.js && npx cap sync android",
+    "vendor:purchase": "node -e \"require('fs').copyFileSync('node_modules/capacitor-plugin-cdv-purchase/www/store.js','vendor/cdv-purchase/store.js')\""
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
-    "@capacitor/core": "^8.5.3"
+    "@capacitor/core": "^8.5.3",
+    "capacitor-plugin-cdv-purchase": "^13.20.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3"

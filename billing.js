@@ -1,21 +1,25 @@
-// billing.js - Plano Lite/PRO e cobrança (Google Play Billing via Digital Goods API + Payment Request API)
+// billing.js - Plano Lite/PRO e cobrança nativa (Google Play Billing via cordova-plugin-purchase / capacitor-plugin-cdv-purchase)
 //
 // Produto único NÃO consumível: fuel_tracker_pro (R$ 4,90, preço definido no Play Console).
+//
+// Biblioteca: vendor/cdv-purchase/store.js (cópia de capacitor-plugin-cdv-purchase/www/store.js, script clássico,
+// sem bundler). Só é carregada dentro do app nativo Android; na web/PWA a compra fica indisponível.
 //
 // SEGURANÇA
 //  • Não existe modo Dev nem PRO forçado: nenhum host (inclusive https://localhost do Capacitor) concede PRO.
 //    Não há `configure()` nem `CONFIG` expostos, e o objeto é congelado.
 //  • Não existe compra simulada: a compra SEMPRE passa pela Google Play.
-//  • O PRO só é liberado depois de: purchaseToken retornado pela Play -> (verificação opcional no servidor)
-//    -> acknowledge (acknowledgePurchase) bem-sucedido -> só então a licença é gravada.
-//  • isPro() lê apenas o estado em memória. Esse estado vem de (a) compra confirmada, (b) listPurchases() da
-//    Play ao abrir o app ou (c) offline: registro local SELADO (checksum SHA-256 ligado ao token da compra,
-//    à origem e ao produto) com validade máxima de 30 dias sem revalidação.
+//  • O PRO só é liberado depois de: transação aprovada pela Play -> verifyLicense(purchase) (pluggável) ->
+//    acknowledge (transaction.finish) concluído -> só então a licença é gravada.
+//  • isPro() lê apenas o estado em memória. Esse estado vem de (a) compra confirmada, (b) consulta dos produtos
+//    possuídos na Play ao abrir o app / voltar do segundo plano, ou (c) offline: registro local SELADO
+//    (SHA-256 ligado ao token da compra, à origem e ao produto) com validade máxima de 30 dias sem revalidação.
 //    Chaves soltas no localStorage (ex.: { pro: true }) NÃO concedem PRO.
+//  • Reembolso: se a Play deixa de listar o produto como possuído, o PRO é revogado. Erro de rede/Play
+//    NUNCA revoga (mantém o último estado validado, respeitando o prazo do cache).
 //
-// LIMITAÇÃO CONHECIDA: nenhum código 100% client-side é inviolável. O selo local barra edição casual pelo
-// console/localStorage, mas para blindagem total configure VERIFY_ENDPOINT (servidor que valida o
-// purchaseToken na Google Play Developer API).
+// LIMITAÇÃO CONHECIDA: nenhum código 100% client-side é inviolável. Para blindagem total (Fase 2), troque
+// verifyLicense por validação em servidor (ver VERIFY_ENDPOINT / opção `verifyLicense` de _create).
 //
 // Script clássico: expõe o objeto global `FuelBilling` (e module.exports para testes em Node).
 const FuelBilling = (() => {
@@ -24,25 +28,46 @@ const FuelBilling = (() => {
     const PRODUCT_ID = 'fuel_tracker_pro';         // ID ÚNICO do produto no Play Console (Monetizar > Produtos > Produtos no app)
     const VERIFY_ENDPOINT = '';                    // opcional: URL do SEU servidor que valida o purchaseToken
     const PRICE_FALLBACK = 'R$ 4,90';              // exibido se o preço real do Play não puder ser lido
-    const PLAY_STORE = 'https://play.google.com/billing';
+    const STORE_LIB_URL = 'vendor/cdv-purchase/store.js';
     const ENTITLEMENT_KEY = 'fuelTrackerEntitlement';  // licença selada (sobrevive ao "Zerar App")
     const SEAL_SALT = 'fuel-tracker/entitlement/v1';
     const OFFLINE_GRACE_MS = 30 * 24 * 60 * 60 * 1000; // sem revalidar na Play por mais que isso => volta a LITE
     const CLOCK_SKEW_MS = 5 * 60 * 1000;
+    const FINISH_TIMEOUT_MS = 15000;                // espera pelo acknowledge
+    const PURCHASE_WAIT_MS = 20000;                 // espera pela aprovação após a tela de pagamento
 
-    function create(win) {
+    function create(win, opts) {
+        const options = opts || {};
+        const finishTimeoutMs = options.finishTimeoutMs || FINISH_TIMEOUT_MS;
+        const purchaseWaitMs = options.purchaseWaitMs || PURCHASE_WAIT_MS;
         const listeners = [];
-        let pro = false;          // estado validado em memória (única fonte de verdade em produção)
+        let pro = false;          // estado validado em memória (única fonte de verdade)
         let initPromise = null;
+        let storePromise = null;
+        let refreshPromise = null;
         let purchasing = false;
+        let rejectedSeen = false;        // verifyLicense recusou alguma transação (usado pelo resultado de purchase())
+        let store = null;
+        let CDV = null;
+        const inflight = new Map();      // transactionId -> Promise do tratamento da transação
+        const finishWaiters = new Map(); // transactionId -> resolve do acknowledge
+        const proWaiters = [];
 
         class BillingError extends Error {
             constructor(code) { super(code); this.code = code; }
         }
 
-        // --- Ambiente -------------------------------------------------------------------------------
         function storage() {
             try { return win && win.localStorage ? win.localStorage : null; } catch (e) { return null; }
+        }
+
+        // --- Ambiente -------------------------------------------------------------------------------
+        function isNative() {
+            try {
+                const c = win && win.Capacitor;
+                return !!c && typeof c.isNativePlatform === 'function' && c.isNativePlatform() &&
+                    typeof c.getPlatform === 'function' && c.getPlatform() === 'android';
+            } catch (e) { return false; }
         }
 
         // --- Estado ---------------------------------------------------------------------------------
@@ -61,6 +86,7 @@ const FuelBilling = (() => {
             pro = !!next;
             const after = isPro();
             if (before !== after) emit(after);
+            if (after) proWaiters.splice(0).forEach(fn => fn());
         }
 
         // --- Licença selada (uso offline) -----------------------------------------------------------
@@ -113,36 +139,19 @@ const FuelBilling = (() => {
             return false;
         }
 
-        // --- Google Play ----------------------------------------------------------------------------
-        async function getService() {
-            if (!win || typeof win.getDigitalGoodsService !== 'function' || typeof win.PaymentRequest !== 'function') {
-                throw new BillingError('unsupported');
-            }
-            try {
-                return await win.getDigitalGoodsService(PLAY_STORE);
-            } catch (e) {
-                throw new BillingError('unsupported');
-            }
-        }
-
-        // acknowledgePurchase da Play (na Digital Goods API o método se chama acknowledge). Produto não consumível => 'onetime'
-        async function acknowledgePurchase(service, purchaseToken) {
-            try {
-                await service.acknowledge(purchaseToken, 'onetime');
-                return true;
-            } catch (e) {
-                return false;
-            }
-        }
-
-        // Validação opcional no SEU servidor. true = válida | false = recusada | null = indeterminado (sem rede/erro)
-        async function verifyOnServer(purchaseToken) {
-            if (!VERIFY_ENDPOINT) return true; // sem servidor: a Play (on-device) é a autoridade
+        // --- Verificação da licença (PLUGÁVEL) -------------------------------------------------------
+        // purchase = { productId, purchaseToken, transactionId }
+        // Retorna true = válida | false = recusada | null = indeterminado (sem rede/erro: não libera e não revoga).
+        // Sem servidor, a Play (no aparelho) é a autoridade. Na Fase 2 basta trocar esta função (ou passar
+        // `verifyLicense` em _create) por uma chamada ao servidor.
+        async function defaultVerifyLicense(purchase) {
+            if (!purchase || purchase.productId !== PRODUCT_ID || !purchase.purchaseToken) return false;
+            if (!VERIFY_ENDPOINT) return true;
             try {
                 const res = await win.fetch(VERIFY_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sku: PRODUCT_ID, purchaseToken })
+                    body: JSON.stringify({ sku: PRODUCT_ID, purchaseToken: purchase.purchaseToken })
                 });
                 if (res.status >= 500) return null;
                 if (!res.ok) return false;
@@ -152,132 +161,228 @@ const FuelBilling = (() => {
                 return null;
             }
         }
+        const verifyLicense = typeof options.verifyLicense === 'function' ? options.verifyLicense : defaultVerifyLicense;
 
-        // O que a tela de compra deve mostrar: { ok: true } ou { ok: false, reason }
+        // --- Plugin nativo --------------------------------------------------------------------------
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const doc = win.document;
+                if (!doc || !doc.createElement) { reject(new BillingError('no-document')); return; }
+                const el = doc.createElement('script');
+                el.src = src;
+                el.onload = () => resolve();
+                el.onerror = () => reject(new BillingError('load-failed'));
+                (doc.head || doc.documentElement).appendChild(el);
+            });
+        }
+
+        function tokenOf(tx) {
+            const receipt = tx && tx.parentReceipt;
+            return (receipt && receipt.purchaseToken) || (tx && tx.purchaseId) || (tx && tx.transactionId) || '';
+        }
+
+        function txKey(tx) { return String((tx && tx.transactionId) || tokenOf(tx)); }
+
+        function isOurs(tx) {
+            return !!tx && Array.isArray(tx.products) && tx.products.some(p => p && p.id === PRODUCT_ID);
+        }
+
+        // Trata uma transação aprovada: verifyLicense -> acknowledge (finish) -> libera PRO.
+        // Idempotente por transactionId (approved dispara de novo a cada abertura para compras já confirmadas).
+        function handleTransaction(tx) {
+            if (!isOurs(tx)) return Promise.resolve('ignored');
+            const key = txKey(tx);
+            if (inflight.has(key)) return inflight.get(key);
+            const job = (async () => {
+                const purchase = { productId: PRODUCT_ID, purchaseToken: tokenOf(tx), transactionId: tx.transactionId };
+                let verdict;
+                try { verdict = await verifyLicense(purchase); } catch (e) { verdict = null; }
+                if (verdict === false) { rejectedSeen = true; return 'rejected'; }
+                if (verdict !== true) return 'unverified';
+                // Compra já confirmada antes (reabertura/restauração): não há o que confirmar de novo
+                const alreadyAcked = tx.isAcknowledged === true || (!!CDV && tx.state === CDV.TransactionState.FINISHED);
+                if (!alreadyAcked) {
+                    const acked = new Promise(resolve => {
+                        const t = setTimeout(() => { finishWaiters.delete(key); resolve(false); }, finishTimeoutMs);
+                        finishWaiters.set(key, () => { clearTimeout(t); resolve(true); });
+                    });
+                    try { await tx.finish(); } catch (e) { return 'unverified'; }
+                    if (!(await acked)) return 'unverified'; // sem acknowledge NÃO libera; a próxima abertura tenta de novo
+                }
+                await persistEntitlement(purchase.purchaseToken);
+                setPro(true);
+                return 'pro';
+            })().then(r => { inflight.delete(key); return r; }, () => { inflight.delete(key); return 'unverified'; });
+            inflight.set(key, job);
+            return job;
+        }
+
+        async function ensureStore() {
+            if (!storePromise) {
+                storePromise = (async () => {
+                    if (!isNative()) throw new BillingError('unsupported');
+                    if (!win.CdvPurchase) {
+                        // marcador exigido por store.js + registro do plugin nativo (sem bundler)
+                        win.CdvPurchaseCapacitor = { installed: true };
+                        const c = win.Capacitor;
+                        if (!(c.Plugins && c.Plugins.PurchasePlugin) && typeof c.registerPlugin === 'function') {
+                            c.registerPlugin('PurchasePlugin');
+                        }
+                        await loadScript(STORE_LIB_URL);
+                    }
+                    CDV = win.CdvPurchase;
+                    store = CDV && CDV.store;
+                    if (!store) throw new BillingError('unsupported');
+                    store.register({ id: PRODUCT_ID, type: CDV.ProductType.NON_CONSUMABLE, platform: CDV.Platform.GOOGLE_PLAY });
+                    store.error(() => { /* erros chegam também nos retornos das chamadas */ });
+                    store.when()
+                        .approved(tx => { handleTransaction(tx); })
+                        .finished(tx => {
+                            const key = txKey(tx);
+                            const w = finishWaiters.get(key);
+                            if (w) { finishWaiters.delete(key); w(); }
+                        });
+                    const errors = await store.initialize([CDV.Platform.GOOGLE_PLAY]);
+                    if (errors && errors.length) throw new BillingError('init-failed');
+                    return store;
+                })();
+                storePromise.catch(() => { storePromise = null; }); // permite nova tentativa depois
+            }
+            return storePromise;
+        }
+
+        function productOf() {
+            return store && CDV ? store.get(PRODUCT_ID, CDV.Platform.GOOGLE_PLAY) : undefined;
+        }
+
+        // Compara o que a Play diz que é do usuário com o estado local.
+        // owned => trata a transação (verifica, confirma, libera). Não owned => revoga (reembolso/nunca comprou).
+        async function reconcile() {
+            if (store.owned(PRODUCT_ID)) {
+                const tx = store.findInLocalReceipts(productOf());
+                if (!tx) return { status: 'unverified' };
+                const r = await handleTransaction(tx);
+                if (r === 'pro') return { status: 'pro' };
+                if (r === 'rejected') { clearEntitlement(); setPro(false); return { status: 'rejected' }; }
+                return { status: 'unverified' };
+            }
+            clearEntitlement(); // a Play respondeu e não há compra válida: nunca comprou, reembolsou ou revogou
+            setPro(false);
+            return { status: 'free' };
+        }
+
+        // --- API pública ----------------------------------------------------------------------------
         async function getAvailability() {
-            try { await getService(); } catch (e) { return { ok: false, reason: 'unsupported' }; }
-            return { ok: true };
+            if (!isNative()) return { ok: false, reason: 'unsupported' };
+            try { await ensureStore(); } catch (e) { return { ok: false, reason: e && e.code === 'unsupported' ? 'unsupported' : 'unavailable' }; }
+            return productOf() ? { ok: true } : { ok: false, reason: 'unavailable' };
         }
 
         async function getPriceText() {
             try {
-                const service = await getService();
-                const details = await service.getDetails([PRODUCT_ID]);
-                const item = details && details[0];
-                if (item && item.price) {
-                    const lang = (win.navigator && win.navigator.language) || 'pt-BR';
-                    return new Intl.NumberFormat(lang, { style: 'currency', currency: item.price.currency }).format(item.price.value);
-                }
+                await ensureStore();
+                const p = productOf();
+                const phase = p && p.pricing;
+                if (phase && phase.price) return String(phase.price);
             } catch (e) { /* usa o texto padrão */ }
             return PRICE_FALLBACK;
         }
 
+        function isCancel(err) {
+            if (!err) return false;
+            const msg = String(err.message || '');
+            return err.code === (CDV && CDV.ErrorCode && CDV.ErrorCode.PAYMENT_CANCELLED) || /USER_CANCELED/i.test(msg) || String(err.code) === '1';
+        }
 
         /**
          * Inicia a compra na Google Play. Resultado: { status }
-         *  purchased | cancelled | unsupported | unverified | rejected | error
-         * O PRO só é liberado após o acknowledge bem-sucedido.
+         *  purchased | cancelled | pending | unsupported | unverified | rejected | error
+         * O PRO só é liberado após verifyLicense + acknowledge bem-sucedidos.
          */
         async function purchase() {
             if (purchasing) return { status: 'error' };
             purchasing = true;
             try {
-                let service;
-                try { service = await getService(); } catch (e) { return { status: 'unsupported' }; }
+                try { await ensureStore(); } catch (e) { return { status: e && e.code === 'unsupported' ? 'unsupported' : 'error' }; }
+                rejectedSeen = false;
+                const product = productOf();
+                const offer = product && product.getOffer();
+                if (!offer) return { status: 'error' };
 
-                // A Play ignora estes valores e cobra o preço cadastrado no Play Console
-                const request = new win.PaymentRequest(
-                    [{ supportedMethods: PLAY_STORE, data: { sku: PRODUCT_ID } }],
-                    { total: { label: 'Fuel Tracker PRO', amount: { currency: 'BRL', value: '4.90' } } }
-                );
-
-                let response;
-                try {
-                    response = await request.show();
-                } catch (e) {
-                    return { status: e && e.name === 'AbortError' ? 'cancelled' : 'error' };
-                }
-
-                const token = response.details && response.details.purchaseToken;
-                if (!token) {
-                    try { await response.complete('fail'); } catch (e) { /* não é crítico */ }
+                const err = await store.order(offer);
+                if (err) {
+                    if (isCancel(err)) return { status: 'cancelled' };
+                    if (/ALREADY_OWNED/i.test(String(err.message || ''))) {
+                        const r = await restore();
+                        return { status: r.status === 'pro' ? 'purchased' : 'error' };
+                    }
                     return { status: 'error' };
                 }
 
-                const verified = await verifyOnServer(token);
-                const acknowledged = verified === true ? await acknowledgePurchase(service, token) : false;
-                try {
-                    await response.complete(verified === false ? 'fail' : acknowledged ? 'success' : 'unknown');
-                } catch (e) { /* não é crítico */ }
-
-                if (verified === true && acknowledged) {
-                    await persistEntitlement(token);
-                    setPro(true);
-                    return { status: 'purchased' };
+                // Aguarda a transação ser aprovada/confirmada (o evento chega pelo plugin)
+                if (!isPro()) {
+                    await new Promise(resolve => {
+                        const t = setTimeout(resolve, purchaseWaitMs);
+                        proWaiters.push(() => { clearTimeout(t); resolve(); });
+                    });
                 }
-                // Sem acknowledge/validação NÃO libera. init() tenta confirmar de novo na próxima abertura.
-                return { status: verified === false ? 'rejected' : 'unverified' };
+                if (isPro()) return { status: 'purchased' };
+                const tx = store.findInLocalReceipts(product);
+                if (tx && tx.isPending) return { status: 'pending' }; // pagamento adiado: libera quando a Play aprovar
+                await Promise.all(Array.from(inflight.values()));
+                return { status: rejectedSeen ? 'rejected' : 'unverified' };
             } finally {
                 purchasing = false;
             }
         }
 
         /**
-         * Consulta a licença real na Google Play (restaura compra em outro aparelho/reinstalação, confirma compras
-         * pendentes e revoga o PRO se houve reembolso). Offline/sem Play: mantém o último estado validado.
+         * Restaura a compra (reinstalação/aparelho novo/código promocional) e revalida a licença na Play:
+         * confirma compras pendentes e revoga o PRO se houve reembolso.
+         * Erro de Play/rede: mantém o último estado validado.
          */
-        async function refresh() {
-            let service;
-            try { service = await getService(); } catch (e) { return { status: 'unsupported' }; }
-
-            let purchases;
-            try { purchases = await service.listPurchases(); } catch (e) { return { status: 'error' }; }
-
-            const mine = (purchases || []).filter(p => p && p.itemId === PRODUCT_ID && p.purchaseToken);
-            let grantedToken = null;
-            let unknown = false;
-            for (const p of mine) {
-                const v = await verifyOnServer(p.purchaseToken);
-                if (v === true) {
-                    await acknowledgePurchase(service, p.purchaseToken); // idempotente: se já confirmada, o erro é ignorado
-                    grantedToken = p.purchaseToken;
-                } else if (v === null) {
-                    unknown = true;
+        function restore() {
+            if (refreshPromise) return refreshPromise;
+            refreshPromise = (async () => {
+                try {
+                    await ensureStore();
+                } catch (e) {
+                    return { status: e && e.code === 'unsupported' ? 'unsupported' : 'error' };
                 }
-            }
-            if (grantedToken) {
-                await persistEntitlement(grantedToken);
-                setPro(true);
-                return { status: 'pro' };
-            }
-            if (unknown) return { status: 'unverified' };
-            clearEntitlement(); // a Play respondeu e não há compra válida: nunca comprou, reembolsou ou revogou
-            setPro(false);
-            return { status: 'free' };
+                let err;
+                try { err = await store.restorePurchases(); } catch (e) { err = e || true; }
+                if (err) return { status: 'error' };
+                try { return await reconcile(); } catch (e) { return { status: 'error' }; }
+            })().then(r => { refreshPromise = null; return r; }, () => { refreshPromise = null; return { status: 'error' }; });
+            return refreshPromise;
         }
+
+        // Reconsulta a Play (ao voltar do segundo plano)
+        function refresh() { return restore(); }
 
         // Chamar ao abrir o app: carrega a licença selada (offline) e depois consulta a Google Play.
         function init() {
             if (!initPromise) {
                 initPromise = (async () => {
+                    if (!isNative()) return { status: 'unsupported' };
                     if (await cachedEntitlementIsValid()) setPro(true);
-                    return refresh();
+                    try { await ensureStore(); } catch (e) { return { status: 'error' }; }
+                    try { return await reconcile(); } catch (e) { return { status: 'error' }; }
                 })().catch(() => ({ status: 'error' }));
             }
             return initPromise;
         }
 
-        return Object.freeze({ isPro, onChange, getAvailability, getPriceText, purchase, refresh, init });
+        return Object.freeze({ isPro, onChange, getAvailability, getPriceText, purchase, restore, refresh, init });
     }
 
     const api = create(typeof window !== 'undefined' ? window : null);
     return Object.freeze(Object.assign({}, api, {
         PRODUCT_ID,
-        _create: (win) => create(win)
+        _create: (win, opts) => create(win, opts)
     }));
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = FuelBilling;
 }
-
