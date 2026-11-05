@@ -11,7 +11,7 @@
 //  • ao alterar o CONTEÚDO de vendor/ ou icons/ (ex.: recompilar o vendor/tailwind.css) - são cache-first.
 // Os arquivos do app (index.html, app.js, core.js, billing.js) atualizam sozinhos quando há internet.
 const CACHE_PREFIX = 'fuel-tracker-';
-const CACHE_NAME = CACHE_PREFIX + 'v9';
+const CACHE_NAME = CACHE_PREFIX + 'v10';
 const NETWORK_TIMEOUT_MS = 3000;
 
 // App shell (6 arquivos)
@@ -24,11 +24,12 @@ const APP_SHELL = [
     'diagnostico.html'
 ];
 
-// Estáticos de vendor e ícones (12 arquivos) => total pré-cacheado: 18
+// Estáticos de vendor e ícones (13 arquivos) => total pré-cacheado: 19
 const STATIC_ASSETS = [
     'vendor/tailwind.css',
     'vendor/chart.umd.js',
     'vendor/xlsx.full.min.js',
+    'vendor/cdv-purchase/store.js',
     'vendor/fontawesome/css/all.min.css',
     'vendor/fontawesome/webfonts/fa-solid-900.woff2',
     'vendor/fontawesome/webfonts/fa-regular-400.woff2',
@@ -48,7 +49,7 @@ self.addEventListener('install', (event) => {
     event.waitUntil((async () => {
         const cache = await caches.open(CACHE_NAME);
         const urls = [...APP_SHELL, ...STATIC_ASSETS];
-        // Atômico: instala somente se os 18 arquivos forem baixados (garante o funcionamento 100% offline)
+        // Atômico: instala somente se os 19 arquivos forem baixados (garante o funcionamento 100% offline)
         await cache.addAll(urls.map((url) => new Request(url, { cache: 'reload' })));
         await self.skipWaiting();
     })());

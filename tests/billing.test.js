@@ -347,9 +347,9 @@ test('biblioteca vendorizada é idêntica à do pacote instalado', () => {
     if (fs.existsSync(pkg)) assert.ok(fs.readFileSync(vendored).equals(fs.readFileSync(pkg)), 'vendor desatualizado: rode npm run vendor:purchase');
 });
 
-test('sw.js: cache v9, limpeza de caches antigos e 18 arquivos no addAll', () => {
+test('sw.js: cache v10, limpeza de caches antigos e 19 arquivos (inclui vendor/cdv-purchase/store.js) no addAll', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
-    assert.ok(/CACHE_PREFIX \+ 'v9'/.test(src));
+    assert.ok(/CACHE_PREFIX \+ 'v10'/.test(src));
     assert.ok(/caches\.delete\(k\)/.test(src) && /k !== CACHE_NAME/.test(src));
     assert.ok(/cache\.addAll\(/.test(src));
     const grab = (name) => {
@@ -357,8 +357,9 @@ test('sw.js: cache v9, limpeza de caches antigos e 18 arquivos no addAll', () =>
         return m[1].split('\n').map((l) => (l.match(/'([^']+)'/) || [])[1]).filter(Boolean);
     };
     const files = [...grab('APP_SHELL'), ...grab('STATIC_ASSETS')];
-    assert.strictEqual(files.length, 18);
-    assert.strictEqual(new Set(files).size, 18);
+    assert.strictEqual(files.length, 19);
+    assert.strictEqual(new Set(files).size, 19);
+    assert.ok(files.includes('vendor/cdv-purchase/store.js'));
     files.forEach((f) => assert.ok(fs.existsSync(path.join(__dirname, '..', f)), 'arquivo ausente: ' + f));
 });
 

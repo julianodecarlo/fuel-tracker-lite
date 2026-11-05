@@ -14,3 +14,9 @@ vitest.config.mts.timestamp-*.mjs
 vitest.config.cts.timestamp-*.mjs
 
 .claude/settings.local.json
+
+# Segredos e assinatura
+*.keystore
+*.jks
+signing-key-info.txt
+.env
