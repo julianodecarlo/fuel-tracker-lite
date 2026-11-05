@@ -52,26 +52,32 @@ test('productId é fuel_tracker_pro e objeto é imutável/sem configure', () => 
     assert.strictEqual(FuelBilling.CONFIG, undefined);
 });
 
-test('produção: isDev=false e devSetPro recusa; flag fuelTrackerPro=true NÃO concede PRO', () => {
+test('nenhum host (inclusive localhost do Capacitor) concede PRO; flag antiga e registro simples não valem', () => {
     const storage = makeStorage({ fuelTrackerPro: 'true', fuelTrackerEntitlement: JSON.stringify({ pro: true }) });
-    const b = FuelBilling._create(makeWin({ storage }).win);
-    assert.strictEqual(b.isDev(), false);
-    assert.strictEqual(b.devSetPro(true), false);
-    assert.strictEqual(b.isPro(), false);
-});
-
-test('localhost e 127.0.0.1: isDev=true e devSetPro alterna plano', () => {
-    ['localhost', '127.0.0.1'].forEach((hostname) => {
-        const b = FuelBilling._create(makeWin({ hostname }).win);
-        assert.strictEqual(b.isDev(), true);
+    ['app.example.com', 'localhost', '127.0.0.1'].forEach((hostname) => {
+        const b = FuelBilling._create(makeWin({ storage, hostname }).win);
         assert.strictEqual(b.isPro(), false);
-        assert.strictEqual(b.devSetPro(true), true);
-        assert.strictEqual(b.isPro(), true);
+        assert.strictEqual(b.isDev, undefined);
+        assert.strictEqual(b.devSetPro, undefined);
     });
 });
 
-test('hostname parecido (localhost.evil.com) NÃO é dev', () => {
-    assert.strictEqual(FuelBilling._create(makeWin({ hostname: 'localhost.evil.com' }).win).isDev(), false);
+test('em localhost (Capacitor) init() consulta a Play: restaura compra', async () => {
+    const w = makeWin({ hostname: 'localhost', purchases: [{ itemId: 'fuel_tracker_pro', purchaseToken: 't9' }] });
+    const b = FuelBilling._create(w.win);
+    assert.strictEqual((await b.init()).status, 'pro');
+    assert.strictEqual(b.isPro(), true);
+});
+
+test('modo de teste removido: sem TRIAL_FORCE_PRO, sem forçar PRO e sem menu Dev', () => {
+    const root = path.join(__dirname, '..');
+    const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+    const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+    const bill = fs.readFileSync(path.join(root, 'billing.js'), 'utf8');
+    assert.strictEqual(FuelBilling.TRIAL_FORCE_PRO, undefined);
+    assert.ok(!/TRIAL_FORCE_PRO/.test(app + bill + html), 'TRIAL_FORCE_PRO não pode existir');
+    assert.ok(!/devPlanMenu|toggleDevPlan|devSetPro|Dev:\s*Lite/.test(app + html + bill), 'menu Dev não pode existir');
+    assert.ok(!/isDev\s*\(/.test(app + bill), 'isDev() não pode existir');
 });
 
 test('compra: acknowledge chamado, PRO liberado só depois, licença selada gravada', async () => {

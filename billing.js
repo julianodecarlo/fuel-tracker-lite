@@ -3,9 +3,8 @@
 // Produto único NÃO consumível: fuel_tracker_pro (R$ 4,90, preço definido no Play Console).
 //
 // SEGURANÇA
-//  • O ambiente Dev NÃO é configurável: é detectado pelo hostname (localhost / 127.0.0.1).
-//    Em qualquer outro host (produção pública / app instalado pela Play) o interruptor Dev não existe e
-//    devSetPro() recusa a chamada. Não há mais `configure()` nem `CONFIG` expostos, e o objeto é congelado.
+//  • Não existe modo Dev nem PRO forçado: nenhum host (inclusive https://localhost do Capacitor) concede PRO.
+//    Não há `configure()` nem `CONFIG` expostos, e o objeto é congelado.
 //  • Não existe compra simulada: a compra SEMPRE passa pela Google Play.
 //  • O PRO só é liberado depois de: purchaseToken retornado pela Play -> (verificação opcional no servidor)
 //    -> acknowledge (acknowledgePurchase) bem-sucedido -> só então a licença é gravada.
@@ -26,20 +25,12 @@ const FuelBilling = (() => {
     const VERIFY_ENDPOINT = '';                    // opcional: URL do SEU servidor que valida o purchaseToken
     const PRICE_FALLBACK = 'R$ 4,90';              // exibido se o preço real do Play não puder ser lido
     const PLAY_STORE = 'https://play.google.com/billing';
-    const DEV_FLAG_KEY = 'fuelTrackerPro';             // flag usada SOMENTE em localhost/127.0.0.1
     const ENTITLEMENT_KEY = 'fuelTrackerEntitlement';  // licença selada (sobrevive ao "Zerar App")
     const SEAL_SALT = 'fuel-tracker/entitlement/v1';
     const OFFLINE_GRACE_MS = 30 * 24 * 60 * 60 * 1000; // sem revalidar na Play por mais que isso => volta a LITE
     const CLOCK_SKEW_MS = 5 * 60 * 1000;
-    const DEV_HOSTS = ['localhost', '127.0.0.1'];
 
-    // ⚠️ TEMPORÁRIO - BUILD DO TESTE FECHADO DE 14 DIAS (Google Play):
-    // true  => TODOS os usuários têm o PRO liberado (sem compra, sem limites do Lite).
-    // false => comportamento normal de produção (PRO só após compra confirmada na Play).
-    // VOLTE PARA false ANTES DE PUBLICAR EM PRODUÇÃO.
-    const TRIAL_FORCE_PRO = true;
-
-    function create(win, forcePro) {
+    function create(win) {
         const listeners = [];
         let pro = false;          // estado validado em memória (única fonte de verdade em produção)
         let initPromise = null;
@@ -50,22 +41,8 @@ const FuelBilling = (() => {
         }
 
         // --- Ambiente -------------------------------------------------------------------------------
-        function isDev() {
-            try {
-                const host = win && win.location && win.location.hostname;
-                return DEV_HOSTS.indexOf(host) !== -1;
-            } catch (e) {
-                return false;
-            }
-        }
-
         function storage() {
             try { return win && win.localStorage ? win.localStorage : null; } catch (e) { return null; }
-        }
-
-        function devFlag() {
-            const s = storage();
-            try { return !!s && s.getItem(DEV_FLAG_KEY) === 'true'; } catch (e) { return false; }
         }
 
         // --- Estado ---------------------------------------------------------------------------------
@@ -76,9 +53,7 @@ const FuelBilling = (() => {
         function onChange(cb) { if (typeof cb === 'function') listeners.push(cb); }
 
         function isPro() {
-            if (forcePro === true) return true;   // TEMPORÁRIO: build de teste de 14 dias (ver TRIAL_FORCE_PRO)
-            if (isDev()) return pro || devFlag(); // localhost: flag de teste
-            return pro === true;                  // produção: SOMENTE o estado validado em memória
+            return pro === true; // SOMENTE o estado validado em memória
         }
 
         function setPro(next) {
@@ -86,19 +61,6 @@ const FuelBilling = (() => {
             pro = !!next;
             const after = isPro();
             if (before !== after) emit(after);
-        }
-
-        // Só em localhost/127.0.0.1: alterna Lite/PRO (botão "Dev: Lite/Pro")
-        function devSetPro(flag) {
-            if (!isDev()) return false;
-            const s = storage();
-            if (!s) return false;
-            const before = isPro();
-            try { s.setItem(DEV_FLAG_KEY, flag ? 'true' : 'false'); } catch (e) { return false; }
-            pro = !!flag;
-            const after = isPro();
-            if (before !== after) emit(after);
-            return true;
         }
 
         // --- Licença selada (uso offline) -----------------------------------------------------------
@@ -265,7 +227,6 @@ const FuelBilling = (() => {
          * pendentes e revoga o PRO se houve reembolso). Offline/sem Play: mantém o último estado validado.
          */
         async function refresh() {
-            if (isDev()) return { status: 'skipped' };
             let service;
             try { service = await getService(); } catch (e) { return { status: 'unsupported' }; }
 
@@ -299,7 +260,6 @@ const FuelBilling = (() => {
         function init() {
             if (!initPromise) {
                 initPromise = (async () => {
-                    if (isDev()) return { status: 'skipped' };
                     if (await cachedEntitlementIsValid()) setPro(true);
                     return refresh();
                 })().catch(() => ({ status: 'error' }));
@@ -307,15 +267,13 @@ const FuelBilling = (() => {
             return initPromise;
         }
 
-        return Object.freeze({ isDev, isPro, onChange, devSetPro, getAvailability, getPriceText, purchase, refresh, init });
+        return Object.freeze({ isPro, onChange, getAvailability, getPriceText, purchase, refresh, init });
     }
 
-    // Instância pública usa TRIAL_FORCE_PRO; _create (usado pelos testes) nunca força o PRO por padrão.
-    const api = create(typeof window !== 'undefined' ? window : null, TRIAL_FORCE_PRO);
+    const api = create(typeof window !== 'undefined' ? window : null);
     return Object.freeze(Object.assign({}, api, {
         PRODUCT_ID,
-        TRIAL_FORCE_PRO,
-        _create: (win, forcePro) => create(win, forcePro === true)
+        _create: (win) => create(win)
     }));
 })();
 

@@ -392,13 +392,7 @@ const FuelTrackerApp = (() => {
     // Única fonte de verdade da licença: o estado em memória do billing.js.
     // Produção: só vira PRO após compra confirmada (acknowledge) ou licença revalidada na Google Play
     // (offline: cache assinado validado pelo billing.js). Nenhuma chave solta do localStorage concede PRO.
-    // Localhost/127.0.0.1: flag de teste (restrita ao desenvolvimento).
-    // ⚠️ TEMPORÁRIO - teste fechado de 14 dias: PRO liberado para todos (espelha FuelBilling.TRIAL_FORCE_PRO).
-    // Para voltar ao normal, defina TRIAL_FORCE_PRO = false aqui E em billing.js.
-    const TRIAL_FORCE_PRO = true;
-
     function isProPlan() {
-        if (TRIAL_FORCE_PRO) return true;
         return FuelBilling.isPro();
     }
 
@@ -451,18 +445,6 @@ const FuelTrackerApp = (() => {
         hideModal('upgradeModal');
     }
 
-    // Alternar plano para testes: SÓ existe em localhost/127.0.0.1 (FuelBilling.isDev() valida o hostname).
-    // Fora do localhost a função nem é criada e o billing.js recusa qualquer alteração de licença.
-    if (FuelBilling.isDev()) {
-        window.toggleDevPlan = function () {
-            if (!FuelBilling.isDev()) return;
-            const next = !isProPlan();
-            FuelBilling.devSetPro(next);
-            alert(next ? 'Modo de Teste: Alterado para PRO' : 'Modo de Teste: Alterado para LITE');
-            location.reload();
-        };
-    }
-
     
     // Botão "Comprar Pro": delega TODO o fluxo ao billing.js (Google Play Billing, produto fuel_tracker_pro).
     // O PRO só é liberado quando o billing.js confirma a compra (acknowledgePurchase) e notifica onChange.
@@ -501,7 +483,7 @@ const FuelTrackerApp = (() => {
         }
     }
 
-    // Chamado quando o plano muda (compra, restauração, reembolso ou alternância no modo dev)
+    // Chamado quando o plano muda (compra, restauração, ou reembolso)
     function onPlanChanged(pro) {
         planStatus.isPro = pro;
         planStatus.expiresAt = null;
@@ -2373,17 +2355,8 @@ const FuelTrackerApp = (() => {
             });
         }
 
-        const devMenu = document.getElementById('devPlanMenu');
-        // No Capacitor o app roda em https://localhost (isDev() = true): no build de teste o menu Dev fica oculto.
-        if (FuelBilling.isDev() && !TRIAL_FORCE_PRO) {
-            // localhost/127.0.0.1: menu "Dev: Lite/Pro" disponível apenas no desenvolvimento local
-            try { if (localStorage.getItem(PRO_FLAG_KEY) === null) localStorage.setItem(PRO_FLAG_KEY, 'false'); } catch (e) { }
-            if (devMenu) devMenu.classList.remove('hidden');
-        } else {
-            // produção pública: o menu Dev é REMOVIDO do DOM e a flag de teste é apagada
-            if (devMenu) devMenu.remove();
-            try { localStorage.removeItem(PRO_FLAG_KEY); } catch (e) { }
-        }
+        // remove resquício da flag de teste antiga, caso exista em instalações anteriores
+        try { localStorage.removeItem(PRO_FLAG_KEY); } catch (e) { }
         FuelBilling.onChange(onPlanChanged);
 
         document.addEventListener('keydown', handleGlobalKeydown);
@@ -2403,7 +2376,7 @@ const FuelTrackerApp = (() => {
         renderPlanBadge();
         recalculateMetricsAndRender();
         // produção: carrega o cache validado (offline) e consulta a licença real na Google Play
-        // (restaura/confirma/revoga). Localhost: não faz nada. Mudanças chegam via FuelBilling.onChange.
+        // (restaura/confirma/revoga). Mudanças chegam via FuelBilling.onChange.
         FuelBilling.init();
     }
 
