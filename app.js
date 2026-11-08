@@ -833,6 +833,17 @@ const FuelTrackerApp = (() => {
         document.querySelectorAll('#manualTopics details').forEach(d => { d.open = false; });
     }
 
+    // Ao abrir um tópico do manual, rola para o título ficar no topo (exceto quando a busca abriu o tópico)
+    document.addEventListener('toggle', (e) => {
+        const d = e.target;
+        if (!d || !d.matches || !d.matches('#manualTopics details')) return;
+        const auto = d.dataset.autoToggle === '1';
+        delete d.dataset.autoToggle;
+        if (!d.open || auto) return;
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        requestAnimationFrame(() => d.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }));
+    }, true);
+
     // Busca no manual: todos os termos devem aparecer em título + palavras-chave + conteúdo
     function filterManual(query) {
         const terms = FuelCore.normalizeSearchText(query).split(' ').filter(Boolean);
@@ -841,9 +852,13 @@ const FuelTrackerApp = (() => {
             const hay = FuelCore.normalizeSearchText((d.getAttribute('data-kw') || '') + ' ' + d.textContent);
             const match = terms.every(t => hay.indexOf(t) !== -1);
             d.classList.toggle('hidden', !match);
-            if (terms.length) d.open = match;
+            if (terms.length && d.open !== match) {
+                d.dataset.autoToggle = '1'; // abertura vinda da busca: não rolar a tela
+                d.open = match;
+            }
             if (match) shown++;
         });
+        document.querySelectorAll('#manualTopics [data-manual-group]').forEach(g => g.classList.toggle('hidden', terms.length > 0));
         const empty = document.getElementById('manualEmpty');
         if (empty) empty.classList.toggle('hidden', shown > 0);
     }

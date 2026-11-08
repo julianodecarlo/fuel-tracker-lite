@@ -97,14 +97,6 @@ test('Indicar para Amigo: compartilha o link da Play Store, não window.location
     assert.ok(!fn.includes('window.location.href'));
 });
 
-test('Indicar para Amigo: no app nativo não mostra toast de sucesso falso; mantém plano B de copiar o link', () => {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
-    const fn = app.slice(app.indexOf('async function shareAppWithFriend'), app.indexOf('function toggleSettingsMenu'));
-    const nativo = fn.slice(fn.indexOf('native.share.share'), fn.indexOf('navigator.share &&'));
-    assert.ok(nativo.length > 20 && !/showToast\(\s*'Obrigado/.test(nativo), 'toast de sucesso no ramo nativo');
-    assert.ok(/clipboard\.writeText/.test(fn) && /Link de indicação copiado/.test(fn), 'plano B de copiar o link');
-});
-
 test('build de produção: diagnostico.html fora do copy-web e do sw.js', () => {
     const copy = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'copy-web.js'), 'utf8');
     const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
@@ -142,6 +134,75 @@ test('manual: aviso de backup e responsabilidade do usuário', () => {
     for (const s of ['Limpar armazenamento', 'responsabilidade exclusiva do usuário', 'não consegue recuperar nem restaurar']) {
         assert.ok(m.includes(s), 'falta: ' + s);
     }
+});
+
+test('Indicar para Amigo: no app nativo não mostra toast de sucesso falso; mantém plano B de copiar o link', () => {
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    const fn = app.slice(app.indexOf('async function shareAppWithFriend'), app.indexOf('function toggleSettingsMenu'));
+    const nativo = fn.slice(fn.indexOf('native.share.share'), fn.indexOf('navigator.share &&'));
+    assert.ok(nativo.length > 20 && !/showToast\(\s*'Obrigado/.test(nativo), 'toast de sucesso no ramo nativo');
+    assert.ok(/clipboard\.writeText/.test(fn) && /Link de indicação copiado/.test(fn), 'plano B de copiar o link');
+});
+
+function manualTopics() {
+    const m = manualHtml();
+    const out = [];
+    const re = /<details\b[^>]*>([\s\S]*?)<\/details>/g;
+    let x;
+    while ((x = re.exec(m))) {
+        const title = (x[1].match(/<summary[^>]*>([\s\S]*?)<\/summary>/) || [])[1] || '';
+        const text = x[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        out.push({ title: title.replace(/<[^>]*>/g, '').trim(), text, words: text.split(' ').length });
+    }
+    return out;
+}
+
+test('manual v2: >= 14 tópicos <details>, cada um com 35 a 140 palavras', () => {
+    const t = manualTopics();
+    assert.ok(t.length >= 14, 'tópicos: ' + t.length);
+    for (const x of t) assert.ok(x.words >= 35 && x.words <= 140, x.title + ' tem ' + x.words + ' palavras');
+});
+
+test('manual v2: títulos na ordem prevista (menu na ordem do #settingsDropdown)', () => {
+    const titles = manualTopics().map(x => x.title);
+    assert.deepStrictEqual(titles, ['Planos: Lite x PRO', 'Decisão no posto', 'Resumo e novo abastecimento', 'Histórico', 'Análise (PRO)',
+        'Revisão e documentos', 'Aparência', 'Veículos', 'Indicar para amigo', 'Backup / Restaurar', 'Exportar Excel (PRO)', 'Zerar App',
+        'Tamanho do texto', 'Privacidade e armazenamento']);
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const dd = html.slice(html.indexOf('id="settingsDropdown"'), html.indexOf('</header>'));
+    const menu = [...dd.matchAll(/<\/i>\s*([^<]+?)<\/span>\s*(?:<span id="themeMenuLabel"|<\/button>)/g)].map(m => m[1].trim());
+    const esperado = ['Aparência', 'Veículos', 'Indicar para Amigo', 'Manual do Usuário', 'Backup / Restaurar', 'Exportar Excel', 'Zerar App'];
+    assert.deepStrictEqual(menu, esperado);
+    const norm = s => s.replace(/ \(PRO\)/, '').toLowerCase();
+    const pos = esperado.filter(n => n !== 'Manual do Usuário').map(n => titles.findIndex(t => norm(t) === n.toLowerCase()));
+    assert.ok(pos.every(p => p >= 0) && pos.every((p, i) => i === 0 || p > pos[i - 1]), 'ordem do menu: ' + pos);
+});
+
+test('manual v2: quadro de aviso depois de #manualTopics e fora dele', () => {
+    const m = manualHtml();
+    const iT = m.indexOf('id="manualTopics"');
+    const iW = m.indexOf('class="manual-warn"');
+    const iEnd = m.lastIndexOf('</details>');
+    assert.ok(iT > 0 && iW > iEnd && iW > iT, 'aviso deve vir depois dos tópicos');
+    assert.ok(m.includes('id="manualScroll"'));
+});
+
+test('manual v2: CSS sem borda nos tópicos, .manual-body com padding-top >= 8px, corpo 14px', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    for (const m of html.matchAll(/(?:html\.dark\s+)?\.manual-topic\s*\{([^}]*)\}/g)) assert.ok(!/border/.test(m[1]), 'borda em .manual-topic');
+    assert.ok(!/class="manual-topic[^"]*\bborder/.test(html), 'classe border no tópico');
+    const b = html.match(/\.manual-body\s*\{([^}]*)\}/)[1];
+    const px = v => { const n = parseFloat(v); return /rem/.test(v) ? n * 16 : n; };
+    assert.ok(px(b.match(/padding-top:\s*([\d.]+r?e?m?p?x?)/)[1]) >= 8, 'padding-top');
+    for (const k of ['right', 'bottom', 'left']) assert.ok(px(b.match(new RegExp('padding-' + k + ':\\s*([\\d.]+(?:rem|px))'))[1]) >= 16, 'padding-' + k);
+    assert.ok(/font-size:\s*\.875rem/.test(b));
+    assert.ok(/\.manual-sum\s*\{[^}]*min-height:\s*48px/.test(html));
+});
+
+test('manual v2: scrollIntoView ao abrir tópico, sem rolar quando a abertura vem da busca', () => {
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    assert.ok(/scrollIntoView\(\{\s*block:\s*'start'/.test(app) && /prefers-reduced-motion/.test(app));
+    assert.ok(/autoToggle/.test(app));
 });
 
 test('manual: menciona Lite e PRO', () => {
