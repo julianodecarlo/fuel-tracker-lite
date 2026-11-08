@@ -428,6 +428,26 @@ test('backup: usa Filesystem/Share no app nativo, confirma a gravação e não u
     assert.ok(pkg.dependencies['@capacitor/filesystem'] && pkg.dependencies['@capacitor/share']);
 });
 
+function runShowVersion(cap, el) {
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8').replace(/\r\n/g, '\n');
+    const grab = (start) => { const i = app.indexOf(start); assert.ok(i >= 0, 'trecho não encontrado: ' + start); return app.slice(i, app.indexOf('\n    }\n', i) + 7); };
+    const src = grab('function isNativeApp()') + grab('async function showNativeVersion()');
+    const sandbox = { window: { Capacitor: cap }, document: { getElementById: () => el } };
+    return require('vm').runInNewContext(src + '; showNativeVersion', sandbox)();
+}
+
+test('versão: nativo mostra a versão real; falha ou web mantém o texto', async () => {
+    const el = { textContent: 'v1.2' };
+    await runShowVersion({ isNativePlatform: () => true, Plugins: {}, registerPlugin: () => ({ getInfo: async () => ({ version: '1.1' }) }) }, el);
+    assert.strictEqual(el.textContent, 'v1.1');
+    const el2 = { textContent: 'v1.2' };
+    await runShowVersion({ isNativePlatform: () => true, Plugins: { App: { getInfo: async () => { throw new Error('x'); } } } }, el2);
+    await runShowVersion({ isNativePlatform: () => false, Plugins: { App: { getInfo: async () => ({ version: '9' }) } } }, el2);
+    assert.strictEqual(el2.textContent, 'v1.2');
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+    assert.ok(pkg.dependencies['@capacitor/app']);
+});
+
 test('compra: tela de pagamento que nunca responde vira timeout e libera o estado', async () => {
     const { win } = makeWin({});
     win.CdvPurchase.store.order = () => new Promise(() => {}); // Play parada por horas

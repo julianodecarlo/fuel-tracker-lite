@@ -339,6 +339,20 @@ const FuelTrackerApp = (() => {
         return null;
     }
 
+    // Mostra a versão real do app (nativo). Qualquer falha mantém o texto do HTML.
+    async function showNativeVersion() {
+        try {
+            if (!isNativeApp()) return;
+            const c = window.Capacitor;
+            const plugins = c.Plugins || {};
+            const appPlugin = plugins.App || (typeof c.registerPlugin === 'function' ? c.registerPlugin('App') : null);
+            if (!appPlugin || typeof appPlugin.getInfo !== 'function') return;
+            const info = await appPlugin.getInfo();
+            const el = document.getElementById('appVersionFooter');
+            if (el && info && info.version) el.textContent = 'v' + info.version;
+        } catch (e) { }
+    }
+
     // Download clássico (navegador / PWA): data: URI falha em backups grandes, por isso usa Blob
     function downloadBlobWeb(fileName, blobData, mime) {
         const blob = new Blob([blobData], { type: mime });
@@ -2549,6 +2563,7 @@ const FuelTrackerApp = (() => {
         // (restaura/confirma/revoga). Mudanças chegam via FuelBilling.onChange.
         FuelBilling.init();
         checkBackupReminder();
+        showNativeVersion();
         // reconsulta a licença ao voltar do segundo plano (no máximo a cada 60 s)
         let lastBillingRefresh = Date.now();
         document.addEventListener('visibilitychange', function () {
