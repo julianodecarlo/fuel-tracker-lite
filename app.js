@@ -1098,7 +1098,7 @@ const FuelTrackerApp = (() => {
         const select = document.getElementById('vehicleSelect');
         if (!select) return;
         select.innerHTML = vehicles.map(v =>
-            `<option value="${escapeHtml(v.id)}"${v.id === activeVehicleId ? ' selected' : ''}>${v.plate ? escapeHtml(v.plate) + ' • ' : ''}${escapeHtml(v.name)}</option>`
+            `<option value="${escapeHtml(v.id)}"${v.id === activeVehicleId ? ' selected' : ''}>${v.plate ? escapeHtml(v.plate) + ' · ' : ''}${escapeHtml(v.name)}</option>`
         ).join('');
     }
 

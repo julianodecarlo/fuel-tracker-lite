@@ -116,22 +116,28 @@
         .ts-grp { gap: 0.375rem; }
         .ts-opt { min-height: 48px; line-height: 1; }
         .ts-opt[aria-checked="true"] { background:#10b981; color:#022c22; border-color:#10b981; }
-        /* Cabecalho sem quebra de linha (travado, igual nos 3 tamanhos) */
+        /* Cabecalho (travado, igual nos 3 tamanhos): titulo/logo encolhe primeiro; seletor nunca abaixo de placa + 2 letras */
         header h1, #btnUpgradePro, #pwaInstallBtn { white-space: nowrap; }
+        header h1 { display: flex; align-items: center; gap: 0.25rem; min-width: 0; }
+        #appTitleText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        #appBadge { flex-shrink: 0; }
         header > div { min-width: 0; }
-        #appSubHeader { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        #btnUpgradePro, #btnSettingsMenu, #appHeaderIcon { flex-shrink: 0; }
+        header > div:first-child { flex: 1 1 0%; }
+        header > div:first-child > div { min-width: 0; }
+        #appSubHeader { white-space: normal; overflow-wrap: anywhere; line-height: 1.2; }
+        #btnUpgradePro, #btnSettingsMenu, #appHeaderIcon, #pwaInstallBtn { flex-shrink: 0; }
+        header > div:last-child { flex: 0 0 auto; }
+        header > div:last-child > div:first-child { flex: 0 0 auto; }
+        /* placa (8 car.) + " · " + 2 letras + "…" = 14ch; + padding e seta do select */
+        #vehicleSelect { min-width: calc(14ch + 2.25rem); max-width: 11.5rem; text-overflow: ellipsis; }
         @media (max-width: 420px) {
             header { padding-left: 0.75rem; padding-right: 0.75rem; }
-            /* Esconde subtitulo, icone do app e texto do botao PRO; selo LITE/PRO sempre visivel */
-            #appSubHeader, #appHeaderIcon, #btnUpgradePro span { display: none; }
+            #appHeaderIcon, #btnUpgradePro span { display: none; }
             header h1 { font-size: 0.875rem; }
             #appBadge { font-size: 0.75rem; padding: 0.125rem 0.25rem; }
             #btnUpgradePro { padding: 0.375rem 0.5rem; }
-            header > div:first-child { flex-shrink: 0; }
-            header > div:last-child { gap: 0.375rem; min-width: 0; flex: 1 1 auto; justify-content: flex-end; }
-            header > div:last-child > div:first-child { min-width: 0; flex: 0 1 auto; }
-            #vehicleSelect { max-width: 112px; min-width: 88px; text-overflow: ellipsis; }
+            header > div:last-child { gap: 0.375rem; }
+            #vehicleSelect { max-width: 9.5rem; }
         }
     </style>
 </head>
@@ -154,7 +160,7 @@
             <div class="flex items-center gap-2.5">
                 <img id="appHeaderIcon" src="icons/icon-192.png" alt="" width="32" height="32" class="w-8 h-8 rounded-xl shadow-lg shadow-emerald-500/20">
                 <div>
-                    <h1 class="text-base font-bold tracking-tight text-stone-900 dark:text-white leading-tight">Fuel Tracker <span id="appBadge" class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold">LITE</span></h1>
+                    <h1 class="text-base font-bold tracking-tight text-stone-900 dark:text-white leading-tight"><span id="appTitleText">Fuel Tracker</span> <span id="appBadge" class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold">LITE</span></h1>
                     <p id="appSubHeader" class="text-xs text-stone-500 dark:text-slate-400 font-medium">Gestão Inteligente & Métricas</p>
                 </div>
             </div>
@@ -162,7 +168,7 @@
             <div class="flex items-center gap-2">
                 <!-- Gestão de Veículos (Frota) -->
                 <div class="flex items-center gap-1.5">
-                    <select id="vehicleSelect" onchange="FuelTrackerApp.switchVehicle(this.value)" aria-label="Selecionar veículo" class="max-w-[140px] sm:max-w-[180px] bg-stone-200/70 dark:bg-slate-800 border border-stone-300/80 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-stone-700 dark:text-slate-200 hover:bg-stone-300/70 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition truncate"></select>
+                    <select id="vehicleSelect" onchange="FuelTrackerApp.switchVehicle(this.value)" aria-label="Selecionar veículo" class="bg-stone-200/70 dark:bg-slate-800 border border-stone-300/80 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-stone-700 dark:text-slate-200 hover:bg-stone-300/70 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition truncate"></select>
                 </div>
 
                 <!-- Botão Fixo de Upgrade PRO -->
