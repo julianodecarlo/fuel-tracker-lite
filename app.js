@@ -670,7 +670,7 @@ const FuelTrackerApp = (() => {
         const f = TEXT_SCALES[k];
         document.documentElement.style.fontSize = (f * 100) + '%';
         document.documentElement.style.setProperty('--ts', String(f));
-        document.querySelectorAll('.ts-opt').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ts === k)));
+        document.querySelectorAll('.ts-opt').forEach(b => b.setAttribute('aria-checked', String(b.dataset.ts === k)));
         return k;
     }
 
