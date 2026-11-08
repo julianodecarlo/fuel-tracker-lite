@@ -278,24 +278,25 @@ function grabFn(app, start) { const i = app.indexOf(start); assert.ok(i >= 0, 't
 
 function loadVehicles(pro, initial) {
     const app = appSrc();
-    const src = [app.match(/const VEHICLE_PRO_MESSAGE = .*;/)[0], 'function openVehicleModal()', 'function editVehicle(', 'function requestEditVehicle(', 'function deleteVehicle(', 'function saveVehicle(']
+    const src = [app.match(/const VEHICLE_PRO_MESSAGE = .*;/)[0], 'function syncVehicleFormMode()', 'function openVehicleModal()', 'function editVehicle(', 'function cancelVehicleEdit()', 'function requestEditVehicle(', 'function deleteVehicle(', 'function saveVehicle(']
         .map(s => grabFn(app, s)).join('\n');
     const els = {};
-    const el = (id) => els[id] || (els[id] = { value: '', textContent: '', classList: { toggle() {}, add() {}, remove() {} } });
-    const st = { pro, vehicles: initial.map(v => ({ ...v })), saved: 0, blocked: [], errors: [], toasts: [], els };
+    const el = (id) => els[id] || (els[id] = { value: '', textContent: '', hidden: false, classList: { toggle(c, f) { if (c === 'hidden') els[id].hidden = !!f; }, add() {}, remove() {} } });
+    const st = { pro, vehicles: initial.map(v => ({ ...v })), saved: 0, blocked: [], errors: [], toasts: [], hidden: [], upgrade: 0, els };
     const sandbox = {
         document: { getElementById: el },
-        isProPlan: () => st.pro, renderVehicleList() {}, showModal() {}, hideModal() {}, clearInlineError() {},
+        isProPlan: () => st.pro, renderVehicleList() {}, showModal() {}, hideModal: (id) => st.hidden.push(id), openUpgradeModal: () => { st.upgrade++; }, clearInlineError() {},
         showInlineError: (id, msg) => st.errors.push(msg), blockLiteFeature: (m) => st.blocked.push(m),
         showToast: (m) => st.toasts.push(m), normalizePlate: (p) => p, isValidPlate: () => true,
         saveVehicles: () => { st.saved++; return true; }, saveActiveVehicle() {}, renderVehicleSelector() {}, recalculateMetricsAndRender() {},
-        loadRecords() {}, loadTireConfig() {}, loadRevisionConfig() {}, resetForm() {}, closeVehicleModal() {},
+        loadRecords() {}, loadTireConfig() {}, loadRevisionConfig() {}, resetForm() {}, closeVehicleModal: () => st.hidden.push('vehicleModal'),
         confirm: () => true, localStorage: { removeItem() {} }, VEHICLE_SCOPED_KEYS: [], getVehicleScopedKey: (k, id) => k + id,
         getActiveVehicle: () => st.vehicles.find(v => v.id === st.activeVehicleId)
     };
-    ['vehicleNameInput', 'vehiclePlateInput', 'vehicleEditId'].forEach(el);
+    ['vehicleNameInput', 'vehiclePlateInput', 'vehicleEditId', 'vehicleSubmitBtn', 'vehicleFields', 'vehicleCancelEditBtn'].forEach(el);
     el('vehicleForm').reset = () => { ['vehicleNameInput', 'vehiclePlateInput', 'vehicleEditId'].forEach(i => { el(i).value = ''; }); };
-    const api = require('vm').runInNewContext('var vehicles, activeVehicleId;' + src + '; ({ openVehicleModal, requestEditVehicle, deleteVehicle, saveVehicle, set(v, a) { vehicles = v; activeVehicleId = a; }, get() { return vehicles; } })', sandbox);
+    el('vehicleForm').scrollIntoView = (o) => { st.scroll = o; };
+    const api = require('vm').runInNewContext('var vehicles, activeVehicleId;' + src + '; ({ openVehicleModal, editVehicle, cancelVehicleEdit, requestEditVehicle, deleteVehicle, saveVehicle, set(v, a) { vehicles = v; activeVehicleId = a; }, get() { return vehicles; } })', sandbox);
     api.set(st.vehicles, initial[0].id);
     st.api = api;
     return st;
@@ -306,42 +307,82 @@ const submit = (st, name, plate, editId) => {
     st.api.saveVehicle({ preventDefault() {} });
 };
 
-test('veículos Lite: abre a gestão e preenche o veículo ativo; PRO abre o formulário vazio', () => {
+test('veículos: estado inicial mostra "+ Veículo", sem pré-preencher o ativo (Lite e PRO)', () => {
+    for (const pro of [false, true]) {
+        const l = loadVehicles(pro, V2);
+        l.api.openVehicleModal();
+        assert.strictEqual(l.els.vehicleSubmitBtn.textContent, '+ Veículo');
+        assert.strictEqual(l.els.vehicleNameInput.value, '');
+        assert.strictEqual(l.els.vehicleEditId.value, '');
+        assert.strictEqual(l.els.vehicleCancelEditBtn.hidden, true);
+        assert.deepStrictEqual(l.blocked, []);
+    }
+});
+
+test('veículos: Lite oculta os campos no estado A e mostra no B; PRO sempre mostra', () => {
     const l = loadVehicles(false, V2.slice(0, 1));
     l.api.openVehicleModal();
-    assert.strictEqual(l.els.vehicleNameInput.value, 'Gol');
-    assert.strictEqual(l.els.vehiclePlateInput.value, 'ABC-1234');
-    assert.strictEqual(l.els.vehicleEditId.value, 'v1');
-    assert.deepStrictEqual(l.blocked, []);
+    assert.strictEqual(l.els.vehicleFields.hidden, true);
+    l.api.requestEditVehicle('v1');
+    assert.strictEqual(l.els.vehicleFields.hidden, false);
     const p = loadVehicles(true, V2);
     p.api.openVehicleModal();
-    assert.strictEqual(p.els.vehicleNameInput.value, '');
-    assert.strictEqual(p.els.vehicleEditId.value, '');
+    assert.strictEqual(p.els.vehicleFields.hidden, false);
 });
 
-test('veículos Lite: salva edição do veículo ativo', () => {
+test('veículos Lite: "+ Veículo" fecha a gestão e abre a assinatura, sem validar nem gravar', () => {
     const l = loadVehicles(false, V2.slice(0, 1));
+    l.api.openVehicleModal();
+    submit(l, '', '', '');
+    assert.deepStrictEqual(l.hidden, ['vehicleModal']);
+    assert.strictEqual(l.upgrade, 1);
+    assert.strictEqual(l.saved, 0);
+    assert.deepStrictEqual(l.toasts, []);
+    assert.deepStrictEqual(l.blocked, []);
+    assert.deepStrictEqual(l.errors, []);
+    assert.deepStrictEqual(l.api.get().map(v => v.name), ['Gol']);
+});
+
+test('veículos: lápis vira "Salvar edição" + "Cancelar edição" (rola sem focar); cancelar volta ao estado A', () => {
+    const l = loadVehicles(false, V2.slice(0, 1));
+    l.api.openVehicleModal();
+    l.api.requestEditVehicle('v1');
+    assert.strictEqual(l.els.vehicleSubmitBtn.textContent, 'Salvar edição');
+    assert.strictEqual(l.els.vehicleCancelEditBtn.hidden, false);
+    assert.strictEqual(l.els.vehicleNameInput.value, 'Gol');
+    assert.strictEqual(l.scroll.block, 'nearest');
+    l.api.cancelVehicleEdit();
+    assert.strictEqual(l.els.vehicleSubmitBtn.textContent, '+ Veículo');
+    assert.strictEqual(l.els.vehicleCancelEditBtn.hidden, true);
+    assert.strictEqual(l.els.vehicleEditId.value, '');
+    assert.strictEqual(l.els.vehicleNameInput.value, '');
+    assert.strictEqual(l.els.vehicleFields.hidden, true, 'Lite oculta de novo');
+    assert.strictEqual(l.saved, 0);
+    const p = loadVehicles(true, V2);
+    p.api.openVehicleModal(); p.api.requestEditVehicle('v2'); p.api.cancelVehicleEdit();
+    assert.strictEqual(p.els.vehicleFields.hidden, false);
+    assert.strictEqual(p.els.vehicleSubmitBtn.textContent, '+ Veículo');
+});
+
+test('veículos Lite: edita e salva o ativo; editar outro é bloqueado', () => {
+    const l = loadVehicles(false, V2);
+    l.api.openVehicleModal();
+    l.api.requestEditVehicle('v1');
     submit(l, 'Carro da família', 'XYZ-9876', 'v1');
     assert.strictEqual(l.saved, 1);
-    assert.deepStrictEqual(l.api.get().map(v => [v.id, v.name, v.plate]), [['v1', 'Carro da família', 'XYZ-9876']]);
-    assert.deepStrictEqual(l.blocked, []);
-});
-
-test('veículos Lite: cadastrar novo ou editar outro é bloqueado e nada é gravado', () => {
-    const l = loadVehicles(false, V2);
-    submit(l, 'Novo', 'NOV-0001', '');
-    submit(l, 'Outro', 'OUT-0002', 'v2');
-    assert.strictEqual(l.saved, 0);
-    assert.strictEqual(l.blocked.length, 2);
-    assert.strictEqual(l.blocked[0], 'Cadastrar mais veículos é exclusivo do plano PRO.');
-    assert.deepStrictEqual(l.api.get().map(v => v.name), ['Gol', 'Uno']);
+    assert.deepStrictEqual(l.api.get().map(v => [v.id, v.name, v.plate]), [['v1', 'Carro da família', 'XYZ-9876'], ['v2', 'Uno', 'DEF-5678']]);
+    assert.deepStrictEqual(l.hidden, ['vehicleModal']);
+    assert.strictEqual(l.els.vehicleSubmitBtn.textContent, '+ Veículo');
     l.api.requestEditVehicle('v2');
-    assert.strictEqual(l.blocked.length, 3);
-    l.api.requestEditVehicle('v1');
-    assert.strictEqual(l.els.vehicleNameInput.value, 'Gol');
+    assert.deepStrictEqual(l.blocked, ['Cadastrar mais veículos é exclusivo do plano PRO.']);
+    assert.strictEqual(l.els.vehicleEditId.value, '');
+    submit(l, 'Outro', 'OUT-0002', 'v2');
+    assert.strictEqual(l.blocked.length, 2);
+    assert.strictEqual(l.saved, 1);
+    assert.deepStrictEqual(l.api.get().map(v => v.name), ['Carro da família', 'Uno']);
 });
 
-test('veículos Lite: nome obrigatório com a nova mensagem; não exclui (ex-PRO não perde nada)', () => {
+test('veículos Lite: nome obrigatório na edição; não exclui (ex-PRO não perde nada)', () => {
     const l = loadVehicles(false, V2.slice(0, 1));
     submit(l, '  ', 'ABC-1234', 'v1');
     assert.deepStrictEqual(l.errors, ['Informe o nome ou apelido do veículo.']);
@@ -358,19 +399,43 @@ test('veículos PRO: cadastra, edita e exclui como antes', () => {
     submit(p, 'Uno', 'DEF-5678', '');
     assert.strictEqual(p.api.get().length, 2);
     const novo = p.api.get()[1].id;
+    p.api.requestEditVehicle(novo);
     submit(p, 'Uno Mille', 'DEF-5678', novo);
     assert.strictEqual(p.api.get()[1].name, 'Uno Mille');
+    submit(p, '', 'DEF-5678', '');
+    assert.deepStrictEqual(p.errors, ['Informe o nome ou apelido do veículo.']);
     p.api.deleteVehicle(novo);
     assert.strictEqual(p.api.get().length, 1);
     p.api.deleteVehicle('v1');
     assert.strictEqual(p.api.get().length, 1, 'não exclui o único');
     assert.deepStrictEqual(p.blocked, []);
+    assert.strictEqual(p.upgrade, 0);
 });
 
-test('veículos: modal com aviso do Lite e rótulo "Nome ou apelido"', () => {
+test('veículos: modal com aviso do Lite, rótulo, botões e alvo de toque >= 48px', () => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     assert.ok(/id="vehicleLiteNote"[^>]*>Plano Lite: 1 veículo\. Para cadastrar mais, assine o PRO\.</.test(html));
     assert.ok(/>Nome ou apelido</.test(html));
+    assert.ok(/id="vehicleSubmitBtn"[^>]*>\s*\+ Veículo\s*</.test(html));
+    assert.ok(/id="vehicleCancelEditBtn"[^>]*min-height:48px[^>]*>Cancelar edição</.test(html));
+    assert.ok(/id="vehicleFields"/.test(html));
+});
+
+test('texto visível: sem "clique/clicar/clicando" em index.html e app.js (ignora onclick e comentários)', () => {
+    const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '').split('\n').map(l => l.replace(/\s\/\/.*$/, '')).join('\n')
+        .replace(/onclick="[^"]*"/g, '');
+    for (const f of ['index.html', 'app.js']) {
+        const t = strip(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
+        assert.ok(!/\bcliqu\w*|\bclicar\b|\bclicand\w*|\bclicad\w*/i.test(t), f);
+    }
+});
+
+test('acessibilidade: nenhum texto abaixo de 12px (classes e style)', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const bad = /text-\[(\d+(?:\.\d+)?)px\]|font-size:\s*(\d+(?:\.\d+)?)px/g;
+    for (const [name, t] of [['index.html', html], ['app.js', appSrc()]]) {
+        for (const m of t.matchAll(bad)) assert.ok(!(parseFloat(m[1] || m[2]) < 12), name + ': ' + m[0]);
+    }
 });
 
 test('manual v3: sem busca; grupos em <div data-group>; texto fixo no topo', () => {
@@ -409,7 +474,8 @@ test('manual v3: Excel cita .xlsx; "Como funciona:"; dica de Aparência; Veícul
         assert.ok(x.includes('Como funciona:') && !x.includes('Como usar:'), n);
     }
     assert.ok(t.find(x => x.title === 'Aparência').text.includes('Use o tema mais confortável para o seu ambiente.'));
-    assert.ok(/Lite e PRO[\s\S]*1 veículo/.test(t.find(x => x.title === 'Veículos').text));
+    const v = t.find(x => x.title === 'Veículos').text;
+    assert.ok(v.includes('Salvar edição') && v.includes('Cancelar edição') && v.includes('+ Veículo') && v.includes('Como funciona:') && v.includes('Dica:'));
 });
 
 (async () => {

@@ -1166,10 +1166,10 @@ const FuelTrackerApp = (() => {
                     <span class="text-xs text-stone-500 dark:text-slate-400">${v.plate ? escapeHtml(v.plate) : 'Sem placa'}</span>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
-                    <button type="button" data-action="edit-vehicle" data-id="${escapeHtml(v.id)}" aria-label="Editar veículo" class="w-7 h-7 rounded-lg bg-stone-200 dark:bg-slate-800 text-sky-600 dark:text-sky-400 hover:bg-stone-300 dark:hover:bg-slate-700 transition flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-sky-500">
+                    <button type="button" data-action="edit-vehicle" data-id="${escapeHtml(v.id)}" aria-label="Editar veículo" class="w-12 h-12 rounded-lg bg-stone-200 dark:bg-slate-800 text-sky-600 dark:text-sky-400 hover:bg-stone-300 dark:hover:bg-slate-700 transition flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-sky-500">
                         <i class="fa-solid fa-pen text-xs" aria-hidden="true"></i>
                     </button>
-                    <button type="button" data-action="delete-vehicle" data-id="${escapeHtml(v.id)}" aria-label="Excluir veículo" class="w-7 h-7 rounded-lg bg-stone-200 dark:bg-slate-800 text-rose-600 dark:text-rose-400 hover:bg-stone-300 dark:hover:bg-slate-700 transition flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-rose-500">
+                    <button type="button" data-action="delete-vehicle" data-id="${escapeHtml(v.id)}" aria-label="Excluir veículo" class="w-12 h-12 rounded-lg bg-stone-200 dark:bg-slate-800 text-rose-600 dark:text-rose-400 hover:bg-stone-300 dark:hover:bg-slate-700 transition flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-rose-500">
                         <i class="fa-solid fa-trash-can text-xs" aria-hidden="true"></i>
                     </button>
                 </div>
@@ -1189,6 +1189,18 @@ const FuelTrackerApp = (() => {
         showToast(`Veículo selecionado: ${getActiveVehicle().name}`, 'fa-car', 'text-emerald-500');
     }
 
+    // Único ponto que ajusta o formulário: estado A (sem editId) ou B (edição); Lite no estado A oculta os campos
+    function syncVehicleFormMode() {
+        const pro = isProPlan();
+        const editing = !!document.getElementById('vehicleEditId').value;
+        const btn = document.getElementById('vehicleSubmitBtn');
+        if (btn) btn.textContent = editing ? 'Salvar edição' : '+ Veículo';
+        const fields = document.getElementById('vehicleFields');
+        if (fields) fields.classList.toggle('hidden', !pro && !editing);
+        const cancel = document.getElementById('vehicleCancelEditBtn');
+        if (cancel) cancel.classList.toggle('hidden', !editing);
+    }
+
     function openVehicleModal() {
         const pro = isProPlan();
         document.getElementById('vehicleForm').reset();
@@ -1197,9 +1209,7 @@ const FuelTrackerApp = (() => {
         renderVehicleList();
         const note = document.getElementById('vehicleLiteNote');
         if (note) note.classList.toggle('hidden', pro);
-        const btn = document.getElementById('vehicleSubmitBtn');
-        if (btn) btn.textContent = pro ? 'Cadastrar Veículo' : 'Salvar Veículo';
-        if (!pro) editVehicle(activeVehicleId); // Lite: já abre com o veículo ativo para editar nome/placa
+        syncVehicleFormMode();
         showModal('vehicleModal');
     }
 
@@ -1213,6 +1223,17 @@ const FuelTrackerApp = (() => {
         document.getElementById('vehicleNameInput').value = vehicle.name;
         document.getElementById('vehiclePlateInput').value = vehicle.plate || '';
         document.getElementById('vehicleEditId').value = vehicle.id;
+        clearInlineError('vehicleFormError');
+        syncVehicleFormMode();
+        const form = document.getElementById('vehicleForm');
+        if (form && form.scrollIntoView) form.scrollIntoView({ block: 'nearest' }); // sem focar: não abre o teclado
+    }
+
+    function cancelVehicleEdit() {
+        document.getElementById('vehicleForm').reset();
+        document.getElementById('vehicleEditId').value = '';
+        clearInlineError('vehicleFormError');
+        syncVehicleFormMode();
     }
 
     const VEHICLE_PRO_MESSAGE = 'Cadastrar mais veículos é exclusivo do plano PRO.';
@@ -1271,10 +1292,16 @@ const FuelTrackerApp = (() => {
         const name = document.getElementById('vehicleNameInput').value.trim();
         const plate = normalizePlate(document.getElementById('vehiclePlateInput').value.trim().toUpperCase());
         const editId = document.getElementById('vehicleEditId').value;
-        // Lite: só atualiza o veículo ativo; cadastrar novo ou editar outro é PRO
-        if (!isProPlan() && editId !== activeVehicleId) {
-            blockLiteFeature(VEHICLE_PRO_MESSAGE);
-            return;
+        if (!isProPlan()) {
+            if (!editId) { // Lite, estado A: "+ Veículo" leva à assinatura, antes de qualquer validação
+                hideModal('vehicleModal');
+                openUpgradeModal();
+                return;
+            }
+            if (editId !== activeVehicleId) {
+                blockLiteFeature(VEHICLE_PRO_MESSAGE);
+                return;
+            }
         }
 
         clearInlineError('vehicleFormError');
@@ -1311,6 +1338,7 @@ const FuelTrackerApp = (() => {
 
         document.getElementById('vehicleEditId').value = '';
         document.getElementById('vehicleForm').reset();
+        syncVehicleFormMode();
         closeVehicleModal();
     }
 
@@ -2724,6 +2752,8 @@ const FuelTrackerApp = (() => {
         switchVehicle,
         openVehicleModal,
         closeVehicleModal,
+        cancelVehicleEdit,
+        syncVehicleFormMode,
         saveVehicle,
         renderVehicleList,
         editVehicle,
