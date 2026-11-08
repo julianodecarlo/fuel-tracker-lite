@@ -117,6 +117,24 @@ test('acessibilidade: nenhum texto abaixo de 12px (9/10/11px) em index.html e ap
     }
 });
 
+test('verdes: .text-etanol e .text-verde-suave existem e diferem (claro e escuro)', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    assert.ok(/\.text-etanol\s*\{\s*color:\s*var\(--verde-etanol\)/.test(html), 'falta .text-etanol');
+    assert.ok(/\.text-verde-suave\s*\{\s*color:\s*var\(--verde-suave\)/.test(html), 'falta .text-verde-suave');
+    const get = (re, n) => { const m = html.match(re); assert.ok(m, 'variavel ausente: ' + n); return m[1].toLowerCase(); };
+    const lE = get(/:root\s*\{[^}]*--verde-etanol:\s*(#[0-9a-f]{6})/i, 'etanol claro');
+    const lS = get(/:root\s*\{[^}]*--verde-suave:\s*(#[0-9a-f]{6})/i, 'suave claro');
+    const dE = get(/html\.dark\s*\{[^}]*--verde-etanol:\s*(#[0-9a-f]{6})/i, 'etanol escuro');
+    const dS = get(/html\.dark\s*\{[^}]*--verde-suave:\s*(#[0-9a-f]{6})/i, 'suave escuro');
+    assert.notStrictEqual(lE, lS);
+    assert.notStrictEqual(dE, dS);
+    // contraste WCAG do verde suave >= 4.5:1 nos fundos mais claros/escuros usados
+    const L = h => { const c = [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const cr = (a, b) => { const x = L(a), y = L(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    for (const bg of ['#fbf8f3', '#efe8db', '#e7e0d2']) assert.ok(cr(lS, bg) >= 4.5, 'claro ' + bg);
+    for (const bg of ['#0f172a', '#1e293b']) assert.ok(cr(dS, bg) >= 4.5, 'escuro ' + bg);
+});
+
 (async () => {
     let failed = 0;
     for (const [name, fn] of tests) {

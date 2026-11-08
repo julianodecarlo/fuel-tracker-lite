@@ -1116,7 +1116,7 @@ const FuelTrackerApp = (() => {
                 <div class="min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <span class="font-bold text-stone-900 dark:text-white truncate">${escapeHtml(v.name)}</span>
-                        ${isActive ? '<span class="text-xs uppercase font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded">Ativo</span>' : ''}
+                        ${isActive ? '<span class="text-xs uppercase font-bold text-verde-suave bg-emerald-500/20 px-1.5 py-0.5 rounded">Ativo</span>' : ''}
                     </div>
                     <span class="text-xs text-stone-500 dark:text-slate-400">${v.plate ? escapeHtml(v.plate) : 'Sem placa'}</span>
                 </div>
@@ -1386,7 +1386,7 @@ const FuelTrackerApp = (() => {
         if (btn) btn.disabled = !select.value;
         if (select.value === NEW_VEHICLE_OPTION) {
             note.textContent = `Será criado o veículo "${newVehicleDraft(pendingImport).name}" com ${plural(n)}. Seus veículos e dados atuais não serão alterados.`;
-            note.className = 'text-xs font-semibold text-emerald-700 dark:text-emerald-400';
+            note.className = 'text-xs font-semibold text-verde-suave';
             return;
         }
         const v = vehicles.find(x => x.id === select.value);
@@ -1859,8 +1859,8 @@ const FuelTrackerApp = (() => {
         const maxEtanolPrice = pG * fator;
 
         if (ratio <= fator) {
-            resEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 font-extrabold"><i class="fa-solid fa-leaf mr-1"></i> Abasteça com ETANOL!</span> (Razão: ${(ratio * 100).toFixed(1)}% - Máx ideal: R$ ${formatDecimalTwoDigits(maxEtanolPrice)})`;
-            resEl.className = "text-center p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-700 dark:text-emerald-300";
+            resEl.innerHTML = `<span class="text-etanol font-extrabold"><i class="fa-solid fa-leaf mr-1"></i> Abasteça com ETANOL!</span> (Razão: ${(ratio * 100).toFixed(1)}% - Máx ideal: R$ ${formatDecimalTwoDigits(maxEtanolPrice)})`;
+            resEl.className = "text-center p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-etanol";
         } else {
             resEl.innerHTML = `<span class="text-orange-600 dark:text-orange-400 font-extrabold"><i class="fa-solid fa-fire mr-1"></i> Abasteça com GASOLINA!</span> (Razão: ${(ratio * 100).toFixed(1)}% - Etanol valeria até: R$ ${formatDecimalTwoDigits(maxEtanolPrice)})`;
             resEl.className = "text-center p-2 rounded-xl bg-orange-500/10 border border-orange-500/30 text-xs font-semibold text-orange-700 dark:text-orange-300";
@@ -2000,7 +2000,7 @@ const FuelTrackerApp = (() => {
                 fuelTag = '<span class="text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1"><i class="fa-solid fa-shuffle" aria-hidden="true"></i>Misto</span>';
                 litersInfo = `${formatDecimalTwoDigits(litersA)} L Etanol + ${formatDecimalTwoDigits(litersG)} L Gasolina`;
             } else if (r.valorA > 0) {
-                fuelTag = '<span class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><i class="fa-solid fa-leaf" aria-hidden="true"></i>Etanol</span>';
+                fuelTag = '<span class="text-etanol font-bold flex items-center gap-1"><i class="fa-solid fa-leaf" aria-hidden="true"></i>Etanol</span>';
                 litersInfo = `${formatDecimalTwoDigits(litersA)} L`;
             } else {
                 fuelTag = '<span class="text-orange-500 font-bold flex items-center gap-1"><i class="fa-solid fa-fire" aria-hidden="true"></i>Gasolina</span>';
@@ -2008,7 +2008,7 @@ const FuelTrackerApp = (() => {
             }
 
             const tankTag = r.fullTank 
-                ? '<span class="text-emerald-600 dark:text-emerald-400 font-medium">(Tanque Cheio)</span>' 
+                ? '<span class="text-verde-suave font-medium">(Tanque Cheio)</span>' 
                 : '<span class="text-amber-600 dark:text-amber-400 font-medium">(Parcial)</span>';
 
             return `
@@ -2026,7 +2026,7 @@ const FuelTrackerApp = (() => {
                         </div>
                     </div>
                     <div class="text-right flex flex-col items-end gap-0.5">
-                        <div class="font-black text-emerald-600 dark:text-emerald-400">R$ ${formatDecimalTwoDigits(total)}</div>
+                        <div class="font-black text-verde-suave">R$ ${formatDecimalTwoDigits(total)}</div>
                         ${r.kmlText ? `<div class="text-xs font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 dark:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/40">${r.kmlText}</div>` : ''}
                         <div class="flex items-center gap-1 mt-1">
                             <button onclick="FuelTrackerApp.editRecord(${r.recordIndex})" class="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 flex items-center justify-center transition" title="Editar" aria-label="Editar registro">
@@ -2085,12 +2085,12 @@ const FuelTrackerApp = (() => {
             const litersG = r.precoG > 0 ? (r.valorG / r.precoG) : 0;
 
             let fuelDetails = [];
-            if (r.valorA > 0) fuelDetails.push('<i class="fa-solid fa-leaf text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i> Etanol: R$ ' + formatDecimalTwoDigits(r.valorA) + ' (' + (r.precoA > 0 ? 'R$ ' + formatDecimalTwoDigits(r.precoA) + '/L • ' + formatDecimalTwoDigits(litersA) + ' L' : '') + ')');
+            if (r.valorA > 0) fuelDetails.push('<i class="fa-solid fa-leaf text-etanol" aria-hidden="true"></i> Etanol: R$ ' + formatDecimalTwoDigits(r.valorA) + ' (' + (r.precoA > 0 ? 'R$ ' + formatDecimalTwoDigits(r.precoA) + '/L • ' + formatDecimalTwoDigits(litersA) + ' L' : '') + ')');
             if (r.valorG > 0) fuelDetails.push('<i class="fa-solid fa-fire text-orange-500" aria-hidden="true"></i> Gasolina: R$ ' + formatDecimalTwoDigits(r.valorG) + ' (' + (r.precoG > 0 ? 'R$ ' + formatDecimalTwoDigits(r.precoG) + '/L • ' + formatDecimalTwoDigits(litersG) + ' L' : '') + ')');
             if (r.valorA > 0 && r.valorG > 0) fuelDetails.push('<i class="fa-solid fa-shuffle text-purple-600 dark:text-purple-400" aria-hidden="true"></i> Misto');
 
             const tankBadge = r.fullTank 
-                ? '<span class="text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">Tanque Cheio</span>'
+                ? '<span class="text-xs font-medium bg-emerald-500/10 text-verde-suave border border-emerald-500/20 px-1.5 py-0.5 rounded">Tanque Cheio</span>'
                 : '<span class="text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded">Parcial</span>';
 
             return `
@@ -2116,7 +2116,7 @@ const FuelTrackerApp = (() => {
                         <div class="text-stone-600 dark:text-slate-300">
                             ${fuelDetails.join(' | ')}
                         </div>
-                        <div class="font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                        <div class="font-black text-verde-suave text-sm">
                             R$ ${formatDecimalTwoDigits(total)}
                         </div>
                     </div>
@@ -2395,7 +2395,7 @@ const FuelTrackerApp = (() => {
                 alertMessages.push(`CNH vence em ${cnhEval.diffDays} dias`);
             } else {
                 cnhDaysBadge.innerText = `${cnhEval.diffDays} dias`;
-                cnhDaysBadge.className = 'font-black text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+                cnhDaysBadge.className = 'font-black text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-verde-suave border border-emerald-500/30';
             }
         } else {
             cnhDateText.innerText = 'Data não cadastrada';
@@ -2420,7 +2420,7 @@ const FuelTrackerApp = (() => {
                 alertMessages.push(`Toxicológico vence em ${toxicEval.diffDays} dias`);
             } else {
                 toxicDaysBadge.innerText = `${toxicEval.diffDays} dias`;
-                toxicDaysBadge.className = 'font-black text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+                toxicDaysBadge.className = 'font-black text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-verde-suave border border-emerald-500/30';
             }
         } else {
             toxicCard.classList.add('hidden');
