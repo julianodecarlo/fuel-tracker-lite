@@ -118,6 +118,7 @@
         .fator-chip { text-align: center; white-space: nowrap; line-height: 1.1; }
         .fator-valor { font-size: 1.25rem; line-height: 1.2; }
         /* Rodape: estado do backup (vermelho + negrito quando atrasado; contraste >= 4.5:1 nos dois temas) */
+        .backup-footer { white-space: nowrap; }
         .backup-dot { background: #10b981; flex-shrink: 0; }
         .backup-dot.backup-dot-late { background: #b91c1c; }
         .backup-text.backup-late { color: #b91c1c; font-weight: 700; }
@@ -133,7 +134,7 @@
         header h1, #btnUpgradePro, #pwaInstallBtn { white-space: nowrap; }
         header h1 { display: flex; align-items: center; gap: 0.25rem; min-width: 0; }
         #appTitleText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-        #appBadge { flex-shrink: 0; }
+        #appBadge { flex-shrink: 0; margin-left: 0.125rem; vertical-align: middle; }
         header > div { min-width: 0; }
         header > div:first-child { flex: 1 1 0%; }
         header > div:first-child > div { min-width: 0; }
@@ -142,15 +143,16 @@
         header > div:last-child { flex: 0 0 auto; }
         header > div:last-child > div:first-child { flex: 0 0 auto; }
         /* placa (8 car.) + " · " + 2 letras + "…" = 14ch; + padding e seta do select */
-        #vehicleSelect { min-width: calc(14ch + 2.25rem); max-width: 11.5rem; text-overflow: ellipsis; }
+        .nw { white-space: nowrap; }
+        #vehicleSelect { width: calc(14ch + 1.75rem); min-width: calc(14ch + 1.75rem); padding-left: 0.375rem; padding-right: 0.125rem; max-width: 11.5rem; text-overflow: ellipsis; }
         @media (max-width: 420px) {
-            header { padding-left: 0.75rem; padding-right: 0.75rem; }
+            header { padding-left: 0.5rem; padding-right: 0.5rem; }
             #appHeaderIcon, #btnUpgradePro span { display: none; }
             header h1 { font-size: 0.875rem; }
+            #btnSettingsMenu { width: 2rem; }
             #appBadge { font-size: 0.75rem; padding: 0.125rem 0.25rem; }
-            #btnUpgradePro { padding: 0.375rem 0.5rem; }
-            header > div:last-child { gap: 0.375rem; }
-            #vehicleSelect { max-width: 9.5rem; }
+            #btnUpgradePro { padding: 0.375rem 0.4rem; }
+            header > div:last-child { gap: 0.25rem; }
         }
     </style>
 </head>
@@ -173,8 +175,8 @@
             <div class="flex items-center gap-2.5">
                 <img id="appHeaderIcon" src="icons/icon-192.png" alt="" width="32" height="32" class="w-8 h-8 rounded-xl shadow-lg shadow-emerald-500/20">
                 <div>
-                    <h1 class="text-base font-bold tracking-tight text-stone-900 dark:text-white leading-tight"><span id="appTitleText">Fuel Tracker</span> <span id="appBadge" class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold">LITE</span></h1>
-                    <p id="appSubHeader" class="text-xs text-stone-500 dark:text-slate-400 font-medium">Gestão Inteligente & Métricas</p>
+                    <h1 class="text-base font-bold tracking-tight text-stone-900 dark:text-white leading-tight"><span id="appTitleText">Fuel Tracker</span></h1>
+                    <p id="appSubHeader" class="text-xs text-stone-500 dark:text-slate-400 font-medium"><span class="nw">Gestão Inteligente</span> <span class="nw">& Métricas <span id="appBadge" class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold">LITE</span></span></p>
                 </div>
             </div>
             
@@ -631,7 +633,7 @@
             </div>
         </main>
 
-        <footer class="ts-cap py-2.5 px-5 bg-[#f5f0e6] dark:bg-slate-900 border-t border-stone-300/60 dark:border-slate-800 flex items-center justify-between text-xs text-stone-500 dark:text-slate-400 transition-colors whitespace-nowrap">
+        <footer class="ts-cap py-2.5 px-5 bg-[#f5f0e6] dark:bg-slate-900 border-t border-stone-300/60 dark:border-slate-800 flex items-center justify-between text-xs text-stone-500 dark:text-slate-400 transition-colors backup-footer">
             <span class="flex items-center gap-1.5">
                 <span id="storagePulse" class="backup-dot w-2 h-2 rounded-full animate-pulse" aria-hidden="true"></span>
                 <span id="backupStatus" class="backup-text">Sem backup</span>
