@@ -199,10 +199,10 @@ test('manual v2: CSS sem borda nos tópicos, .manual-body com padding-top >= 8px
     assert.ok(/\.manual-sum\s*\{[^}]*min-height:\s*48px/.test(html));
 });
 
-test('manual v2: scrollIntoView ao abrir tópico, sem rolar quando a abertura vem da busca', () => {
+test('manual v3: scrollIntoView ao abrir tópico; sem busca', () => {
     const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
     assert.ok(/scrollIntoView\(\{\s*block:\s*'start'/.test(app) && /prefers-reduced-motion/.test(app));
-    assert.ok(/autoToggle/.test(app));
+    assert.ok(!/autoToggle|filterManual|normalizeSearchText/.test(app));
 });
 
 test('manual: menciona Lite e PRO', () => {
@@ -214,12 +214,6 @@ test('manual: sem termos proibidos nem preço', () => {
     const m = manualHtml();
     assert.ok(!/teste interno|beta|alpha|testador|trial|github/i.test(m), 'termo proibido: ' + m.match(/teste interno|beta|alpha|testador|trial|github/i));
     assert.ok(!m.includes('R$'), 'preço em reais');
-});
-
-test('normalizeSearchText: acentos, maiúsculas e espaços', () => {
-    assert.strictEqual(FuelCore.normalizeSearchText('Decisão'), 'decisao');
-    assert.strictEqual(FuelCore.normalizeSearchText('  ANÁLISE  (PRO) '), 'analise (pro)');
-    assert.strictEqual(FuelCore.normalizeSearchText(null), '');
 });
 
 test('verdes: .text-etanol e .text-verde-suave existem e diferem (claro e escuro)', () => {
@@ -276,6 +270,146 @@ test('rodapé: "Base Local Ativa" removido; lembrete e rodapé usam a mesma getB
     const reminder = app.slice(app.indexOf('function checkBackupReminder'), app.indexOf('function normalizeImportedRecord'));
     const footer = app.slice(app.indexOf('function renderBackupFooter'), app.indexOf('function checkBackupReminder'));
     assert.ok(/getBackupStatus\(/.test(reminder) && /getBackupStatus\(/.test(footer));
+});
+
+// ---- manual v3 e veículos no Lite ----
+function appSrc() { return fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8').replace(/\r\n/g, '\n'); }
+function grabFn(app, start) { const i = app.indexOf(start); assert.ok(i >= 0, 'trecho não encontrado: ' + start); return app.slice(i, app.indexOf('\n    }\n', i) + 7); }
+
+function loadVehicles(pro, initial) {
+    const app = appSrc();
+    const src = [app.match(/const VEHICLE_PRO_MESSAGE = .*;/)[0], 'function openVehicleModal()', 'function editVehicle(', 'function requestEditVehicle(', 'function deleteVehicle(', 'function saveVehicle(']
+        .map(s => grabFn(app, s)).join('\n');
+    const els = {};
+    const el = (id) => els[id] || (els[id] = { value: '', textContent: '', classList: { toggle() {}, add() {}, remove() {} } });
+    const st = { pro, vehicles: initial.map(v => ({ ...v })), saved: 0, blocked: [], errors: [], toasts: [], els };
+    const sandbox = {
+        document: { getElementById: el },
+        isProPlan: () => st.pro, renderVehicleList() {}, showModal() {}, hideModal() {}, clearInlineError() {},
+        showInlineError: (id, msg) => st.errors.push(msg), blockLiteFeature: (m) => st.blocked.push(m),
+        showToast: (m) => st.toasts.push(m), normalizePlate: (p) => p, isValidPlate: () => true,
+        saveVehicles: () => { st.saved++; return true; }, saveActiveVehicle() {}, renderVehicleSelector() {}, recalculateMetricsAndRender() {},
+        loadRecords() {}, loadTireConfig() {}, loadRevisionConfig() {}, resetForm() {}, closeVehicleModal() {},
+        confirm: () => true, localStorage: { removeItem() {} }, VEHICLE_SCOPED_KEYS: [], getVehicleScopedKey: (k, id) => k + id,
+        getActiveVehicle: () => st.vehicles.find(v => v.id === st.activeVehicleId)
+    };
+    ['vehicleNameInput', 'vehiclePlateInput', 'vehicleEditId'].forEach(el);
+    el('vehicleForm').reset = () => { ['vehicleNameInput', 'vehiclePlateInput', 'vehicleEditId'].forEach(i => { el(i).value = ''; }); };
+    const api = require('vm').runInNewContext('var vehicles, activeVehicleId;' + src + '; ({ openVehicleModal, requestEditVehicle, deleteVehicle, saveVehicle, set(v, a) { vehicles = v; activeVehicleId = a; }, get() { return vehicles; } })', sandbox);
+    api.set(st.vehicles, initial[0].id);
+    st.api = api;
+    return st;
+}
+const V2 = [{ id: 'v1', name: 'Gol', plate: 'ABC-1234' }, { id: 'v2', name: 'Uno', plate: 'DEF-5678' }];
+const submit = (st, name, plate, editId) => {
+    st.els.vehicleNameInput.value = name; st.els.vehiclePlateInput.value = plate; st.els.vehicleEditId.value = editId;
+    st.api.saveVehicle({ preventDefault() {} });
+};
+
+test('veículos Lite: abre a gestão e preenche o veículo ativo; PRO abre o formulário vazio', () => {
+    const l = loadVehicles(false, V2.slice(0, 1));
+    l.api.openVehicleModal();
+    assert.strictEqual(l.els.vehicleNameInput.value, 'Gol');
+    assert.strictEqual(l.els.vehiclePlateInput.value, 'ABC-1234');
+    assert.strictEqual(l.els.vehicleEditId.value, 'v1');
+    assert.deepStrictEqual(l.blocked, []);
+    const p = loadVehicles(true, V2);
+    p.api.openVehicleModal();
+    assert.strictEqual(p.els.vehicleNameInput.value, '');
+    assert.strictEqual(p.els.vehicleEditId.value, '');
+});
+
+test('veículos Lite: salva edição do veículo ativo', () => {
+    const l = loadVehicles(false, V2.slice(0, 1));
+    submit(l, 'Carro da família', 'XYZ-9876', 'v1');
+    assert.strictEqual(l.saved, 1);
+    assert.deepStrictEqual(l.api.get().map(v => [v.id, v.name, v.plate]), [['v1', 'Carro da família', 'XYZ-9876']]);
+    assert.deepStrictEqual(l.blocked, []);
+});
+
+test('veículos Lite: cadastrar novo ou editar outro é bloqueado e nada é gravado', () => {
+    const l = loadVehicles(false, V2);
+    submit(l, 'Novo', 'NOV-0001', '');
+    submit(l, 'Outro', 'OUT-0002', 'v2');
+    assert.strictEqual(l.saved, 0);
+    assert.strictEqual(l.blocked.length, 2);
+    assert.strictEqual(l.blocked[0], 'Cadastrar mais veículos é exclusivo do plano PRO.');
+    assert.deepStrictEqual(l.api.get().map(v => v.name), ['Gol', 'Uno']);
+    l.api.requestEditVehicle('v2');
+    assert.strictEqual(l.blocked.length, 3);
+    l.api.requestEditVehicle('v1');
+    assert.strictEqual(l.els.vehicleNameInput.value, 'Gol');
+});
+
+test('veículos Lite: nome obrigatório com a nova mensagem; não exclui (ex-PRO não perde nada)', () => {
+    const l = loadVehicles(false, V2.slice(0, 1));
+    submit(l, '  ', 'ABC-1234', 'v1');
+    assert.deepStrictEqual(l.errors, ['Informe o nome ou apelido do veículo.']);
+    const ex = loadVehicles(false, V2);
+    ex.api.deleteVehicle('v2');
+    ex.api.deleteVehicle('v1');
+    assert.strictEqual(ex.saved, 0);
+    assert.strictEqual(ex.api.get().length, 2);
+    assert.strictEqual(ex.blocked.length, 2);
+});
+
+test('veículos PRO: cadastra, edita e exclui como antes', () => {
+    const p = loadVehicles(true, V2.slice(0, 1));
+    submit(p, 'Uno', 'DEF-5678', '');
+    assert.strictEqual(p.api.get().length, 2);
+    const novo = p.api.get()[1].id;
+    submit(p, 'Uno Mille', 'DEF-5678', novo);
+    assert.strictEqual(p.api.get()[1].name, 'Uno Mille');
+    p.api.deleteVehicle(novo);
+    assert.strictEqual(p.api.get().length, 1);
+    p.api.deleteVehicle('v1');
+    assert.strictEqual(p.api.get().length, 1, 'não exclui o único');
+    assert.deepStrictEqual(p.blocked, []);
+});
+
+test('veículos: modal com aviso do Lite e rótulo "Nome ou apelido"', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    assert.ok(/id="vehicleLiteNote"[^>]*>Plano Lite: 1 veículo\. Para cadastrar mais, assine o PRO\.</.test(html));
+    assert.ok(/>Nome ou apelido</.test(html));
+});
+
+test('manual v3: sem busca; grupos em <div data-group>; texto fixo no topo', () => {
+    const m = manualHtml();
+    assert.ok(!/manualSearch|manualEmpty|data-kw/.test(m), 'resquício da busca');
+    assert.ok(m.includes('Toque no item para abrir a descrição completa.'));
+    assert.ok(m.includes('Menu ⚙</h4>') && !m.includes('Menu da engrenagem'));
+    const g = [...m.matchAll(/data-group="(\w+)"/g)].map(x => x[1]);
+    assert.deepStrictEqual(g, ['entenda', 'abas', 'menu', 'dados']);
+});
+
+test('manual v3: "Entenda o app" primeiro no Lite, depois de "Seus dados" no PRO, sempre antes do quadro âmbar', () => {
+    const app = appSrc();
+    assert.ok(/function openManualModal\(\) \{\s*orderManualGroups\(\);/.test(app), 'reavalia ao abrir');
+    const box = {
+        kids: ['entenda', 'abas', 'menu', 'dados'].map(name => ({ name })),
+        get firstElementChild() { return this.kids[0]; },
+        querySelector(sel) { const n = sel.match(/"(\w+)"/)[1]; return this.kids.find(k => k.name === n); },
+        appendChild(n) { this.kids = this.kids.filter(k => k !== n); this.kids.push(n); },
+        insertBefore(n, ref) { this.kids = this.kids.filter(k => k !== n); this.kids.splice(this.kids.indexOf(ref), 0, n); }
+    };
+    let pro = false;
+    const fn = require('vm').runInNewContext(grabFn(app, 'function orderManualGroups()') + '; orderManualGroups', { document: { getElementById: () => box }, isProPlan: () => pro });
+    fn(); assert.deepStrictEqual(box.kids.map(k => k.name), ['entenda', 'abas', 'menu', 'dados']);
+    pro = true; fn(); assert.deepStrictEqual(box.kids.map(k => k.name), ['abas', 'menu', 'dados', 'entenda']);
+    pro = false; fn(); assert.deepStrictEqual(box.kids.map(k => k.name), ['entenda', 'abas', 'menu', 'dados']);
+    const m = manualHtml();
+    assert.ok(m.indexOf('id="manualTopics"') < m.indexOf('class="manual-warn"'));
+});
+
+test('manual v3: Excel cita .xlsx; "Como funciona:"; dica de Aparência; Veículos Lite e PRO', () => {
+    const t = manualTopics();
+    assert.ok(/\.xlsx/.test(t.find(x => x.title.startsWith('Exportar Excel')).text));
+    for (const n of ['Planos: Lite x PRO', 'Privacidade e armazenamento']) {
+        const x = t.find(y => y.title === n).text;
+        assert.ok(x.includes('Como funciona:') && !x.includes('Como usar:'), n);
+    }
+    assert.ok(t.find(x => x.title === 'Aparência').text.includes('Use o tema mais confortável para o seu ambiente.'));
+    assert.ok(/Lite e PRO[\s\S]*1 veículo/.test(t.find(x => x.title === 'Veículos').text));
 });
 
 (async () => {

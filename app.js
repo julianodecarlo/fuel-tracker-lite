@@ -821,47 +821,37 @@ const FuelTrackerApp = (() => {
         }
     }
 
+    // Ordem dos grupos do manual conforme o plano: Lite = "Entenda o app" primeiro; PRO = ele vai para o fim (antes do quadro âmbar)
+    function orderManualGroups() {
+        const box = document.getElementById('manualTopics');
+        if (!box) return;
+        const g = box.querySelector('[data-group="entenda"]');
+        if (!g) return;
+        if (isProPlan()) {
+            box.appendChild(g);
+        } else if (box.firstElementChild !== g) {
+            box.insertBefore(g, box.firstElementChild);
+        }
+    }
+
     function openManualModal() {
+        orderManualGroups();
         showModal('manualModal');
     }
 
     function closeManualModal() {
         hideModal('manualModal');
-        const input = document.getElementById('manualSearch');
-        if (input) input.value = '';
-        filterManual('');
         document.querySelectorAll('#manualTopics details').forEach(d => { d.open = false; });
     }
 
-    // Ao abrir um tópico do manual, rola para o título ficar no topo (exceto quando a busca abriu o tópico)
+    // Ao abrir um tópico do manual, rola para o título ficar no topo
     document.addEventListener('toggle', (e) => {
         const d = e.target;
         if (!d || !d.matches || !d.matches('#manualTopics details')) return;
-        const auto = d.dataset.autoToggle === '1';
-        delete d.dataset.autoToggle;
-        if (!d.open || auto) return;
+        if (!d.open) return;
         const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         requestAnimationFrame(() => d.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }));
     }, true);
-
-    // Busca no manual: todos os termos devem aparecer em título + palavras-chave + conteúdo
-    function filterManual(query) {
-        const terms = FuelCore.normalizeSearchText(query).split(' ').filter(Boolean);
-        let shown = 0;
-        document.querySelectorAll('#manualTopics details').forEach(d => {
-            const hay = FuelCore.normalizeSearchText((d.getAttribute('data-kw') || '') + ' ' + d.textContent);
-            const match = terms.every(t => hay.indexOf(t) !== -1);
-            d.classList.toggle('hidden', !match);
-            if (terms.length && d.open !== match) {
-                d.dataset.autoToggle = '1'; // abertura vinda da busca: não rolar a tela
-                d.open = match;
-            }
-            if (match) shown++;
-        });
-        document.querySelectorAll('#manualTopics [data-manual-group]').forEach(g => g.classList.toggle('hidden', terms.length > 0));
-        const empty = document.getElementById('manualEmpty');
-        if (empty) empty.classList.toggle('hidden', shown > 0);
-    }
 
     // --- Modais acessíveis: foco no diálogo, Esc fecha, Tab preso dentro e foco devolvido ao fechar ---
     const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -1200,13 +1190,16 @@ const FuelTrackerApp = (() => {
     }
 
     function openVehicleModal() {
-        if (!isProPlan()) {
-            blockLiteFeature('A gestão de frota e múltiplos veículos é exclusiva do plano PRO. Assine para cadastrar mais veículos!');
-            return;
-        }
+        const pro = isProPlan();
         document.getElementById('vehicleForm').reset();
+        document.getElementById('vehicleEditId').value = '';
         clearInlineError('vehicleFormError');
         renderVehicleList();
+        const note = document.getElementById('vehicleLiteNote');
+        if (note) note.classList.toggle('hidden', pro);
+        const btn = document.getElementById('vehicleSubmitBtn');
+        if (btn) btn.textContent = pro ? 'Cadastrar Veículo' : 'Salvar Veículo';
+        if (!pro) editVehicle(activeVehicleId); // Lite: já abre com o veículo ativo para editar nome/placa
         showModal('vehicleModal');
     }
 
@@ -1222,7 +1215,22 @@ const FuelTrackerApp = (() => {
         document.getElementById('vehicleEditId').value = vehicle.id;
     }
 
+    const VEHICLE_PRO_MESSAGE = 'Cadastrar mais veículos é exclusivo do plano PRO.';
+
+    // Lite: o lápis só vale para o veículo ativo
+    function requestEditVehicle(id) {
+        if (!isProPlan() && id !== activeVehicleId) {
+            blockLiteFeature(VEHICLE_PRO_MESSAGE);
+            return;
+        }
+        editVehicle(id);
+    }
+
     function deleteVehicle(id) {
+        if (!isProPlan()) {
+            blockLiteFeature('Excluir veículos é exclusivo do plano PRO.');
+            return;
+        }
         if (vehicles.length <= 1) {
             showToast('Não é possível excluir o único veículo', 'fa-triangle-exclamation', 'text-amber-500');
             return;
@@ -1260,17 +1268,18 @@ const FuelTrackerApp = (() => {
 
     function saveVehicle(e) {
         e.preventDefault();
-        if (!isProPlan()) {
-            blockLiteFeature('A gestão de frota e múltiplos veículos é exclusiva do plano PRO. Assine para cadastrar mais veículos!');
-            return;
-        }
         const name = document.getElementById('vehicleNameInput').value.trim();
         const plate = normalizePlate(document.getElementById('vehiclePlateInput').value.trim().toUpperCase());
         const editId = document.getElementById('vehicleEditId').value;
+        // Lite: só atualiza o veículo ativo; cadastrar novo ou editar outro é PRO
+        if (!isProPlan() && editId !== activeVehicleId) {
+            blockLiteFeature(VEHICLE_PRO_MESSAGE);
+            return;
+        }
 
         clearInlineError('vehicleFormError');
         if (!name) {
-            showInlineError('vehicleFormError', 'Informe o nome/modelo do veículo.', 'vehicleNameInput');
+            showInlineError('vehicleFormError', 'Informe o nome ou apelido do veículo.', 'vehicleNameInput');
             return;
         }
         if (!isValidPlate(plate)) {
@@ -2617,7 +2626,7 @@ const FuelTrackerApp = (() => {
             vehicleListEl.addEventListener('click', function (event) {
                 const btn = event.target.closest('[data-action]');
                 if (!btn || !vehicleListEl.contains(btn)) return;
-                if (btn.dataset.action === 'edit-vehicle') editVehicle(btn.dataset.id);
+                if (btn.dataset.action === 'edit-vehicle') requestEditVehicle(btn.dataset.id);
                 else if (btn.dataset.action === 'delete-vehicle') deleteVehicle(btn.dataset.id);
             });
         }
@@ -2692,7 +2701,6 @@ const FuelTrackerApp = (() => {
         importJSON,
         handleExportExcel,
         handleResetDatabase,
-        filterManual,
         saveRevisionConfig,
         openRevisionModal,
         closeRevisionModal,

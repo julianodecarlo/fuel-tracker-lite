@@ -169,18 +169,8 @@ const FuelCore = (() => {
         };
     }
 
-    // Normaliza texto para busca: minúsculas, sem acentos, espaços colapsados.
-    function normalizeSearchText(s) {
-        return String(s == null ? '' : s)
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[̀-ͯ]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
     return {
-        normalizeSearchText, MAX_ODOMETER,BACKUP_LIMIT_DAYS, getBackupStatus, formatBackupDate,
+        MAX_ODOMETER,BACKUP_LIMIT_DAYS, getBackupStatus, formatBackupDate,
         safeRound, parseDecimalValue, toLocalISODate, todayLocalISO, escapeHtml, toBool,
         litersOf, fuelOf, computeConsumptionSegments, weightedKml, sanitizeRecord,
         filterRecordsByPeriod, calculatePeriodTotals

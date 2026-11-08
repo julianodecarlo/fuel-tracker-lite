@@ -675,11 +675,12 @@
                 <h3 id="vehicleModalTitle" class="text-sm font-bold text-stone-900 dark:text-white">Gestão de Veículos</h3>
             </div>
             <div id="vehicleListContainer" class="space-y-2 mb-4"></div>
+            <p id="vehicleLiteNote" class="hidden text-xs font-semibold text-amber-700 dark:text-amber-400">Plano Lite: 1 veículo. Para cadastrar mais, assine o PRO.</p>
             <form id="vehicleForm" novalidate onsubmit="FuelTrackerApp.saveVehicle(event)" class="space-y-3 text-xs">
                 <input type="hidden" id="vehicleEditId" value="">
                 <div>
-                    <label for="vehicleNameInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Nome / Modelo (ex: Gol 1.0)</label>
-                    <input type="text" id="vehicleNameInput" required maxlength="40" placeholder="Ex: Gol 1.0" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500">
+                    <label for="vehicleNameInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Nome ou apelido</label>
+                    <input type="text" id="vehicleNameInput" required maxlength="40" placeholder="Ex: Gol 1.0 ou Carro da família" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
                     <label for="vehiclePlateInput" class="block font-medium text-stone-700 dark:text-slate-300 mb-1">Placa (ex: ABC-1234 ou ABC-1D23)</label>
@@ -687,7 +688,7 @@
                 </div>
                 <p id="vehicleFormError" role="alert" class="hidden text-xs font-semibold text-rose-600 dark:text-rose-400"></p>
                 <div class="pt-2">
-                    <button type="submit" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition">
+                    <button type="submit" id="vehicleSubmitBtn" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition">
                         Cadastrar Veículo
                     </button>
                 </div>
@@ -738,22 +739,24 @@
             </div>
 
             <div id="manualScroll" class="manual-scroll flex-1 overflow-y-auto space-y-3 pr-1">
-                <p class="manual-intro">Toque em um assunto para abrir ou use a busca.</p>
-                <input type="search" id="manualSearch" oninput="FuelTrackerApp.filterManual(this.value)" placeholder="Buscar assunto…" aria-label="Buscar assunto no manual" autocomplete="off" style="height:48px;font-size:16px" class="w-full px-4 bg-white dark:bg-slate-800 border border-stone-300 dark:border-slate-700 rounded-xl text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500">
+                <p class="manual-intro">Toque no item para abrir a descrição completa.</p>
 
                 <div id="manualTopics" class="space-y-2">
-                    <h4 class="manual-group" data-manual-group>Entenda o app</h4>
-                    <details data-kw="plano lite pro gratis compra comprar seja pro google play restaurar compra reembolso offline conta" class="manual-topic rounded-xl">
+                    <div data-group="entenda" class="space-y-2">
+                    <h4 class="manual-group">Entenda o app</h4>
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-crown w-4" aria-hidden="true"></i><span>Planos: Lite x PRO</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Entender o que o Lite (grátis) faz e o que o PRO libera.</p>
-                            <p class="manual-lbl"><strong>Como usar:</strong></p>
+                            <p class="manual-lbl"><strong>Como funciona:</strong></p>
                             <ul class="manual-list"><li><strong>Lite:</strong> até 10 abastecimentos, 1 veículo, Resumo, Decisão no posto, Histórico e backup.</li><li><strong>PRO (compra única):</strong> abastecimentos ilimitados, Análise, Excel, vários veículos, configurar manutenção, rodízio e CNH.</li><li><strong>Comprar:</strong> toque em “Seja PRO” no topo, depois em “Compre agora” e pague na Google Play.</li><li><strong>Reinstalou ou trocou de aparelho?</strong> Abra o app com internet; se o PRO não voltar, toque em “Restaurar compra”.</li></ul>
                             <p class="manual-tip"><strong>Dica:</strong> A compra fica ligada à sua conta Google. O PRO funciona offline por até 30 dias; depois o app confirma a compra pela internet. Reembolso feito na Google Play desativa o PRO.</p>
                         </div>
                     </details>
-                    <h4 class="manual-group" data-manual-group>Abas do app</h4>
-                    <details data-kw="etanol gasolina preco fator 70 compensa resumo posto limite" class="manual-topic rounded-xl">
+                    </div>
+                    <div data-group="abas" class="space-y-2">
+                    <h4 class="manual-group">Abas do app</h4>
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-calculator w-4" aria-hidden="true"></i><span>Decisão no posto</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Descobrir na hora qual combustível compensa mais.</p>
@@ -762,7 +765,7 @@
                             <p class="manual-tip"><strong>Dica:</strong> No início o app usa o fator padrão de 70%. Quando você abastece com tanque cheio, ele aprende o consumo real do seu carro e ajusta o “Fator”. Quanto mais usar, mais precisa fica a recomendação.</p>
                         </div>
                     </details>
-                    <details data-kw="resumo lancamento abastecimento odometro tanque cheio faixa ambos media geral ultimos 5 km/l formulario limite lite salvar" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-gauge-high w-4" aria-hidden="true"></i><span>Resumo e novo abastecimento</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Acompanhar seus custos e médias e registrar cada abastecimento.</p>
@@ -771,7 +774,7 @@
                             <p class="manual-tip"><strong>Dica:</strong> Marque “Tanque Cheio?” sempre que encher o tanque: é o que deixa o cálculo de consumo correto.</p>
                         </div>
                     </details>
-                    <details data-kw="historico filtro busca editar excluir registro ultimos registros ver todos lapis lixeira" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-clock-rotate-left w-4" aria-hidden="true"></i><span>Histórico</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Consultar, buscar e corrigir abastecimentos antigos.</p>
@@ -780,7 +783,7 @@
                             <p class="manual-tip"><strong>Dica:</strong> Errou no posto? Prefira editar a excluir, para manter a sequência do odômetro.</p>
                         </div>
                     </details>
-                    <details data-kw="analise grafico periodo litros gasto distribuicao insights dicas queda pneu alinhamento" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-chart-line w-4" aria-hidden="true"></i><span>Análise (PRO)</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Ver tendências de consumo e achar desperdícios. Recurso PRO; no Lite, a aba oferece o PRO.</p>
@@ -789,7 +792,7 @@
                             <p class="manual-tip"><strong>Dica:</strong> Uma queda brusca do km/L pode indicar pneu murcho, necessidade de alinhamento ou combustível de má qualidade. Vale investigar.</p>
                         </div>
                     </details>
-                    <details data-kw="revisao manutencao oleo rodizio pneus cnh toxicologico vencimento configurar" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-wrench w-4" aria-hidden="true"></i><span>Revisão e documentos</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Não esquecer revisão, rodízio de pneus e vencimento de documentos.</p>
@@ -798,26 +801,28 @@
                             <p class="manual-tip"><strong>Dica:</strong> Cadastre o km do último rodízio logo no começo, para a barra de progresso ficar certa.</p>
                         </div>
                     </details>
-                    <h4 class="manual-group" data-manual-group>Menu da engrenagem ⚙</h4>
-                    <details data-kw="aparencia tema escuro claro modo engrenagem" class="manual-topic rounded-xl">
+                    </div>
+                    <div data-group="menu" class="space-y-2">
+                    <h4 class="manual-group">Menu ⚙</h4>
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-sun w-4" aria-hidden="true"></i><span>Aparência</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Trocar entre o tema Escuro e o Claro.</p>
                             <p class="manual-lbl"><strong>Como usar:</strong></p>
                             <ul class="manual-list"><li>Toque na engrenagem ⚙ no topo e em <strong>Aparência</strong>.</li><li>Cada toque alterna entre Escuro e Claro; o app lembra a sua escolha.</li></ul>
-                            <p class="manual-tip"><strong>Dica:</strong> Use o tema mais confortável para o ambiente: o claro costuma ficar melhor sob sol forte, e o escuro à noite.</p>
+                            <p class="manual-tip"><strong>Dica:</strong> Use o tema mais confortável para o seu ambiente.</p>
                         </div>
                     </details>
-                    <details data-kw="veiculo veiculos frota placa mercosul editar excluir ativo nome varios" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-car w-4" aria-hidden="true"></i><span>Veículos</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Cadastrar e gerenciar os seus veículos.</p>
                             <p class="manual-lbl"><strong>Como usar:</strong></p>
-                            <ul class="manual-list"><li>Abra <strong>Menu ⚙ > Veículos</strong>. A lista mostra todos, com o ativo em destaque.</li><li>Informe nome e placa (ABC-1234 ou Mercosul ABC1D23).</li><li>O lápis edita e a lixeira exclui. O único veículo não pode ser excluído; ao excluir o ativo, o primeiro da lista passa a ser o ativo.</li><li>Para trocar de veículo, use o seletor de veículo no topo.</li></ul>
-                            <p class="manual-tip"><strong>Dica:</strong> Excluir um veículo apaga também os registros dele. Cadastrar vários veículos é PRO; o Lite tem 1 veículo, mas você pode editar nome e placa.</p>
+                            <ul class="manual-list"><li><strong>Lite e PRO:</strong> abra <strong>Menu ⚙ > Veículos</strong>. No Lite o app tem 1 veículo: você edita o nome (ou apelido) e a placa dele (ABC-1234 ou Mercosul ABC1D23). Cadastrar mais veículos ou mexer nos outros é PRO.</li><li><strong>PRO:</strong> a lista mostra todos, com o ativo em destaque. O lápis edita e a lixeira exclui. O único veículo não pode ser excluído; ao excluir o ativo, o primeiro da lista passa a ser o ativo.</li><li>Para trocar de veículo, use o seletor de veículo no topo.</li></ul>
+                            <p class="manual-tip"><strong>Dica:</strong> Excluir um veículo apaga também os registros dele.</p>
                         </div>
                     </details>
-                    <details data-kw="indicar amigo compartilhar link google play whatsapp copiar" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-share-nodes w-4" aria-hidden="true"></i><span>Indicar para amigo</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Mandar o Fuel Tracker para alguém.</p>
@@ -826,7 +831,7 @@
                             <p class="manual-tip"><strong>Dica:</strong> O link só funciona para todo mundo depois que o app for publicado na Google Play; até lá, só abre para quem já recebeu acesso.</p>
                         </div>
                     </details>
-                    <details data-kw="backup restaurar exportar arquivo documentos compartilhar drive whatsapp email rodape 30 dias veiculo ativo tudo substitui" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-database w-4" aria-hidden="true"></i><span>Backup / Restaurar</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Guardar uma cópia dos seus dados e recuperá-los depois.</p>
@@ -835,16 +840,16 @@
                             <p class="manual-tip"><strong>Dica:</strong> Backup é responsabilidade do usuário: o desenvolvedor não consegue restaurar o seu histórico. Faça antes de desinstalar ou trocar de aparelho.</p>
                         </div>
                     </details>
-                    <details data-kw="excel planilha xlsx despesas relatorio exportar" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-file-excel w-4" aria-hidden="true"></i><span>Exportar Excel (PRO)</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Gerar uma planilha para controle financeiro ou comprovar despesas. Recurso PRO; no Lite, o app oferece o PRO.</p>
                             <p class="manual-lbl"><strong>Como usar:</strong></p>
-                            <ul class="manual-list"><li>Toque em <strong>Menu ⚙ > Exportar Excel</strong>.</li><li>O arquivo .xlsx traz uma planilha “Abastecimentos” com data, odômetro, preço e valor de Etanol e de Gasolina e se foi Tanque Cheio.</li><li>Ele é salvo em Documentos/FuelTracker; se não for possível, o app abre o Compartilhar.</li></ul>
+                            <ul class="manual-list"><li>Toque em <strong>Menu ⚙ > Exportar Excel</strong>.</li><li>O arquivo é uma planilha no formato .xlsx (não é CSV), que abre no Excel, no Google Planilhas ou no LibreOffice. Ela traz a aba “Abastecimentos” com data, odômetro, preço e valor de Etanol e de Gasolina e se foi Tanque Cheio.</li><li>Ele é salvo em Documentos/FuelTracker; se não for possível, o app abre o Compartilhar.</li></ul>
                             <p class="manual-tip"><strong>Dica:</strong> Útil para quem usa o carro no trabalho (aplicativos de corrida, entregas) e precisa comprovar gastos.</p>
                         </div>
                     </details>
-                    <details data-kw="zerar apagar resetar limpar dados" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-trash-arrow-up w-4" aria-hidden="true"></i><span>Zerar App</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Voltar o app ao estado inicial neste aparelho.</p>
@@ -853,7 +858,7 @@
                             <p class="manual-tip"><strong>Dica:</strong> Faça um backup antes. O app só pede uma confirmação.</p>
                         </div>
                     </details>
-                    <details data-kw="tamanho texto fonte letra a grande aumentar acessibilidade" class="manual-topic rounded-xl">
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-text-height w-4" aria-hidden="true"></i><span>Tamanho do texto</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Deixar as letras maiores para ler com conforto.</p>
@@ -862,18 +867,20 @@
                             <p class="manual-tip"><strong>Dica:</strong> Se alguma tela ficar apertada, volte para um tamanho menor.</p>
                         </div>
                     </details>
-                    <h4 class="manual-group" data-manual-group>Seus dados</h4>
-                    <details data-kw="privacidade armazenamento login senha servidor internet offline desinstalar limpar armazenamento compra google play" class="manual-topic rounded-xl">
+                    </div>
+                    <div data-group="dados" class="space-y-2">
+                    <h4 class="manual-group">Seus dados</h4>
+                    <details class="manual-topic rounded-xl">
                         <summary class="manual-sum"><i class="fa-solid fa-shield-halved w-4" aria-hidden="true"></i><span>Privacidade e armazenamento</span></summary>
                         <div class="manual-body">
                             <p><strong>Para que serve:</strong> Saber onde ficam os seus dados.</p>
-                            <p class="manual-lbl"><strong>Como usar:</strong></p>
+                            <p class="manual-lbl"><strong>Como funciona:</strong></p>
                             <ul class="manual-list"><li>Não há login nem senha. Os dados ficam só no aparelho e o app não envia seus registros a nenhum servidor.</li><li>A compra do PRO é feita e confirmada pelo Google Play.</li><li>O app funciona sem internet, exceto a compra e a restauração do PRO.</li><li>Desinstalar o app ou usar “Limpar armazenamento” zera o app.</li></ul>
                             <p class="manual-tip"><strong>Dica:</strong> Por isso, faça backup com frequência.</p>
                         </div>
                     </details>
+                    </div>
                 </div>
-                <p id="manualEmpty" role="status" class="hidden text-center font-semibold text-stone-500 dark:text-slate-400 py-3">Nenhum assunto encontrado</p>
 
                 <div class="manual-warn" role="note">
                     <strong>Importante:</strong> seus dados ficam somente neste aparelho. Se você desinstalar o app ou usar “Limpar armazenamento” nas configurações do Android, o app volta zerado. Fazer backup com frequência é responsabilidade exclusiva do usuário. O desenvolvedor não tem acesso aos seus dados e não consegue recuperar nem restaurar o seu histórico de abastecimentos.
