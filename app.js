@@ -782,8 +782,9 @@ const FuelTrackerApp = (() => {
         const native = getNativePlugins();
         if (native && native.share) {
             try {
+                // O Android não informa se a mensagem foi enviada (a folha resolve igual ao enviar ou ao fechar sem
+                // cancelar): não mostramos "Obrigado" no app nativo, para evitar sucesso falso.
                 await native.share.share(Object.assign({ dialogTitle: 'Indicar para um amigo' }, shareData));
-                showToast('Obrigado por indicar!', 'fa-heart', 'text-rose-500');
                 return;
             } catch (err) {
                 if (/cancel/i.test(String(err && err.message))) return; // usuário fechou a folha

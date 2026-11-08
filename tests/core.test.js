@@ -97,6 +97,14 @@ test('Indicar para Amigo: compartilha o link da Play Store, não window.location
     assert.ok(!fn.includes('window.location.href'));
 });
 
+test('Indicar para Amigo: no app nativo não mostra toast de sucesso falso; mantém plano B de copiar o link', () => {
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    const fn = app.slice(app.indexOf('async function shareAppWithFriend'), app.indexOf('function toggleSettingsMenu'));
+    const nativo = fn.slice(fn.indexOf('native.share.share'), fn.indexOf('navigator.share &&'));
+    assert.ok(nativo.length > 20 && !/showToast\(\s*'Obrigado/.test(nativo), 'toast de sucesso no ramo nativo');
+    assert.ok(/clipboard\.writeText/.test(fn) && /Link de indicação copiado/.test(fn), 'plano B de copiar o link');
+});
+
 test('build de produção: diagnostico.html fora do copy-web e do sw.js', () => {
     const copy = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'copy-web.js'), 'utf8');
     const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
