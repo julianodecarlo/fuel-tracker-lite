@@ -578,8 +578,9 @@ const FuelTrackerApp = (() => {
             result = await FuelBilling.purchase();
         } catch (e) {
             result = { status: 'error' };
+        } finally {
+            if (btn) btn.disabled = false; // sempre libera o botão, mesmo em erro/timeout
         }
-        if (btn) btn.disabled = false;
 
         switch (result.status) {
             case 'purchased':
@@ -602,6 +603,9 @@ const FuelTrackerApp = (() => {
             case 'rejected':
                 showToast('Não foi possível validar a compra. Tente novamente.', 'fa-triangle-exclamation', 'text-rose-500');
                 break;
+            case 'timeout':
+                showToast('A Google Play demorou a responder. Se você pagou, toque em "Restaurar compra".', 'fa-clock', 'text-amber-500');
+                break;
             default:
                 showToast('Não foi possível concluir a compra.', 'fa-triangle-exclamation', 'text-rose-500');
         }
@@ -612,8 +616,7 @@ const FuelTrackerApp = (() => {
         const btn = document.getElementById('btnRestorePurchase');
         if (btn) btn.disabled = true;
         let result;
-        try { result = await FuelBilling.restore(); } catch (e) { result = { status: 'error' }; }
-        if (btn) btn.disabled = false;
+        try { result = await FuelBilling.restore(); } catch (e) { result = { status: 'error' }; } finally { if (btn) btn.disabled = false; }
         if (result.status === 'pro') {
             closeUpgradeModal();
             showToast('Compra restaurada! Você é PRO.', 'fa-circle-check', 'text-emerald-500');
@@ -2550,6 +2553,12 @@ const FuelTrackerApp = (() => {
         let lastBillingRefresh = Date.now();
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState !== 'visible') return;
+            // limpa sempre qualquer compra pendente/travada e reabilita os botões de compra
+            try { FuelBilling.resetPending(); } catch (e) { }
+            ['btnConfirmUpgrade', 'btnRestorePurchase'].forEach(function (id) {
+                const b = document.getElementById(id);
+                if (b) b.disabled = false;
+            });
             if (Date.now() - lastBillingRefresh < 60000) return;
             lastBillingRefresh = Date.now();
             FuelBilling.refresh();

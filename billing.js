@@ -35,17 +35,22 @@ const FuelBilling = (() => {
     const CLOCK_SKEW_MS = 5 * 60 * 1000;
     const FINISH_TIMEOUT_MS = 15000;                // espera pelo acknowledge
     const PURCHASE_WAIT_MS = 20000;                 // espera pela aprovação após a tela de pagamento
+    const CALL_TIMEOUT_MS = 30000;                  // teto para qualquer chamada ao plugin/verificação
+    const ORDER_TIMEOUT_MS = 180000;                // teto para a tela de pagamento da Play (parada por horas)
 
     function create(win, opts) {
         const options = opts || {};
         const finishTimeoutMs = options.finishTimeoutMs || FINISH_TIMEOUT_MS;
         const purchaseWaitMs = options.purchaseWaitMs || PURCHASE_WAIT_MS;
+        const callTimeoutMs = options.callTimeoutMs || CALL_TIMEOUT_MS;
+        const orderTimeoutMs = options.orderTimeoutMs || ORDER_TIMEOUT_MS;
         const listeners = [];
         let pro = false;          // estado validado em memória (única fonte de verdade)
         let initPromise = null;
         let storePromise = null;
         let refreshPromise = null;
         let purchasing = false;
+        let purchaseGen = 0;             // invalida compras antigas (resetPending) para não liberarem o estado de uma nova
         let rejectedSeen = false;        // verifyLicense recusou alguma transação (usado pelo resultado de purchase())
         let store = null;
         let CDV = null;
@@ -55,6 +60,17 @@ const FuelBilling = (() => {
 
         class BillingError extends Error {
             constructor(code) { super(code); this.code = code; }
+        }
+
+        // Nenhuma promessa do plugin/rede fica sem teto: rejeita com BillingError('timeout')
+        function withTimeout(promise, ms) {
+            return new Promise((resolve, reject) => {
+                const t = setTimeout(() => reject(new BillingError('timeout')), ms);
+                Promise.resolve(promise).then(
+                    v => { clearTimeout(t); resolve(v); },
+                    e => { clearTimeout(t); reject(e); }
+                );
+            });
         }
 
         function storage() {
@@ -196,7 +212,7 @@ const FuelBilling = (() => {
             const job = (async () => {
                 const purchase = { productId: PRODUCT_ID, purchaseToken: tokenOf(tx), transactionId: tx.transactionId };
                 let verdict;
-                try { verdict = await verifyLicense(purchase); } catch (e) { verdict = null; }
+                try { verdict = await withTimeout(verifyLicense(purchase), callTimeoutMs); } catch (e) { verdict = null; }
                 if (verdict === false) { rejectedSeen = true; return 'rejected'; }
                 if (verdict !== true) return 'unverified';
                 // Compra já confirmada antes (reabertura/restauração): não há o que confirmar de novo
@@ -207,7 +223,7 @@ const FuelBilling = (() => {
                         finishWaiters.set(key, () => { clearTimeout(t); resolve(true); });
                     });
                     let fin;
-                    try { fin = await tx.finish(); } catch (e) { fin = { isError: true }; }
+                    try { fin = await withTimeout(tx.finish(), callTimeoutMs); } catch (e) { fin = { isError: true }; }
                     // finish() não lança: resolve com um objeto de erro quando falha
                     if (fin && (fin.isError === true || fin.code !== undefined)) {
                         const w = finishWaiters.get(key);
@@ -236,7 +252,7 @@ const FuelBilling = (() => {
                         if (!(c.Plugins && c.Plugins.PurchasePlugin) && typeof c.registerPlugin === 'function') {
                             c.registerPlugin('PurchasePlugin');
                         }
-                        await loadScript(STORE_LIB_URL);
+                        await withTimeout(loadScript(STORE_LIB_URL), callTimeoutMs);
                     }
                     CDV = win.CdvPurchase;
                     store = CDV && CDV.store;
@@ -250,7 +266,7 @@ const FuelBilling = (() => {
                             const w = finishWaiters.get(key);
                             if (w) { finishWaiters.delete(key); w(); }
                         });
-                    const errors = await store.initialize([CDV.Platform.GOOGLE_PLAY]);
+                    const errors = await withTimeout(store.initialize([CDV.Platform.GOOGLE_PLAY]), callTimeoutMs);
                     if (errors && errors.length) throw new BillingError('init-failed');
                     return store;
                 })();
@@ -310,6 +326,7 @@ const FuelBilling = (() => {
         async function purchase() {
             if (purchasing) return { status: 'error' };
             purchasing = true;
+            const gen = ++purchaseGen;
             try {
                 try { await ensureStore(); } catch (e) { return { status: e && e.code === 'unsupported' ? 'unsupported' : 'error' }; }
                 rejectedSeen = false;
@@ -317,7 +334,8 @@ const FuelBilling = (() => {
                 const offer = product && product.getOffer();
                 if (!offer) return { status: 'error' };
 
-                const err = await store.order(offer);
+                let err;
+                try { err = await withTimeout(store.order(offer), orderTimeoutMs); } catch (e) { return { status: 'timeout' }; }
                 if (err) {
                     if (isCancel(err)) return { status: 'cancelled' };
                     if (/ALREADY_OWNED/i.test(String(err.message || ''))) {
@@ -340,8 +358,19 @@ const FuelBilling = (() => {
                 await Promise.all(Array.from(inflight.values()));
                 return { status: rejectedSeen ? 'rejected' : 'unverified' };
             } finally {
-                purchasing = false;
+                if (gen === purchaseGen) purchasing = false;
             }
+        }
+
+        /**
+         * Descarta qualquer compra "em andamento" (ex.: app voltou do segundo plano depois de horas).
+         * Libera o estado de compra e acorda quem espera a aprovação; uma compra aprovada depois
+         * continua sendo tratada normalmente pelo evento approved / refresh().
+         */
+        function resetPending() {
+            purchaseGen++;
+            purchasing = false;
+            proWaiters.splice(0).forEach(fn => fn());
         }
 
         /**
@@ -358,9 +387,9 @@ const FuelBilling = (() => {
                     return { status: e && e.code === 'unsupported' ? 'unsupported' : 'error' };
                 }
                 let err;
-                try { err = await store.restorePurchases(); } catch (e) { err = e || true; }
+                try { err = await withTimeout(store.restorePurchases(), callTimeoutMs); } catch (e) { err = e || true; }
                 if (err) return { status: 'error' };
-                try { return await reconcile(); } catch (e) { return { status: 'error' }; }
+                try { return await withTimeout(reconcile(), callTimeoutMs * 2); } catch (e) { return { status: 'error' }; }
             })().then(r => { refreshPromise = null; return r; }, () => { refreshPromise = null; return { status: 'error' }; });
             return refreshPromise;
         }
@@ -381,7 +410,7 @@ const FuelBilling = (() => {
             return initPromise;
         }
 
-        return Object.freeze({ isPro, onChange, getAvailability, getPriceText, purchase, restore, refresh, init });
+        return Object.freeze({ isPro, onChange, getAvailability, getPriceText, purchase, resetPending, restore, refresh, init });
     }
 
     const api = create(typeof window !== 'undefined' ? window : null);

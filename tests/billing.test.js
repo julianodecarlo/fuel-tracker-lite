@@ -428,6 +428,68 @@ test('backup: usa Filesystem/Share no app nativo, confirma a gravação e não u
     assert.ok(pkg.dependencies['@capacitor/filesystem'] && pkg.dependencies['@capacitor/share']);
 });
 
+test('compra: tela de pagamento que nunca responde vira timeout e libera o estado', async () => {
+    const { win } = makeWin({});
+    win.CdvPurchase.store.order = () => new Promise(() => {}); // Play parada por horas
+    const b = create(win, { orderTimeoutMs: 40 });
+    assert.strictEqual((await b.purchase()).status, 'timeout');
+    win.CdvPurchase.store.order = async () => ({ isError: true, code: 6777006, message: 'USER_CANCELED' });
+    assert.strictEqual((await b.purchase()).status, 'cancelled', 'purchasing foi liberado');
+});
+
+test('resetPending: libera compra travada; a compra antiga não derruba o estado da nova', async () => {
+    const { win } = makeWin({});
+    let release;
+    win.CdvPurchase.store.order = () => new Promise((r) => { release = r; });
+    const b = create(win, { orderTimeoutMs: 5000 });
+    const stuck = b.purchase();
+    await new Promise((r) => setTimeout(r, 10));
+    assert.strictEqual((await b.purchase()).status, 'error', 'bloqueia compra em paralelo');
+    b.resetPending();
+    win.CdvPurchase.store.order = () => new Promise(() => {});
+    const second = b.purchase(); // nova compra em andamento
+    await new Promise((r) => setTimeout(r, 10));
+    release({ isError: true, code: 6777006, message: 'USER_CANCELED' });
+    assert.strictEqual((await stuck).status, 'cancelled');
+    assert.strictEqual((await b.purchase()).status, 'error', 'compra antiga não liberou a nova');
+    b.resetPending();
+    void second;
+});
+
+test('restore/refresh: restorePurchases sem resposta vira erro e não trava refreshes seguintes', async () => {
+    const { win } = makeWin({});
+    let hang = true;
+    win.CdvPurchase.store.restorePurchases = () => (hang ? new Promise(() => {}) : Promise.resolve(undefined));
+    const b = create(win, { callTimeoutMs: 40 });
+    assert.strictEqual((await b.refresh()).status, 'error');
+    hang = false;
+    assert.strictEqual((await b.refresh()).status, 'free');
+});
+
+test('verifyLicense sem resposta não trava o tratamento da transação', async () => {
+    const { win } = makeWin({ owned: [{ token: 't1', acked: false }] });
+    const b = create(win, { callTimeoutMs: 40, verifyLicense: () => new Promise(() => {}) });
+    assert.strictEqual((await b.init()).status, 'unverified');
+});
+
+test('init: compra pendente não confirmada é retomada e confirmada (acknowledge) via handleTransaction', async () => {
+    const { win, calls } = makeWin({ owned: [{ token: 'tok-p', acked: false }] });
+    const b = create(win);
+    assert.strictEqual((await b.init()).status, 'pro');
+    assert.deepStrictEqual(calls.finish, ['tok-p']);
+    assert.strictEqual(b.isPro(), true);
+});
+
+test('app.js: finally libera o botão; visibilitychange limpa compra pendente e chama refresh', () => {
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    const fn = app.slice(app.indexOf('async function startProPurchase'), app.indexOf('async function restoreProPurchase'));
+    assert.ok(/finally\s*\{[^}]*btn\.disabled = false/.test(fn), 'botão liberado em finally');
+    assert.ok(/case 'timeout'/.test(fn));
+    const vis = app.slice(app.indexOf("addEventListener('visibilitychange'"));
+    const r = vis.indexOf('FuelBilling.resetPending()');
+    assert.ok(r > -1 && r < vis.indexOf('FuelBilling.refresh()'));
+});
+
 (async () => {
     let failed = 0;
     for (const [name, fn] of tests) {
