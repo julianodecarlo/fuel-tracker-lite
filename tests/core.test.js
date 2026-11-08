@@ -475,7 +475,21 @@ test('manual v3: Excel cita .xlsx; "Como funciona:"; dica de Aparência; Veícul
     }
     assert.ok(t.find(x => x.title === 'Aparência').text.includes('Use o tema mais confortável para o seu ambiente.'));
     const v = t.find(x => x.title === 'Veículos').text;
-    assert.ok(v.includes('Salvar edição') && v.includes('Cancelar edição') && v.includes('+ Veículo') && v.includes('Como funciona:') && v.includes('Dica:'));
+    assert.ok(v.includes('Editar (lápis)') && v.includes('Excluir (lixeira)') && v.includes('+ Veículo') && v.includes('Como funciona:') && v.includes('Dica:'));
+});
+
+test('manual v4: só "Como funciona:", sem narrar a interface, >= 35 palavras, .xlsx e Veículos', () => {
+    const t = manualTopics();
+    for (const x of t) {
+        assert.ok(x.text.includes('Como funciona:') && !x.text.includes('Como usar:'), x.title);
+        assert.ok(!/toque em|toque no|toque na|clique|o botão vira/i.test(x.text), 'narra interface: ' + x.title);
+        assert.ok(x.words >= 35, x.title + ' tem ' + x.words + ' palavras');
+    }
+    const v = t.find(x => x.title === 'Veículos').text;
+    for (const s of ['+ Veículo', 'Editar (lápis)', 'Excluir (lixeira)']) assert.ok(v.includes(s), 'falta ' + s);
+    assert.ok(t.find(x => x.title.startsWith('Exportar Excel')).text.includes('.xlsx'));
+    const m = manualHtml();
+    for (const s of ['Limpar armazenamento', 'responsabilidade exclusiva do usuário', 'não consegue recuperar nem restaurar']) assert.ok(m.includes(s), s);
 });
 
 (async () => {
