@@ -124,6 +124,10 @@
         .backup-text.backup-late { color: #b91c1c; font-weight: 700; }
         html.dark .backup-dot.backup-dot-late { background: #f87171; }
         html.dark .backup-text.backup-late { color: #f87171; }
+        .manual-warn { border: 1px solid #d97706; background: #fef3c7; color: #78350f; border-radius: 1rem; padding: .75rem; font-weight: 500; }
+        html.dark .manual-warn { border-color: rgba(245,158,11,.5); background: rgba(245,158,11,.12); color: #fde68a; }
+        .manual-topic { border: 1px solid #d6d3d1; background: rgba(255,255,255,.7); border-radius: .75rem; }
+        html.dark .manual-topic { border-color: #334155; background: rgba(30,41,59,.5); }
         .ts-sep { margin-top: 1rem; margin-bottom: 0; }
         .ts-box { padding-top: 1rem; padding-bottom: 0.75rem; }
         .ts-box > span { margin-bottom: 0.5rem; }
@@ -715,109 +719,117 @@
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto space-y-4 text-xs text-stone-600 dark:text-slate-300 pr-1 leading-relaxed">
-                <p class="text-stone-500 dark:text-slate-400">
-                    O <strong>Fuel Tracker</strong> é o assistente completo para a gestão do seu veículo. Veja abaixo como usar cada recurso para economizar combustível, acompanhar a eficiência do seu motor e manter o controle total do histórico e das datas das próximas manutenções.
-                </p>
+            <div class="flex-1 overflow-y-auto space-y-3 text-xs text-stone-600 dark:text-slate-300 pr-1 leading-relaxed">
+                <p class="text-stone-500 dark:text-slate-400">Toque em um assunto para abrir ou use a busca.</p>
+                <input type="search" id="manualSearch" oninput="FuelTrackerApp.filterManual(this.value)" placeholder="Buscar assunto…" aria-label="Buscar assunto no manual" autocomplete="off" style="height:48px;font-size:16px" class="w-full px-4 bg-white dark:bg-slate-800 border border-stone-300 dark:border-slate-700 rounded-xl text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500">
 
-                <!-- 1. DECISÃO NO POSTO -->
-                <section aria-label="1. Decisão no Posto" class="space-y-1.5">
-                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-calculator" aria-hidden="true"></i> 1. Decisão no Posto (Etanol vs. Gasolina)
-                    </h4>
-                    <p><strong>Para que serve:</strong> Descobrir instantaneamente qual combustível dará mais autonomia pelo menor preço no momento do abastecimento.</p>
-                    <ul class="list-disc list-inside space-y-1 pl-1">
-                        <li><strong>Como usar:</strong> Antes de abastecer, abra o app e digite os preços por litro do Etanol e da Gasolina no painel da aba Resumo. O app dirá exatamente qual escolher e o valor limite onde o etanol deixa de valer a pena.</li>
-                        <li><strong>Como aproveitar melhor:</strong> Inicialmente, o app usa o cálculo padrão (70%). À medida que você abastece com tanque cheio, ele aprende o consumo real do seu motor e ajusta o "Fator" de forma personalizada. Quanto mais você usa, mais precisa fica a recomendação!</li>
-                    </ul>
-                </section>
+                <div class="manual-warn" role="note">
+                    <strong>Importante:</strong> seus dados ficam somente neste aparelho. Se você desinstalar o app ou usar “Limpar armazenamento” nas configurações do Android, o app volta zerado. Fazer backup com frequência é responsabilidade exclusiva do usuário. O desenvolvedor não tem acesso aos seus dados e não consegue recuperar nem restaurar o seu histórico de abastecimentos.
+                </div>
 
-                <!-- 2. ABA RESUMO -->
-                <section aria-label="2. Aba Resumo" class="space-y-1.5">
-                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-gauge-high" aria-hidden="true"></i> 2. Aba Resumo: Indicadores e Novo Cadastro
-                    </h4>
-                    <p><strong>Para que serve:</strong> Acompanhar seus custos gerais e registrar cada parada no posto sem complicações.</p>
-                    <ul class="list-disc list-inside space-y-1 pl-1">
-                        <li><strong>Quilometragem e Gasto Total:</strong> Use para saber exatamente quanto o seu carro custa por quilômetro rodado (R$/km) e planeje orçamentos de viagens ou custos mensais de rodagem.</li>
-                        <li><strong>Médias de Consumo (km/L):</strong> Compara o rendimento em km/L entre Etanol, Gasolina e Misto. Alternar para a opção "Últimos 5 Abastecimentos" é ideal para testar se uma troca de posto, combustível de marca diferente ou calibragem de pneus melhorou o rendimento recente.</li>
-                        <li><strong>Filtros de Qualidade (Tanque Cheio / Faixa):</strong> Mantenha em "Ambos" para ignorar dados discrepantes ou abastecimentos parciais que distorceriam sua média real.</li>
-                        <li><strong>Formulário de Cadastro:</strong> Preencha a data, o odômetro atual (km do painel) e os valores gastos. Marque sempre "Tanque Cheio?" quando encher o tanque para garantir cálculos perfeitos de consumo.</li>
-                    </ul>
-                </section>
-
-                <!-- 3. ABA HISTÓRICO -->
-                <section aria-label="3. Aba Histórico" class="space-y-1.5">
-                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> 3. Aba Histórico
-                    </h4>
-                    <p><strong>Para que serve:</strong> Consultar, buscar ou corrigir todos os registros de abastecimentos anteriores.</p>
-                    <ul class="list-disc list-inside space-y-1 pl-1">
-                        <li><strong>Filtros por Combustível:</strong> Clique nos botões (Etanol, Gasolina, Misto) para analisar separadamente a frequência com que você usa cada tipo de combustível.</li>
-                        <li><strong>Barra de Busca:</strong> Digite uma data específica ou um número de quilometragem para achar rapidamente aquele abastecimento antigo.</li>
-                        <li><strong>Edição/Exclusão:</strong> Errou a digitação no posto? Encontre o registro e edite os valores para manter seus dados sempre limpos.</li>
-                    </ul>
-                </section>
-
-                <!-- 4. ABA ANÁLISE -->
-                <section aria-label="4. Aba Análise" class="space-y-1.5">
-                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-chart-line" aria-hidden="true"></i> 4. Aba Análise (Gráficos e Insights)
-                    </h4>
-                    <p><strong>Para que serve:</strong> Visualizar tendências de consumo ao longo do tempo e identificar desperdícios.</p>
-                    <ul class="list-disc list-inside space-y-1 pl-1">
-                        <li><strong>Métricas Mensais:</strong> Mostra o volume em litros e o valor gasto nos últimos 30 dias para você controlar a fatura do cartão ou orçamento do mês.</li>
-                        <li><strong>Gráfico de Evolução (km/L):</strong> Identifique se o consumo aumentou subitamente — um indicativo claro de pneu murcho, necessidade de alinhamento ou combustível adulterado.</li>
-                        <li><strong>Gráfico de Distribuição e Insights:</strong> Entenda a proporção de uso de cada combustível e leia as dicas automáticas do sistema para otimizar seus gastos.</li>
-                    </ul>
-                </section>
-
-                <!-- 5. ABA REVISÃO -->
-                <section aria-label="5. Aba Revisão" class="space-y-1.5">
-                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-wrench" aria-hidden="true"></i> 5. Aba Revisão (Manutenção e Documentos)
-                    </h4>
-                    <p><strong>Para que serve:</strong> Evitar multas, perdas de garantia e quebras mecânicas por falta de manutenção preventiva.</p>
-                    <ul class="list-disc list-inside space-y-1 pl-1">
-                        <li><strong>Manutenção Prevista (Troca de Óleo):</strong> O app estima a data aproximada da sua próxima revisão com base na sua média diária de uso. Clique no botão Configurar para ajustar o intervalo personalizado e os parâmetros das suas revisões (ex: a cada 10.000 km ou 5.000 km).</li>
-                        <li><strong>Rodízio de Pneus:</strong> Acompanhe a barra de progresso para saber exatamente quando fazer o rodízio e alinhamento, estendendo a vida útil dos pneus.</li>
-                        <li><strong>CNH e Exame Toxicológico:</strong> Cadastre as datas de vencimento e receba alertas destacados no topo do aplicativo antes que seus documentos vençam.</li>
-                    </ul>
-                </section>
-
-                <!-- 6. OPÇÕES E BACKUP -->
-                <section aria-label="6. Opções, Backup, Gestão de Veículos e Relatórios" class="space-y-1.5">
-                    <h4 class="font-bold text-orange-600 dark:text-orange-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-gear" aria-hidden="true"></i> 6. Opções, Backup, Gestão de Veículos e Relatórios
-                    </h4>
-                    <p><strong>Para que serve:</strong> Gerenciar sua frota, customizar a interface e proteger seus dados contra perdas.</p>
-                    <ul class="list-disc list-inside space-y-1 pl-1">
-                        <li><strong>Central de Veículos:</strong> Acesse a gestão completa da sua frota diretamente pelo menu principal de engrenagem, clicando no item "Veículos".</li>
-                        <li><strong>Painel "Gestão de Veículos":</strong>
-                            <ul class="list-disc list-inside space-y-1 pl-4 mt-1">
-                                <li><strong>Visualização da Frota:</strong> Exibe a lista de todos os seus carros cadastrados no topo do painel, destacando claramente qual veículo está ativo e selecionado no momento.</li>
-                                <li><strong>Identificação Completa:</strong> Mantenha a identificação organizada com o Nome/Modelo e a Placa no padrão Mercosul.</li>
-                                <li><strong>Edição e Exclusão:</strong> Altere dados a qualquer momento clicando no ícone de lápis ou remova veículos antigos no ícone de lixeira. O sistema protege seus dados impedindo a exclusão caso exista apenas um veículo cadastrado e reativa automaticamente o veículo seguinte se você excluir o que estava em uso.</li>
-                            </ul>
-                        </li>
-                        <li><strong>Exportar/Restaurar Backups:</strong> Gere cópias de segurança confiáveis ou restaure informações ao trocar de dispositivo. Nota: a exportação e a restauração de backups são realizadas exclusivamente para o veículo que estiver ativo no momento.</li>
-                        <li><strong>Relatórios em Excel:</strong> Exporte planilhas detalhadas para controle financeiro pessoal ou comprovação de despesas em atividades profissionais (Uber, entregas, frotas).</li>
-                        <li><strong>Aparência:</strong> Alterne livremente entre o modo Escuro e Claro para facilitar a visualização durante o dia ou à noite.</li>
-                    </ul>
-                </section>
-
-                <!-- 7. ARMAZENAMENTO E PRIVACIDADE -->
-                <section aria-label="7. Armazenamento e Privacidade" class="space-y-1.5 border-t border-stone-200 dark:border-slate-800 pt-3">
-                    <h4 class="font-bold text-verde-suave text-xs uppercase tracking-wider flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> 7. Armazenamento e Privacidade
-                    </h4>
-                    <p>
-                        Seus dados pertencem 100% a você! O aplicativo não exige login nem senha e armazena todas as informações localmente no seu dispositivo. Faça exportações periódicas de backup para manter suas informações de rodagem sempre protegidas.
-                    </p>
-                    <p class="text-amber-600 dark:text-amber-400 font-medium pt-1">
-                        📱 <strong> Modo Offline e Armazenamento Seguro: O Fuel Tracker funciona totalmente sem necessidade de conexão com a internet. Todos os seus registros de abastecimento, veículos e relatórios ficam salvos com segurança diretamente no seu dispositivo, garantindo total privacidade e acesso rápido a qualquer momento.
-                    </p>
-                </section>
+                <div id="manualTopics" class="space-y-2">
+                    <details data-kw="plano lite pro gratis compra google play restaurar reembolso offline" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-crown w-4" aria-hidden="true"></i> Planos: Lite x PRO</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li><strong>Lite (grátis):</strong> até 10 lançamentos de abastecimento, 1 veículo, Resumo, Decisão no posto, Histórico, backup do veículo ativo, modo escuro/claro e tamanho do texto.</li>
+                            <li><strong>PRO (compra única):</strong> lançamentos ilimitados, aba Análise, Exportar Excel, vários veículos, configuração de manutenção, rodízio e CNH/Toxicológico.</li>
+                            <li>A compra fica ligada à sua conta Google. Ao reinstalar ou trocar de aparelho, abra o app com internet; se o PRO não voltar, toque em “Restaurar compra” na tela “Seja PRO”.</li>
+                            <li>O PRO funciona sem internet por até 30 dias; depois o app precisa de internet para confirmar a compra. Reembolso feito pelo Google Play desativa o PRO.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="etanol gasolina preco fator 70 compensa resumo" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-calculator w-4" aria-hidden="true"></i> Decisão no posto</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Digite os preços do Etanol e da Gasolina no Resumo; o app indica qual compensa.</li>
+                            <li>Começa com o fator padrão de 70% e ajusta o Fator com o seu consumo real conforme você abastece com tanque cheio.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="lancamento odometro tanque cheio media km/l filtro ultimos 5 limite" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-gas-pump w-4" aria-hidden="true"></i> Registrar abastecimento</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Informe data, odômetro e valores. Marque “Tanque Cheio?” ao encher o tanque, para o consumo ser calculado corretamente.</li>
+                            <li>Médias km/L: Geral ou Últimos 5; filtros Tanque Cheio, Faixa ou Ambos.</li>
+                            <li>No Lite, ao chegar a 10 lançamentos o app pede o PRO.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="historico filtro busca editar excluir registro" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-clock-rotate-left w-4" aria-hidden="true"></i> Histórico</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Filtros: Etanol, Gasolina e Misto.</li>
+                            <li>Busca por data ou km.</li>
+                            <li>Edite ou exclua registros errados.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="analise grafico periodo litros gasto distribuicao dicas" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-chart-line w-4" aria-hidden="true"></i> Análise (PRO)</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Períodos: 30 Dias, Mês Atual, Ano Atual e Todo o Período, com litros e gasto.</li>
+                            <li>Gráfico de evolução do km/L: uma queda brusca pode indicar pneu, alinhamento ou combustível — vale investigar.</li>
+                            <li>Distribuição por combustível e dicas automáticas.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="revisao manutencao oleo rodizio pneus cnh toxicologico vencimento" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-wrench w-4" aria-hidden="true"></i> Revisão e documentos</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Manutenção prevista: estimativa pelo seu uso.</li>
+                            <li>Rodízio de pneus: barra de progresso.</li>
+                            <li>Vencimento da CNH/Toxicológico: alerta no topo.</li>
+                            <li>Configurar intervalos e datas é PRO. No Lite valem intervalos padrão de 10.000 km e não há cadastro de CNH.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="veiculo frota placa mercosul editar excluir" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-car w-4" aria-hidden="true"></i> Veículos</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Lista da frota, com o veículo ativo em destaque.</li>
+                            <li>Nome e placa (formato antigo ABC-1234 ou Mercosul ABC1D23); editar e excluir.</li>
+                            <li>Não é possível excluir o único veículo.</li>
+                            <li>Cadastrar vários veículos é PRO.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="backup restaurar exportar arquivo documentos compartilhar drive whatsapp email rodape 30 dias" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-database w-4" aria-hidden="true"></i> Backup e restauração</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>O arquivo fica em Documentos/FuelTracker. Se não for possível gravar lá, o app abre a tela de Compartilhar. Use Compartilhar para guardar fora do aparelho (Google Drive, e-mail, WhatsApp).</li>
+                            <li>“Exportar/Restaurar Veículo Ativo” cuida de um veículo; “Exportar/Restaurar Tudo” cuida de todos, e a restauração geral <strong>substitui</strong> todos os veículos, históricos e configurações atuais.</li>
+                            <li>O rodapé mostra a data do último backup; depois de 30 dias fica vermelho em negrito e o app avisa.</li>
+                            <li>Faça backup antes de desinstalar, limpar o armazenamento ou trocar de aparelho. O backup é responsabilidade do usuário; o desenvolvedor não consegue restaurar o seu histórico.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="excel planilha xlsx despesas relatorio" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-file-excel w-4" aria-hidden="true"></i> Exportar Excel (PRO)</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Gera uma planilha com os lançamentos do veículo ativo (data, odômetro, preços e valores de etanol e gasolina, tanque cheio), para controle financeiro ou comprovação de despesas.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="aparencia tema escuro claro tamanho texto fonte engrenagem" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-palette w-4" aria-hidden="true"></i> Aparência e tamanho do texto</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Aparência (Escuro/Claro) e Tamanho do texto (A A A) ficam no menu da engrenagem.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="zerar apagar resetar limpar dados" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-trash-arrow-up w-4" aria-hidden="true"></i> Zerar App</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Apaga os dados do aplicativo neste aparelho (veículos, abastecimentos, históricos e configurações), depois de uma confirmação. Faça backup antes.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="privacidade armazenamento login senha servidor internet offline desinstalar limpar" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-shield-halved w-4" aria-hidden="true"></i> Privacidade e armazenamento</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Sem login e sem senha; os registros ficam só no aparelho e o app não os envia a nenhum servidor.</li>
+                            <li>A compra do PRO é feita e confirmada pelo Google Play.</li>
+                            <li>O app funciona sem internet; a compra e a restauração do PRO precisam de internet.</li>
+                            <li>Desinstalar ou “Limpar armazenamento” apaga todos os dados.</li>
+                        </ul>
+                    </details>
+                    <details data-kw="indicar amigo compartilhar link google play" class="manual-topic">
+                        <summary style="min-height:48px" class="px-3 py-2 flex items-center gap-2 cursor-pointer font-bold text-verde-suave focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-xl"><i class="fa-solid fa-share-nodes w-4" aria-hidden="true"></i> Indicar para amigo</summary>
+                        <ul class="list-disc pl-8 pr-3 pb-3 space-y-1.5">
+                            <li>Compartilha o link do app na Google Play.</li>
+                        </ul>
+                    </details>
+                </div>
+                <p id="manualEmpty" role="status" class="hidden text-center font-semibold text-stone-500 dark:text-slate-400 py-3">Nenhum assunto encontrado</p>
             </div>
         </div>
     </div>

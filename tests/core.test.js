@@ -117,6 +117,42 @@ test('acessibilidade: nenhum texto abaixo de 12px (9/10/11px) em index.html e ap
     }
 });
 
+function manualHtml() {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const i = html.indexOf('id="manualModal"');
+    const j = html.indexOf('id="tireModal"');
+    assert.ok(i > 0 && j > i, 'manualModal não encontrado');
+    return html.slice(i, j);
+}
+
+test('manual: tem >= 12 tópicos <details>', () => {
+    assert.ok((manualHtml().match(/<details\b/g) || []).length >= 12);
+});
+
+test('manual: aviso de backup e responsabilidade do usuário', () => {
+    const m = manualHtml();
+    for (const s of ['Limpar armazenamento', 'responsabilidade exclusiva do usuário', 'não consegue recuperar nem restaurar']) {
+        assert.ok(m.includes(s), 'falta: ' + s);
+    }
+});
+
+test('manual: menciona Lite e PRO', () => {
+    const m = manualHtml();
+    assert.ok(m.includes('Lite') && m.includes('PRO'));
+});
+
+test('manual: sem termos proibidos nem preço', () => {
+    const m = manualHtml();
+    assert.ok(!/teste interno|beta|alpha|testador|trial|github/i.test(m), 'termo proibido: ' + m.match(/teste interno|beta|alpha|testador|trial|github/i));
+    assert.ok(!m.includes('R$'), 'preço em reais');
+});
+
+test('normalizeSearchText: acentos, maiúsculas e espaços', () => {
+    assert.strictEqual(FuelCore.normalizeSearchText('Decisão'), 'decisao');
+    assert.strictEqual(FuelCore.normalizeSearchText('  ANÁLISE  (PRO) '), 'analise (pro)');
+    assert.strictEqual(FuelCore.normalizeSearchText(null), '');
+});
+
 test('verdes: .text-etanol e .text-verde-suave existem e diferem (claro e escuro)', () => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     assert.ok(/\.text-etanol\s*\{\s*color:\s*var\(--verde-etanol\)/.test(html), 'falta .text-etanol');

@@ -826,6 +826,25 @@ const FuelTrackerApp = (() => {
 
     function closeManualModal() {
         hideModal('manualModal');
+        const input = document.getElementById('manualSearch');
+        if (input) input.value = '';
+        filterManual('');
+        document.querySelectorAll('#manualTopics details').forEach(d => { d.open = false; });
+    }
+
+    // Busca no manual: todos os termos devem aparecer em título + palavras-chave + conteúdo
+    function filterManual(query) {
+        const terms = FuelCore.normalizeSearchText(query).split(' ').filter(Boolean);
+        let shown = 0;
+        document.querySelectorAll('#manualTopics details').forEach(d => {
+            const hay = FuelCore.normalizeSearchText((d.getAttribute('data-kw') || '') + ' ' + d.textContent);
+            const match = terms.every(t => hay.indexOf(t) !== -1);
+            d.classList.toggle('hidden', !match);
+            if (terms.length) d.open = match;
+            if (match) shown++;
+        });
+        const empty = document.getElementById('manualEmpty');
+        if (empty) empty.classList.toggle('hidden', shown > 0);
     }
 
     // --- Modais acessíveis: foco no diálogo, Esc fecha, Tab preso dentro e foco devolvido ao fechar ---
@@ -2657,6 +2676,7 @@ const FuelTrackerApp = (() => {
         importJSON,
         handleExportExcel,
         handleResetDatabase,
+        filterManual,
         saveRevisionConfig,
         openRevisionModal,
         closeRevisionModal,
