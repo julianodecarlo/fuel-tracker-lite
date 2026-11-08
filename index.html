@@ -95,6 +95,33 @@
             border: 1px solid rgba(210, 198, 180, 0.6);
             box-shadow: 0 4px 6px -1px rgba(120, 100, 80, 0.05);
         }
+
+        /* Acessibilidade de texto: escala global via html (ver setTextScale em app.js) */
+        :root { --ts: 1; }
+        /* Zonas travadas: neutralizam a escala para nao quebrar o layout em 360px */
+        .ts-cap { zoom: calc(1 / var(--ts)); }
+        /* Campos de digitacao: >=48px de altura e >=16px de fonte */
+        input[type="text"], input[type="number"], input[type="date"], select {
+            min-height: 48px;
+            font-size: max(1rem, 16px);
+        }
+        #vehicleSelect { min-height: 0; font-size: inherit; }
+        input::placeholder { opacity: 1; color: #78716c; }
+        html.dark input::placeholder { color: #94a3b8; }
+        html.dark label, html.dark .text-slate-400 { color: #cbd5e1; }
+        html.dark .text-slate-500 { color: #94a3b8; }
+        .ts-opt[aria-pressed="true"] { background:#10b981; color:#022c22; border-color:#10b981; }
+        /* Cabecalho sem quebra de linha (travado, igual nos 3 tamanhos) */
+        header h1, #btnUpgradePro, #pwaInstallBtn { white-space: nowrap; }
+        header > div { min-width: 0; }
+        #appSubHeader { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #btnUpgradePro, #btnSettingsMenu, #appHeaderIcon { flex-shrink: 0; }
+        @media (max-width: 420px) {
+            header { padding-left: 0.75rem; padding-right: 0.75rem; }
+            #appSubHeader, #appBadge, #btnUpgradePro i { display: none; }
+            header h1 { font-size: 0.875rem; }
+            #vehicleSelect { max-width: 84px; }
+        }
     </style>
 </head>
 <body class="bg-amber-50/60 dark:bg-slate-950 text-stone-800 dark:text-slate-100 min-h-screen flex flex-col items-center justify-center font-sans antialiased transition-colors duration-200">
@@ -107,17 +134,17 @@
                 <i class="fa-solid fa-triangle-exclamation text-base"></i>
                 <span id="cnhAlertBannerText">Atenção: Validade de documento próxima ou vencida!</span>
             </div>
-            <button onclick="FuelTrackerApp.switchTab('revision')" class="bg-white text-rose-600 px-2.5 py-1 rounded-lg text-[11px] font-extrabold hover:bg-rose-50 transition">
+            <button onclick="FuelTrackerApp.switchTab('revision')" class="bg-white text-rose-600 px-2.5 py-1 rounded-lg text-xs font-extrabold hover:bg-rose-50 transition">
                 Ver na Aba Revisão &rarr;
             </button>
         </div>
 
-        <header class="pt-10 px-4 pb-3 bg-[#f5f0e6]/90 dark:bg-slate-900/90 backdrop-blur border-b border-stone-300/60 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between transition-colors">
+        <header class="ts-cap pt-10 px-4 pb-3 bg-[#f5f0e6]/90 dark:bg-slate-900/90 backdrop-blur border-b border-stone-300/60 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between transition-colors">
             <div class="flex items-center gap-2.5">
                 <img id="appHeaderIcon" src="icons/icon-192.png" alt="" width="32" height="32" class="w-8 h-8 rounded-xl shadow-lg shadow-emerald-500/20">
                 <div>
                     <h1 class="text-base font-bold tracking-tight text-stone-900 dark:text-white leading-tight">Fuel Tracker <span id="appBadge" class="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold">LITE</span></h1>
-                    <p id="appSubHeader" class="text-[10px] text-stone-500 dark:text-slate-400 font-medium">Gestão Inteligente & Métricas</p>
+                    <p id="appSubHeader" class="text-xs text-stone-500 dark:text-slate-400 font-medium">Gestão Inteligente & Métricas</p>
                 </div>
             </div>
             
@@ -146,8 +173,19 @@
                     <div id="settingsDropdown" role="menu" aria-label="Menu de configurações" class="hidden absolute right-0 mt-2 w-56 bg-[#f5f0e6] dark:bg-slate-800 border border-stone-300 dark:border-slate-700 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-lg">
                         <button role="menuitem" onclick="FuelTrackerApp.toggleTheme(); FuelTrackerApp.toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i id="themeMenuIcon" class="fa-solid fa-sun w-4" aria-hidden="true"></i> Aparência</span>
-                            <span id="themeMenuLabel" class="text-[10px] uppercase font-bold text-stone-400">Escuro</span>
+                            <span id="themeMenuLabel" class="text-xs uppercase font-bold text-stone-400">Escuro</span>
                         </button>
+
+                        <div role="group" aria-label="Tamanho do texto" class="px-4 py-2">
+                            <span class="block text-xs font-semibold text-stone-600 dark:text-slate-300 mb-1.5"><i class="fa-solid fa-text-height w-4" aria-hidden="true"></i> Tamanho do texto</span>
+                            <div class="grid grid-cols-3 gap-1">
+                                <button type="button" data-ts="normal" aria-pressed="false" onclick="FuelTrackerApp.setTextScale('normal')" class="ts-opt py-1.5 rounded-lg text-xs font-bold border border-stone-300 dark:border-slate-600 text-stone-700 dark:text-slate-200">Normal</button>
+                                <button type="button" data-ts="large" aria-pressed="false" onclick="FuelTrackerApp.setTextScale('large')" class="ts-opt py-1.5 rounded-lg text-xs font-bold border border-stone-300 dark:border-slate-600 text-stone-700 dark:text-slate-200">Grande</button>
+                                <button type="button" data-ts="xlarge" aria-pressed="false" onclick="FuelTrackerApp.setTextScale('xlarge')" class="ts-opt py-1.5 rounded-lg text-xs font-bold border border-stone-300 dark:border-slate-600 text-stone-700 dark:text-slate-200 leading-tight">Extra grande</button>
+                            </div>
+                        </div>
+
+                        <hr class="border-stone-300 dark:border-slate-700/60 my-1">
 
                         <button role="menuitem" onclick="FuelTrackerApp.openVehicleModal(); FuelTrackerApp.toggleSettingsMenu();" class="w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-stone-200/50 dark:hover:bg-slate-700/60 flex items-center justify-between transition focus:outline-none focus:bg-stone-200/50 dark:focus:bg-slate-700/60">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-car w-4" aria-hidden="true"></i> Veículos</span>
@@ -194,7 +232,7 @@
                 </div>
             </aside>
 
-            <div role="tablist" aria-label="Seções do aplicativo" class="grid grid-cols-4 gap-1 bg-stone-200/70 dark:bg-slate-800/80 p-1 rounded-xl text-[11px] font-semibold border border-stone-300/70 dark:border-slate-700/60">
+            <div role="tablist" aria-label="Seções do aplicativo" class="ts-cap grid grid-cols-4 gap-1 bg-stone-200/70 dark:bg-slate-800/80 p-1 rounded-xl text-xs font-semibold border border-stone-300/70 dark:border-slate-700/60">
                 <button id="tabDashboard" role="tab" aria-controls="viewDashboard" onclick="FuelTrackerApp.switchTab('dashboard')" aria-selected="true" class="py-2 rounded-lg bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-emerald-600">
                     <i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Resumo
                 </button>
@@ -215,15 +253,15 @@
                         <h2 class="text-xs font-bold uppercase text-stone-700 dark:text-slate-300 tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-calculator text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i> Decisão no Posto (Etanol vs Gasolina)
                         </h2>
-                        <span id="labelFatorPosto" class="text-[10px] font-bold text-stone-600 dark:text-slate-300 bg-stone-300/50 dark:bg-slate-700/50 px-2 py-0.5 rounded border border-stone-300 dark:border-slate-600">Fator: 70.0%</span>
+                        <span id="labelFatorPosto" class="text-xs font-bold text-stone-600 dark:text-slate-300 bg-stone-300/50 dark:bg-slate-700/50 px-2 py-0.5 rounded border border-stone-300 dark:border-slate-600">Fator: 70.0%</span>
                     </div>
                     <div class="grid grid-cols-2 gap-2.5">
                         <div class="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                            <label for="calcPrecoA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Preço Etanol (R$)</label>
+                            <label for="calcPrecoA" class="block text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Preço Etanol (R$)</label>
                             <input type="text" id="calcPrecoA" inputmode="numeric" placeholder="Ex: 3,69" oninput="FuelTrackerApp.maskDecimalTwoDigits(this); FuelTrackerApp.calcularDecisaoPosto();" class="w-full bg-white dark:bg-slate-900 border border-emerald-500/40 rounded-lg px-2.5 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                         </div>
                         <div class="p-2 rounded-xl bg-orange-500/10 border border-orange-500/30">
-                            <label for="calcPrecoG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Preço Gasolina (R$)</label>
+                            <label for="calcPrecoG" class="block text-xs font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Preço Gasolina (R$)</label>
                             <input type="text" id="calcPrecoG" inputmode="numeric" placeholder="Ex: 5,89" oninput="FuelTrackerApp.maskDecimalTwoDigits(this); FuelTrackerApp.calcularDecisaoPosto();" class="w-full bg-white dark:bg-slate-900 border border-orange-500/40 rounded-lg px-2.5 py-1.5 text-xs text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                         </div>
                     </div>
@@ -234,18 +272,18 @@
 
                 <section aria-label="Indicadores gerais" class="grid grid-cols-2 gap-3">
                     <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
-                        <span class="text-[11px] font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-wider block">Km Rodados no Período</span>
+                        <span class="text-xs font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-wider block">Km Rodados no Período</span>
                         <div class="text-xl font-black text-stone-900 dark:text-white mt-1" id="kpiTotalKm">0 km</div>
-                        <div class="text-[10px] text-stone-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                        <div class="text-xs text-stone-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                             <i class="fa-solid fa-gauge-high text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i>
                             <span id="kpiOdometro">Odômetro: 0 km</span>
                         </div>
                     </div>
 
                     <div class="glass-card p-3.5 rounded-2xl relative overflow-hidden border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
-                        <span class="text-[11px] font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-wider block">Gasto Total</span>
+                        <span class="text-xs font-semibold text-stone-500 dark:text-slate-400 uppercase tracking-wider block">Gasto Total</span>
                         <div class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1" id="kpiGastoTotal">R$ 0,00</div>
-                        <div class="text-[10px] text-stone-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                        <div class="text-xs text-stone-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                             <i class="fa-solid fa-coins text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
                             <span id="kpiCustoMedio">Custo/km: R$ 0,00</span>
                         </div>
@@ -259,7 +297,7 @@
                         </h2>
                     </div>
 
-                    <div role="group" aria-label="Filtro de critério para cálculo do Km/L" class="grid grid-cols-3 gap-1 bg-stone-200/70 dark:bg-slate-900/90 p-1 rounded-xl text-[10px] border border-stone-300/70 dark:border-slate-800 text-center">
+                    <div role="group" aria-label="Filtro de critério para cálculo do Km/L" class="grid grid-cols-3 gap-1 bg-stone-200/70 dark:bg-slate-900/90 p-1 rounded-xl text-xs border border-stone-300/70 dark:border-slate-800 text-center">
                         <button id="filterTankOnly" onclick="FuelTrackerApp.setKmlFilterCriterion('tank')" class="py-1 rounded-lg text-stone-500 dark:text-slate-400 font-semibold transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Tanque Cheio
                         </button>
@@ -272,29 +310,29 @@
                     </div>
 
                     <div role="group" aria-label="Modo de cálculo de médias" class="flex rounded-lg bg-stone-200/70 dark:bg-slate-900/80 p-0.5 border border-stone-300/70 dark:border-slate-800 text-xs">
-                        <button id="avgModeAll" onclick="FuelTrackerApp.setAvgMode('all')" class="flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button id="avgModeAll" onclick="FuelTrackerApp.setAvgMode('all')" class="flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-xs transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Média Geral (Todos)
                         </button>
-                        <button id="avgMode5" onclick="FuelTrackerApp.setAvgMode('last5')" class="flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button id="avgMode5" onclick="FuelTrackerApp.setAvgMode('last5')" class="flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-xs hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             Últimos 5 Abastecimentos
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-2 pt-1">
+                    <div class="ts-cap grid grid-cols-3 gap-2 pt-1">
                         <div class="bg-white dark:bg-slate-900/90 p-2.5 rounded-xl border border-emerald-500/30 text-center shadow-sm dark:shadow-none">
-                            <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block mb-0.5"><i class="fa-solid fa-leaf" aria-hidden="true"></i> Etanol</span>
+                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mb-0.5"><i class="fa-solid fa-leaf" aria-hidden="true"></i> Etanol</span>
                             <span class="text-base font-black text-stone-900 dark:text-white block" id="avgAlcoholVal">0.00</span>
-                            <span class="text-[9px] text-stone-500 dark:text-slate-400 block" id="avgAlcoholSub">km/L</span>
+                            <span class="text-xs text-stone-500 dark:text-slate-400 block" id="avgAlcoholSub">km/L</span>
                         </div>
                         <div class="bg-white dark:bg-slate-900/90 p-2.5 rounded-xl border border-orange-500/30 text-center shadow-sm dark:shadow-none">
-                            <span class="text-[10px] font-bold text-orange-600 dark:text-orange-400 block mb-0.5"><i class="fa-solid fa-fire" aria-hidden="true"></i> Gasolina</span>
+                            <span class="text-xs font-bold text-orange-600 dark:text-orange-400 block mb-0.5"><i class="fa-solid fa-fire" aria-hidden="true"></i> Gasolina</span>
                             <span class="text-base font-black text-stone-900 dark:text-white block" id="avgGasVal">0.00</span>
-                            <span class="text-[9px] text-stone-500 dark:text-slate-400 block" id="avgGasSub">km/L</span>
+                            <span class="text-xs text-stone-500 dark:text-slate-400 block" id="avgGasSub">km/L</span>
                         </div>
                         <div class="bg-white dark:bg-slate-900/90 p-2.5 rounded-xl border border-purple-500/30 text-center shadow-sm dark:shadow-none">
-                            <span class="text-[10px] font-bold text-purple-600 dark:text-purple-400 block mb-0.5"><i class="fa-solid fa-shuffle" aria-hidden="true"></i> Misto</span>
+                            <span class="text-xs font-bold text-purple-600 dark:text-purple-400 block mb-0.5"><i class="fa-solid fa-shuffle" aria-hidden="true"></i> Misto</span>
                             <span class="text-base font-black text-stone-900 dark:text-white block" id="avgMixedVal">0.00</span>
-                            <span class="text-[9px] text-stone-500 dark:text-slate-400 block" id="avgMixedSub">km/L</span>
+                            <span class="text-xs text-stone-500 dark:text-slate-400 block" id="avgMixedSub">km/L</span>
                         </div>
                     </div>
                 </section>
@@ -315,33 +353,33 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div class="flex flex-col min-w-0">
-                                <label for="inputData" class="block text-[11px] font-medium text-stone-700 dark:text-slate-300 mb-1">Data</label>
+                                <label for="inputData" class="block text-xs font-medium text-stone-700 dark:text-slate-300 mb-1">Data</label>
                                 <input type="date" id="inputData" required class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
                             </div>
                             <div class="flex flex-col min-w-0">
-                                <label for="inputOdometro" class="block text-[11px] font-medium text-stone-700 dark:text-slate-300 mb-1">Odômetro (Km)</label>
+                                <label for="inputOdometro" class="block text-xs font-medium text-stone-700 dark:text-slate-300 mb-1">Odômetro (Km)</label>
                                 <input type="number" id="inputOdometro" step="1" min="0" max="9999999" required placeholder="Ex: 10000" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-xl px-3 py-2 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/30">
                             <div class="min-w-0">
-                                <label for="inputPrecoA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Preço/L Etanol (R$)</label>
+                                <label for="inputPrecoA" class="block text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5"><i class="fa-solid fa-leaf mr-1" aria-hidden="true"></i>Preço/L Etanol (R$)</label>
                                 <input type="text" id="inputPrecoA" inputmode="numeric" placeholder="0,00" oninput="FuelTrackerApp.maskDecimalTwoDigits(this)" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                             </div>
                             <div class="min-w-0">
-                                <label for="inputValorA" class="block text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">Total Etanol (R$)</label>
+                                <label for="inputValorA" class="block text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">Total Etanol (R$)</label>
                                 <input type="text" id="inputValorA" inputmode="numeric" placeholder="0,00" oninput="FuelTrackerApp.maskDecimalTwoDigits(this)" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-orange-500/10 dark:bg-orange-950/20 border border-orange-500/30">
                             <div class="min-w-0">
-                                <label for="inputPrecoG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Preço/L Gas (R$)</label>
+                                <label for="inputPrecoG" class="block text-xs font-semibold text-orange-700 dark:text-orange-400 mb-0.5"><i class="fa-solid fa-fire mr-1" aria-hidden="true"></i>Preço/L Gas (R$)</label>
                                 <input type="text" id="inputPrecoG" inputmode="numeric" placeholder="0,00" oninput="FuelTrackerApp.maskDecimalTwoDigits(this)" class="w-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                             </div>
                             <div class="min-w-0">
-                                <label for="inputValorG" class="block text-[10px] font-semibold text-orange-700 dark:text-orange-400 mb-0.5">Total Gasolina (R$)</label>
+                                <label for="inputValorG" class="block text-xs font-semibold text-orange-700 dark:text-orange-400 mb-0.5">Total Gasolina (R$)</label>
                                 <input type="text" id="inputValorG" inputmode="numeric" placeholder="0,00" oninput="FuelTrackerApp.maskDecimalTwoDigits(this)" class="w-full min-w-0 bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-stone-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
                             </div>
                         </div>
@@ -363,7 +401,7 @@
                 <section aria-label="Últimos registros" class="space-y-2">
                     <div class="flex items-center justify-between px-1">
                         <h2 class="text-xs font-bold text-stone-700 dark:text-slate-300 uppercase tracking-wider">Últimos Registros</h2>
-                        <button onclick="FuelTrackerApp.switchTab('history')" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded">Ver Todos &rarr;</button>
+                        <button onclick="FuelTrackerApp.switchTab('history')" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded">Ver Todos &rarr;</button>
                     </div>
                     <div id="recentRecordsList" class="space-y-2"></div>
                 </section>
@@ -401,22 +439,22 @@
             <div id="viewAnalytics" role="tabpanel" aria-labelledby="tabAnalytics" class="space-y-4 hidden">
                 <!-- SELETOR DE PERÍODO DAS MÉTRICAS -->
                 <div role="group" aria-label="Período das métricas" class="flex gap-1 p-1 rounded-full border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50">
-                    <button type="button" data-period="30d" aria-pressed="true" onclick="FuelTrackerApp.setAnalysisPeriod('30d')" class="flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold bg-emerald-500 text-slate-950 shadow transition focus:outline-none focus:ring-2 focus:ring-emerald-500">30 Dias</button>
-                    <button type="button" data-period="month" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('month')" class="flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Mês Atual</button>
-                    <button type="button" data-period="year" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('year')" class="flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Ano Atual</button>
-                    <button type="button" data-period="all" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('all')" class="flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Todo o Período</button>
+                    <button type="button" data-period="30d" aria-pressed="true" onclick="FuelTrackerApp.setAnalysisPeriod('30d')" class="flex-1 px-2 py-1.5 rounded-full text-xs font-bold bg-emerald-500 text-slate-950 shadow transition focus:outline-none focus:ring-2 focus:ring-emerald-500">30 Dias</button>
+                    <button type="button" data-period="month" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('month')" class="flex-1 px-2 py-1.5 rounded-full text-xs font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Mês Atual</button>
+                    <button type="button" data-period="year" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('year')" class="flex-1 px-2 py-1.5 rounded-full text-xs font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Ano Atual</button>
+                    <button type="button" data-period="all" aria-pressed="false" onclick="FuelTrackerApp.setAnalysisPeriod('all')" class="flex-1 px-2 py-1.5 rounded-full text-xs font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">Todo o Período</button>
                 </div>
                 <!-- MÉTRICAS DE CONSUMO ADICIONAIS -->
                 <section aria-label="Métricas do período selecionado" class="grid grid-cols-2 gap-2.5">
                     <div class="glass-card p-3 rounded-xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 text-center">
-                        <span class="text-[10px] font-bold text-stone-500 dark:text-slate-400 uppercase block">Litros Abastecidos</span>
+                        <span class="text-xs font-bold text-stone-500 dark:text-slate-400 uppercase block">Litros Abastecidos</span>
                         <span class="text-base font-black text-stone-900 dark:text-white block mt-0.5" id="metricLitrosMes">0 L</span>
-                        <span id="labelPeriodLitros" class="text-[9px] text-stone-400 dark:text-slate-500 block">Últimos 30 dias</span>
+                        <span id="labelPeriodLitros" class="text-xs text-stone-400 dark:text-slate-500 block">Últimos 30 dias</span>
                     </div>
                     <div class="glass-card p-3 rounded-xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 text-center">
-                        <span class="text-[10px] font-bold text-stone-500 dark:text-slate-400 uppercase block">Gasto com Combustível</span>
+                        <span class="text-xs font-bold text-stone-500 dark:text-slate-400 uppercase block">Gasto com Combustível</span>
                         <span class="text-base font-black text-emerald-600 dark:text-emerald-400 block mt-0.5" id="metricGastoMes">R$ 0,00</span>
-                        <span id="labelPeriodGasto" class="text-[9px] text-stone-400 dark:text-slate-500 block">Últimos 30 dias</span>
+                        <span id="labelPeriodGasto" class="text-xs text-stone-400 dark:text-slate-500 block">Últimos 30 dias</span>
                     </div>
                 </section>
 
@@ -458,7 +496,7 @@
                             </div>
                             <div>
                                 <h2 class="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider">Manutenção Prevista</h2>
-                                <p class="text-[10px] text-stone-500 dark:text-slate-400">Gestão do intervalo de troca de óleo/revisão</p>
+                                <p class="text-xs text-stone-500 dark:text-slate-400">Gestão do intervalo de troca de óleo/revisão</p>
                             </div>
                         </div>
                         <button onclick="FuelTrackerApp.openRevisionModal()" class="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1">
@@ -491,7 +529,7 @@
                             </div>
                             <div>
                                 <h2 class="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider">Rodízio de Pneus</h2>
-                                <p class="text-[10px] text-stone-500 dark:text-slate-400">Controle de desgaste e alinhamento</p>
+                                <p class="text-xs text-stone-500 dark:text-slate-400">Controle de desgaste e alinhamento</p>
                             </div>
                         </div>
                         <button onclick="FuelTrackerApp.openTireModal()" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1">
@@ -524,7 +562,7 @@
                             </div>
                             <div>
                                 <h2 class="text-sm font-bold text-stone-900 dark:text-white uppercase tracking-wider">CNH & Toxicológico</h2>
-                                <p class="text-[10px] text-stone-500 dark:text-slate-400">Controle de vencimento de documentos</p>
+                                <p class="text-xs text-stone-500 dark:text-slate-400">Controle de vencimento de documentos</p>
                             </div>
                         </div>
                         <button onclick="FuelTrackerApp.openCnhModal()" class="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1">
@@ -537,7 +575,7 @@
                         <div class="p-3 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-purple-500/20 flex items-center justify-between">
                             <div>
                                 <span class="font-bold text-stone-900 dark:text-white block">Carteira Habilitação (CNH)</span>
-                                <span class="text-[11px] text-stone-500 dark:text-slate-400" id="cnhDateText">Data não cadastrada</span>
+                                <span class="text-xs text-stone-500 dark:text-slate-400" id="cnhDateText">Data não cadastrada</span>
                             </div>
                             <span class="font-black text-sm" id="cnhDaysBadge">-</span>
                         </div>
@@ -546,7 +584,7 @@
                         <div id="toxicCard" class="p-3 bg-white/50 dark:bg-slate-900/50 rounded-xl border border-purple-500/20 flex items-center justify-between">
                             <div>
                                 <span class="font-bold text-stone-900 dark:text-white block">Exame Toxicológico</span>
-                                <span class="text-[11px] text-stone-500 dark:text-slate-400" id="toxicDateText">Data não cadastrada</span>
+                                <span class="text-xs text-stone-500 dark:text-slate-400" id="toxicDateText">Data não cadastrada</span>
                             </div>
                             <span class="font-black text-sm" id="toxicDaysBadge">-</span>
                         </div>
@@ -555,12 +593,12 @@
             </div>
         </main>
 
-        <footer class="py-2.5 px-5 bg-[#f5f0e6] dark:bg-slate-900 border-t border-stone-300/60 dark:border-slate-800 flex items-center justify-between text-[11px] text-stone-500 dark:text-slate-400 transition-colors">
+        <footer class="ts-cap py-2.5 px-5 bg-[#f5f0e6] dark:bg-slate-900 border-t border-stone-300/60 dark:border-slate-800 flex items-center justify-between text-xs text-stone-500 dark:text-slate-400 transition-colors">
             <span class="flex items-center gap-1.5">
                 <span id="storagePulse" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
                 <span id="storageStatus">Base Local Ativa</span>
             </span>
-            <span id="appVersionFooter" class="font-mono text-[10px] text-stone-400 dark:text-slate-500">v1.2</span>
+            <span id="appVersionFooter" class="font-mono text-xs text-stone-400 dark:text-slate-500">v1.2</span>
         </footer>
     </div>
 
@@ -861,14 +899,14 @@
                     <i class="fa-download fa-solid text-xl" aria-hidden="true"></i>
                     <span>
                         <span class="block">Exportar Veículo Ativo</span>
-                        <span class="block text-[10px] font-medium text-stone-500 dark:text-slate-400">Baixar dados do veículo selecionado (.json)</span>
+                        <span class="block text-xs font-medium text-stone-500 dark:text-slate-400">Baixar dados do veículo selecionado (.json)</span>
                     </span>
                 </button>
                 <label id="backupLabelImportActive" for="backupImportActiveInput" class="w-full p-4 bg-blue-500/10 hover:bg-blue-500/20 border-2 border-blue-500/40 text-blue-700 dark:text-blue-400 font-bold rounded-2xl shadow-sm transition flex items-center gap-3 text-left cursor-pointer focus-within:ring-2 focus-within:ring-blue-600">
                     <i class="fa-upload fa-solid text-xl" aria-hidden="true"></i>
                     <span>
                         <span class="block">Restaurar Veículo Ativo</span>
-                        <span class="block text-[10px] font-medium text-stone-500 dark:text-slate-400">Enviar backup do veículo selecionado (.json)</span>
+                        <span class="block text-xs font-medium text-stone-500 dark:text-slate-400">Enviar backup do veículo selecionado (.json)</span>
                     </span>
                 </label>
                 <input type="file" id="backupImportActiveInput" accept=".json" class="sr-only" onchange="FuelTrackerApp.importJSON(event)">
@@ -883,14 +921,14 @@
                     <i class="fa-download fa-solid text-xl" aria-hidden="true"></i>
                     <span>
                         <span class="block">Exportar Tudo</span>
-                        <span class="block text-[10px] font-medium text-stone-500 dark:text-slate-400">Baixar backup geral (.json)</span>
+                        <span class="block text-xs font-medium text-stone-500 dark:text-slate-400">Baixar backup geral (.json)</span>
                     </span>
                 </button>
                 <button onclick="FuelTrackerApp.importFullBackup()" class="w-full p-4 bg-blue-500/10 hover:bg-blue-500/20 border-2 border-blue-500/40 text-blue-700 dark:text-blue-400 font-bold rounded-2xl shadow-sm transition flex items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-blue-600">
                     <i class="fa-upload fa-solid text-xl" aria-hidden="true"></i>
                     <span>
                         <span class="block">Restaurar Tudo</span>
-                        <span class="block text-[10px] font-medium text-stone-500 dark:text-slate-400">Enviar backup geral (.json)</span>
+                        <span class="block text-xs font-medium text-stone-500 dark:text-slate-400">Enviar backup geral (.json)</span>
                     </span>
                 </button>
             </div>

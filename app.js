@@ -662,6 +662,29 @@ const FuelTrackerApp = (() => {
         input.value = numericVal.replace('.', ',');
     }
 
+    const TEXT_SCALE_KEY = 'fuelTrackerTextScale';
+    const TEXT_SCALES = { normal: 1, large: 1.125, xlarge: 1.25 };
+
+    function applyTextScale(name) {
+        const k = TEXT_SCALES[name] ? name : 'normal';
+        const f = TEXT_SCALES[k];
+        document.documentElement.style.fontSize = (f * 100) + '%';
+        document.documentElement.style.setProperty('--ts', String(f));
+        document.querySelectorAll('.ts-opt').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ts === k)));
+        return k;
+    }
+
+    function initTextScale() {
+        let saved = 'normal';
+        try { saved = localStorage.getItem(TEXT_SCALE_KEY) || 'normal'; } catch (e) { }
+        applyTextScale(saved);
+    }
+
+    function setTextScale(name) {
+        const k = applyTextScale(name);
+        try { localStorage.setItem(TEXT_SCALE_KEY, k); } catch (e) { }
+    }
+
     function initTheme() {
         const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
         applyTheme(savedTheme);
@@ -1093,16 +1116,16 @@ const FuelTrackerApp = (() => {
                 <div class="min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <span class="font-bold text-stone-900 dark:text-white truncate">${escapeHtml(v.name)}</span>
-                        ${isActive ? '<span class="text-[9px] uppercase font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded">Ativo</span>' : ''}
+                        ${isActive ? '<span class="text-xs uppercase font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded">Ativo</span>' : ''}
                     </div>
-                    <span class="text-[10px] text-stone-500 dark:text-slate-400">${v.plate ? escapeHtml(v.plate) : 'Sem placa'}</span>
+                    <span class="text-xs text-stone-500 dark:text-slate-400">${v.plate ? escapeHtml(v.plate) : 'Sem placa'}</span>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
                     <button type="button" data-action="edit-vehicle" data-id="${escapeHtml(v.id)}" aria-label="Editar veículo" class="w-7 h-7 rounded-lg bg-stone-200 dark:bg-slate-800 text-sky-600 dark:text-sky-400 hover:bg-stone-300 dark:hover:bg-slate-700 transition flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-sky-500">
-                        <i class="fa-solid fa-pen text-[10px]" aria-hidden="true"></i>
+                        <i class="fa-solid fa-pen text-xs" aria-hidden="true"></i>
                     </button>
                     <button type="button" data-action="delete-vehicle" data-id="${escapeHtml(v.id)}" aria-label="Excluir veículo" class="w-7 h-7 rounded-lg bg-stone-200 dark:bg-slate-800 text-rose-600 dark:text-rose-400 hover:bg-stone-300 dark:hover:bg-slate-700 transition flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-rose-500">
-                        <i class="fa-solid fa-trash-can text-[10px]" aria-hidden="true"></i>
+                        <i class="fa-solid fa-trash-can text-xs" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>`;
@@ -1699,11 +1722,11 @@ const FuelTrackerApp = (() => {
         const btn5 = document.getElementById('avgMode5');
 
         if (mode === 'all') {
-            btnAll.className = "flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500";
-            btn5.className = "flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500";
+            btnAll.className = "flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-xs transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500";
+            btn5.className = "flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-xs hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500";
         } else {
-            btn5.className = "flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-[11px] transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500";
-            btnAll.className = "flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-[11px] hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500";
+            btn5.className = "flex-1 py-1 rounded-md bg-white dark:bg-slate-700 text-stone-900 dark:text-white font-semibold text-xs transition shadow-sm dark:shadow-none focus:outline-none focus:ring-1 focus:ring-emerald-500";
+            btnAll.className = "flex-1 py-1 rounded-md text-stone-500 dark:text-slate-400 font-semibold text-xs hover:text-stone-900 dark:hover:text-white transition focus:outline-none focus:ring-1 focus:ring-emerald-500";
         }
         recalculateMetricsAndRender();
     }
@@ -1847,8 +1870,8 @@ const FuelTrackerApp = (() => {
     // --- Período dos quadros Litros Abastecidos / Gasto com Combustível (aba Análise) ---
     let currentAnalysisPeriod = '30d';
     const PERIOD_LABELS = { '30d': 'Últimos 30 dias', month: 'Mês atual', year: 'Ano atual', all: 'Todo o período' };
-    const PERIOD_BTN_ACTIVE = 'flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold bg-emerald-500 text-slate-950 shadow transition focus:outline-none focus:ring-2 focus:ring-emerald-500';
-    const PERIOD_BTN_INACTIVE = 'flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500';
+    const PERIOD_BTN_ACTIVE = 'flex-1 px-2 py-1.5 rounded-full text-xs font-bold bg-emerald-500 text-slate-950 shadow transition focus:outline-none focus:ring-2 focus:ring-emerald-500';
+    const PERIOD_BTN_INACTIVE = 'flex-1 px-2 py-1.5 rounded-full text-xs font-semibold text-stone-600 dark:text-slate-300 hover:bg-stone-200/70 dark:hover:bg-slate-700/60 transition focus:outline-none focus:ring-2 focus:ring-emerald-500';
 
     function updateAnalysisCards() {
         const filtered = FuelCore.filterRecordsByPeriod(records, currentAnalysisPeriod);
@@ -1993,12 +2016,12 @@ const FuelTrackerApp = (() => {
                     <div>
                         <div class="font-bold text-stone-900 dark:text-white flex items-center gap-2">
                             <span>${escapeHtml(formatDateBR(r.date))}</span>
-                            <span class="text-[10px] bg-stone-200 dark:bg-slate-700 text-stone-600 dark:text-slate-300 px-1.5 py-0.5 rounded">${escapeHtml(Number(r.odo).toLocaleString('pt-BR'))} km</span>
+                            <span class="text-xs bg-stone-200 dark:bg-slate-700 text-stone-600 dark:text-slate-300 px-1.5 py-0.5 rounded">${escapeHtml(Number(r.odo).toLocaleString('pt-BR'))} km</span>
                         </div>
-                        <div class="text-[11px] text-stone-500 dark:text-slate-400 mt-0.5">
+                        <div class="text-xs text-stone-500 dark:text-slate-400 mt-0.5">
                             Combustível: ${fuelTag} ${tankTag}
                         </div>
-                        <div class="text-[11px] text-stone-500 dark:text-slate-400">
+                        <div class="text-xs text-stone-500 dark:text-slate-400">
                             ${litersInfo}
                         </div>
                     </div>
@@ -2067,17 +2090,17 @@ const FuelTrackerApp = (() => {
             if (r.valorA > 0 && r.valorG > 0) fuelDetails.push('<i class="fa-solid fa-shuffle text-purple-600 dark:text-purple-400" aria-hidden="true"></i> Misto');
 
             const tankBadge = r.fullTank 
-                ? '<span class="text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">Tanque Cheio</span>'
-                : '<span class="text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded">Parcial</span>';
+                ? '<span class="text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">Tanque Cheio</span>'
+                : '<span class="text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded">Parcial</span>';
 
             return `
                 <div class="glass-card p-3 rounded-2xl border border-stone-300 dark:border-slate-700/50 bg-[#efe8db] dark:bg-slate-800/50 space-y-2 text-xs">
                     <div class="flex items-center justify-between border-b border-stone-300/60 dark:border-slate-700/60 pb-2">
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="font-bold text-stone-900 dark:text-white">${escapeHtml(formatDateBR(r.date))}</span>
-                            <span class="text-[10px] font-bold bg-stone-200 dark:bg-slate-700 text-stone-700 dark:text-slate-300 px-2 py-0.5 rounded-lg">${escapeHtml(Number(r.odo).toLocaleString('pt-BR'))} km</span>
+                            <span class="text-xs font-bold bg-stone-200 dark:bg-slate-700 text-stone-700 dark:text-slate-300 px-2 py-0.5 rounded-lg">${escapeHtml(Number(r.odo).toLocaleString('pt-BR'))} km</span>
                             ${tankBadge}
-                            ${r.kmlText ? `<span class="text-[11px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 dark:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/40">${r.kmlText}</span>` : ''}
+                            ${r.kmlText ? `<span class="text-xs font-black text-amber-700 dark:text-amber-400 bg-amber-500/15 dark:bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/40">${r.kmlText}</span>` : ''}
                         </div>
                         <div class="flex items-center gap-1">
                             <button onclick="FuelTrackerApp.editRecord(${r.recordIndex})" class="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 flex items-center justify-center transition" title="Editar" aria-label="Editar abastecimento de ${escapeHtml(formatDateBR(r.date))}">
@@ -2089,7 +2112,7 @@ const FuelTrackerApp = (() => {
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between text-[11px]">
+                    <div class="flex items-center justify-between text-xs">
                         <div class="text-stone-600 dark:text-slate-300">
                             ${fuelDetails.join(' | ')}
                         </div>
@@ -2505,6 +2528,7 @@ const FuelTrackerApp = (() => {
 
     function init() {
         initTheme();
+        initTextScale();
         if (navigator.storage && typeof navigator.storage.persist === 'function') {
             navigator.storage.persist().catch(() => { });
         }
@@ -2598,6 +2622,7 @@ const FuelTrackerApp = (() => {
         updateOdometerPlaceholder,
         renderHistoryList,
         toggleTheme,
+        setTextScale,
         shareAppWithFriend,
         toggleSettingsMenu,
         openManualModal,

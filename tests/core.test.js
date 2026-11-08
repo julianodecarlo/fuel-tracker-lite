@@ -109,6 +109,14 @@ test('www/ não é versionado (.gitignore)', () => {
     assert.ok(/^\/?www\/?\s*$/m.test(gi));
 });
 
+test('acessibilidade: nenhum texto abaixo de 12px (9/10/11px) em index.html e app.js', () => {
+    for (const f of ['index.html', 'app.js']) {
+        const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+        const bad = src.match(/text-\[(9|10|11)px\]|font-size:\s*(9|10|11)px/g);
+        assert.strictEqual(bad, null, f + ' ainda tem texto < 12px: ' + bad);
+    }
+});
+
 (async () => {
     let failed = 0;
     for (const [name, fn] of tests) {
