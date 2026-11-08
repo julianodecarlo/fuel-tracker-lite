@@ -117,6 +117,12 @@
         .text-verde-suave { color: var(--verde-suave); }
         .fator-chip { text-align: center; white-space: nowrap; line-height: 1.1; }
         .fator-valor { font-size: 1.25rem; line-height: 1.2; }
+        /* Rodape: estado do backup (vermelho + negrito quando atrasado; contraste >= 4.5:1 nos dois temas) */
+        .backup-dot { background: #10b981; flex-shrink: 0; }
+        .backup-dot.backup-dot-late { background: #b91c1c; }
+        .backup-text.backup-late { color: #b91c1c; font-weight: 700; }
+        html.dark .backup-dot.backup-dot-late { background: #f87171; }
+        html.dark .backup-text.backup-late { color: #f87171; }
         .ts-sep { margin-top: 1rem; margin-bottom: 0; }
         .ts-box { padding-top: 1rem; padding-bottom: 0.75rem; }
         .ts-box > span { margin-bottom: 0.5rem; }
@@ -625,10 +631,10 @@
             </div>
         </main>
 
-        <footer class="ts-cap py-2.5 px-5 bg-[#f5f0e6] dark:bg-slate-900 border-t border-stone-300/60 dark:border-slate-800 flex items-center justify-between text-xs text-stone-500 dark:text-slate-400 transition-colors">
+        <footer class="ts-cap py-2.5 px-5 bg-[#f5f0e6] dark:bg-slate-900 border-t border-stone-300/60 dark:border-slate-800 flex items-center justify-between text-xs text-stone-500 dark:text-slate-400 transition-colors whitespace-nowrap">
             <span class="flex items-center gap-1.5">
-                <span id="storagePulse" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
-                <span id="storageStatus">Base Local Ativa</span>
+                <span id="storagePulse" class="backup-dot w-2 h-2 rounded-full animate-pulse" aria-hidden="true"></span>
+                <span id="backupStatus" class="backup-text">Sem backup</span>
             </span>
             <span id="appVersionFooter" class="font-mono text-xs text-stone-400 dark:text-slate-500">v1.2</span>
         </footer>

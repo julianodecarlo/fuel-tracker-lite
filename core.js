@@ -148,8 +148,29 @@ const FuelCore = (() => {
         return rec;
     }
 
+    // Estado do backup (UNICA fonte de verdade: rodape e lembrete de 30 dias).
+    // lastBackup = timestamp do ultimo backup gravado (ou 0); refTs = referencia de inicio da contagem (ou 0).
+    const BACKUP_LIMIT_DAYS = 30;
+    function formatBackupDate(ts) {
+        const d = new Date(ts);
+        const p = n => String(n).padStart(2, '0');
+        return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
+    }
+    function getBackupStatus(now, lastBackup, refTs) {
+        const last = Number(lastBackup) > 0 ? Number(lastBackup) : 0;
+        const ref = last || (Number(refTs) > 0 ? Number(refTs) : 0);
+        const days = ref ? Math.floor((now - ref) / 86400000) : 0;
+        const overdue = !!ref && (now - ref) > BACKUP_LIMIT_DAYS * 86400000;
+        return {
+            hasBackup: !!last,
+            days,
+            overdue,
+            text: last ? 'Backup: ' + formatBackupDate(last) : 'Sem backup'
+        };
+    }
+
     return {
-        MAX_ODOMETER,
+        MAX_ODOMETER, BACKUP_LIMIT_DAYS, getBackupStatus, formatBackupDate,
         safeRound, parseDecimalValue, toLocalISODate, todayLocalISO, escapeHtml, toBool,
         litersOf, fuelOf, computeConsumptionSegments, weightedKml, sanitizeRecord,
         filterRecordsByPeriod, calculatePeriodTotals

@@ -368,6 +368,7 @@ const FuelTrackerApp = (() => {
 
     function markBackupDone() {
         try { localStorage.setItem(LAST_BACKUP_KEY, String(Date.now())); } catch (e) { }
+        renderBackupFooter();
     }
 
     /**
@@ -441,14 +442,33 @@ const FuelTrackerApp = (() => {
         return true;
     }
 
+    // Estado do backup: a MESMA funcao alimenta o rodape e o lembrete (sempre concordam).
+    // Sem nenhuma referencia, a contagem comeca agora (BACKUP_REF_KEY).
+    function getBackupStatus(now) {
+        let last = 0, ref = 0;
+        try {
+            last = Number(localStorage.getItem(LAST_BACKUP_KEY)) || 0;
+            ref = Number(localStorage.getItem(BACKUP_REF_KEY)) || 0;
+            if (!last && !ref) { ref = now; localStorage.setItem(BACKUP_REF_KEY, String(now)); }
+        } catch (e) { }
+        return FuelCore.getBackupStatus(now, last, ref);
+    }
+
+    function renderBackupFooter() {
+        try {
+            const st = getBackupStatus(Date.now());
+            const el = document.getElementById('backupStatus');
+            const dot = document.getElementById('storagePulse');
+            if (el) { el.textContent = st.text; el.classList.toggle('backup-late', st.overdue); }
+            if (dot) dot.classList.toggle('backup-dot-late', st.overdue);
+        } catch (e) { }
+    }
+
     // Lembrete após 30 dias sem backup (a contagem começa no primeiro uso depois desta versão)
     function checkBackupReminder() {
         try {
             if (!records || !records.length) return;
-            const now = Date.now();
-            let ref = Number(localStorage.getItem(LAST_BACKUP_KEY)) || Number(localStorage.getItem(BACKUP_REF_KEY));
-            if (!ref) { localStorage.setItem(BACKUP_REF_KEY, String(now)); return; }
-            if (now - ref > BACKUP_REMINDER_DAYS * 86400000) {
+            if (getBackupStatus(Date.now()).overdue) {
                 showToast('Faz mais de ' + BACKUP_REMINDER_DAYS + ' dias sem backup. Abra Configurações > Backup e exporte seus dados.', 'fa-triangle-exclamation', 'text-amber-500');
             }
         } catch (e) { }
@@ -2591,11 +2611,13 @@ const FuelTrackerApp = (() => {
         // (restaura/confirma/revoga). Mudanças chegam via FuelBilling.onChange.
         FuelBilling.init();
         checkBackupReminder();
+        renderBackupFooter();
         showNativeVersion();
         // reconsulta a licença ao voltar do segundo plano (no máximo a cada 60 s)
         let lastBillingRefresh = Date.now();
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState !== 'visible') return;
+            renderBackupFooter();
             // limpa sempre qualquer compra pendente/travada e reabilita os botões de compra
             try { FuelBilling.resetPending(); } catch (e) { }
             ['btnConfirmUpgrade', 'btnRestorePurchase'].forEach(function (id) {

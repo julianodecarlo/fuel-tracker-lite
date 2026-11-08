@@ -135,6 +135,44 @@ test('verdes: .text-etanol e .text-verde-suave existem e diferem (claro e escuro
     for (const bg of ['#0f172a', '#1e293b']) assert.ok(cr(dS, bg) >= 4.5, 'escuro ' + bg);
 });
 
+const DAY = 86400000;
+const NOW_T = new Date(2026, 10, 8, 12, 0, 0).getTime();
+test('backup: sem backup e sem referência => "Sem backup", não atrasado', () => {
+    const s = FuelCore.getBackupStatus(NOW_T, 0, 0);
+    assert.strictEqual(s.text, 'Sem backup');
+    assert.strictEqual(s.hasBackup, false);
+    assert.strictEqual(s.overdue, false);
+});
+test('backup: sem backup mas referência há 31 dias => "Sem backup" e atrasado', () => {
+    const s = FuelCore.getBackupStatus(NOW_T, 0, NOW_T - 31 * DAY);
+    assert.strictEqual(s.text, 'Sem backup');
+    assert.strictEqual(s.overdue, true);
+});
+test('backup: 10 dias => em dia, com data dd/mm/aaaa', () => {
+    const s = FuelCore.getBackupStatus(NOW_T, NOW_T - 10 * DAY, 0);
+    assert.strictEqual(s.overdue, false);
+    assert.strictEqual(s.days, 10);
+    assert.strictEqual(s.text, 'Backup: 29/10/2026');
+});
+test('backup: 31 dias => atrasado; 30 dias exatos ainda em dia', () => {
+    assert.strictEqual(FuelCore.getBackupStatus(NOW_T, NOW_T - 31 * DAY, 0).overdue, true);
+    assert.strictEqual(FuelCore.getBackupStatus(NOW_T, NOW_T - 30 * DAY, 0).overdue, false);
+});
+test('backup: formato da data é dd/mm/aaaa com zeros à esquerda (fuso local)', () => {
+    assert.strictEqual(FuelCore.formatBackupDate(new Date(2026, 0, 5, 23, 30).getTime()), '05/01/2026');
+    assert.strictEqual(FuelCore.formatBackupDate(new Date(2026, 10, 8, 0, 5).getTime()), '08/11/2026');
+});
+test('rodapé: "Base Local Ativa" removido; lembrete e rodapé usam a mesma getBackupStatus', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    assert.ok(!/Base Local Ativa/.test(html + app));
+    assert.ok(/id="backupStatus"/.test(html));
+    assert.ok(/id="appVersionFooter"/.test(html));
+    const reminder = app.slice(app.indexOf('function checkBackupReminder'), app.indexOf('function normalizeImportedRecord'));
+    const footer = app.slice(app.indexOf('function renderBackupFooter'), app.indexOf('function checkBackupReminder'));
+    assert.ok(/getBackupStatus\(/.test(reminder) && /getBackupStatus\(/.test(footer));
+});
+
 (async () => {
     let failed = 0;
     for (const [name, fn] of tests) {
