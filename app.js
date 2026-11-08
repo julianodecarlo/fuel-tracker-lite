@@ -1843,7 +1843,11 @@ const FuelTrackerApp = (() => {
             // Sem tanques cheios de etanol E gasolina o fator é a regra geral (70%), não o do seu carro
             const { segsA, segsG } = getFullTankKmlsByFuel();
             const usingDefault = !(segsA.length && segsG.length);
-            labelFator.innerText = usingDefault ? `Fator padrão: ${(fator * 100).toFixed(0)}%` : `Fator: ${(fator * 100).toFixed(1)}%`;
+            const fLabel = document.getElementById('fatorPostoLabel');
+            const fValor = document.getElementById('fatorPostoValor');
+            const fTexto = usingDefault ? `${(fator * 100).toFixed(0)}%` : `${(fator * 100).toFixed(1).replace('.', ',')}%`;
+            if (fLabel) fLabel.textContent = usingDefault ? 'Fator padrão' : 'Fator';
+            if (fValor) fValor.textContent = fTexto;
             labelFator.title = usingDefault
                 ? 'Faltam abastecimentos de tanque cheio com etanol e com gasolina para calcular o fator do seu carro.'
                 : 'Fator calculado com o consumo médio do seu carro (km/L etanol ÷ km/L gasolina).';
