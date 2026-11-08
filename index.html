@@ -118,9 +118,15 @@
         #btnUpgradePro, #btnSettingsMenu, #appHeaderIcon { flex-shrink: 0; }
         @media (max-width: 420px) {
             header { padding-left: 0.75rem; padding-right: 0.75rem; }
-            #appSubHeader, #appBadge, #btnUpgradePro i { display: none; }
+            /* Esconde subtitulo, icone do app e texto do botao PRO; selo LITE/PRO sempre visivel */
+            #appSubHeader, #appHeaderIcon, #btnUpgradePro span { display: none; }
             header h1 { font-size: 0.875rem; }
-            #vehicleSelect { max-width: 84px; }
+            #appBadge { font-size: 0.75rem; padding: 0.125rem 0.25rem; }
+            #btnUpgradePro { padding: 0.375rem 0.5rem; }
+            header > div:first-child { flex-shrink: 0; }
+            header > div:last-child { gap: 0.375rem; min-width: 0; flex: 1 1 auto; justify-content: flex-end; }
+            header > div:last-child > div:first-child { min-width: 0; flex: 0 1 auto; }
+            #vehicleSelect { max-width: 112px; min-width: 88px; text-overflow: ellipsis; }
         }
     </style>
 </head>
